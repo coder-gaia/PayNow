@@ -1,0 +1,291 @@
+# Paynow
+
+[![CI](https://github.com/coder-gaia/PayNow/actions/workflows/ci.yml/badge.svg)](https://github.com/coder-gaia/PayNow/actions/workflows/ci.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-14654A.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-22.13-14654A.svg)](.nvmrc)
+
+Motor de cobrança recorrente cuja corretude é **verificável**, e não apenas
+afirmada. Saldo não é um campo, é uma consequência.
+
+> Este é um projeto de engenharia, não um produto comercial. Ele existe para
+> levar um domínio difícil até onde ele fica realmente difícil, e para provar,
+> com teste reproduzível, que o resultado está correto.
+
+## Sumário
+
+- [O problema](#o-problema)
+- [Os três pilares](#os-três-pilares)
+- [Arquitetura](#arquitetura)
+- [Stack](#stack)
+- [Como rodar](#como-rodar)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Scripts](#scripts)
+- [Documentação](#documentação)
+- [Roadmap](#roadmap)
+- [Licença](#licença)
+
+## O problema
+
+Cobrança recorrente é um dos poucos domínios em que um bug não é um incômodo de
+interface: é dinheiro errado na conta de alguém, com rastro contábil e
+consequência legal.
+
+O Paynow foi desenhado em volta dos cenários em que sistemas de cobrança
+realmente falham:
+
+- o gateway entrega o mesmo webhook três vezes, fora de ordem, com três dias de
+  atraso, e o efeito precisa ser exatamente um;
+- o request de cobrança dá timeout, mas a cobrança foi efetivada do outro lado;
+- dois requests alteram a mesma assinatura no mesmo milissegundo;
+- o cliente faz upgrade no dia 12 de um ciclo de 30 dias e o rateio precisa
+  fechar até o centavo;
+- e a pergunta que resume todas as outras: **como provar que o saldo está certo?**
+
+A resposta a essa última pergunta é a decisão da qual todo o resto do sistema
+decorre: o saldo não é armazenado, é derivado de um livro contábil imutável de
+partidas dobradas. O raciocínio completo está em [docs/why.md](docs/why.md).
+
+## Os três pilares
+
+### 1. Ledger verificável
+
+Toda movimentação vira lançamento balanceado em contas nomeadas, com escrita
+exclusivamente por acréscimo. A soma das linhas de um lançamento é sempre zero,
+garantido por constraint no banco. A role da aplicação não tem permissão de
+`UPDATE` nem `DELETE` no ledger: correção acontece por lançamento de estorno,
+preservando a evidência do erro.
+
+Os invariantes são verificados por testes de propriedade que geram milhares de
+sequências aleatórias de operações.
+
+Ver [ADR-0003](docs/adr/0003-ledger-de-partidas-dobradas.md) e
+[plano de contas](docs/plano-de-contas.md).
+
+### 2. Relógio virtual
+
+Nenhuma linha do domínio chama `new Date()`, e uma regra de lint quebra o build
+se alguém tentar. O tempo é injetado, e cada organização tem o seu próprio
+relógio.
+
+Isso permite simular doze meses de ciclo de cobrança em milissegundos nos testes
+e arrastar uma linha do tempo na interface para ver trial, rateio, falha de
+pagamento e cobrança de recuperação acontecerem ao vivo. Sem isso, demonstrar um
+sistema de cobrança exigiria esperar trinta dias.
+
+### 3. Suíte adversarial
+
+Um gateway falso programável que falha, dá timeout, duplica webhooks e os entrega
+fora de ordem, combinado com um harness determinístico que embaralha milhares de
+cenários por build e afirma duas coisas: o estado final converge
+independentemente da ordem de chegada, e o ledger nunca desbalanceia em nenhum
+passo intermediário.
+
+Roda no CI. Toda falha é reproduzível por uma seed.
+
+## Arquitetura
+
+Um único artefato de deploy, com módulos de domínio isolados por fronteiras
+impostas por lint, executável em dois modos selecionados por variável de
+ambiente. O raciocínio, incluindo por que não são microserviços, está na
+[ADR-0001](docs/adr/0001-monolito-modular.md).
+
+```mermaid
+flowchart LR
+    subgraph clientes[" "]
+        painel["Painel<br/>Next.js"]
+        merchant["API do merchant<br/>chave sk_"]
+    end
+
+    subgraph api["apps/api  ·  uma imagem, dois modos"]
+        direction TB
+        identity["identity"]
+        catalog["catalog"]
+        subs["subscriptions"]
+        pay["payments"]
+        ledger["ledger"]
+        hooks["webhooks"]
+        worker["modo worker<br/>outbox · dunning · reconciliação"]
+    end
+
+    subgraph dados[" "]
+        pg[("PostgreSQL")]
+        redis[("Redis + BullMQ")]
+    end
+
+    subgraph gateways["porta PaymentGateway"]
+        fake["FakeGateway<br/>falhas programáveis"]
+        stripe["StripeGateway<br/>modo de teste"]
+    end
+
+    painel --> api
+    merchant --> api
+    api --> pg
+    api --> redis
+    api --> gateways
+    hooks -- "webhook assinado HMAC" --> destino["endpoint do merchant"]
+```
+
+A regra `boundaries/element-types` no ESLint impede que um módulo de domínio
+importe outro. A comunicação entre eles acontece por eventos, que passam pelo
+outbox transacional. Essa é a mesma costura que uma extração para serviço
+independente usaria.
+
+```
+entrypoint  ->  config, platform, qualquer módulo de domínio
+platform    ->  platform, config
+domínio     ->  platform, config, ele mesmo
+domínio     ->  outro domínio: o build quebra
+```
+
+## Stack
+
+| Camada          | Escolha                                         |
+| --------------- | ----------------------------------------------- |
+| Runtime         | Node 22, TypeScript 5.9                         |
+| API             | NestJS 11, OpenAPI via Swagger                  |
+| Persistência    | PostgreSQL 16, Prisma                           |
+| Fila e cache    | Redis, BullMQ                                   |
+| Testes          | Jest, Supertest, Testcontainers, fast-check, k6 |
+| Frontend        | Next.js, TanStack Query, Tailwind               |
+| Observabilidade | OpenTelemetry, Sentry, Datadog, Honeybadger     |
+| Infraestrutura  | Docker, GitHub Actions, Heroku                  |
+
+## Como rodar
+
+### Pré-requisitos
+
+- Node 22.13 ou superior
+- pnpm 11
+- Docker e Docker Compose
+
+### Passo a passo
+
+```bash
+git clone https://github.com/coder-gaia/PayNow.git
+cd PayNow
+
+cp .env.example .env
+pnpm install
+
+# sobe PostgreSQL, Redis e Mailpit
+pnpm infra:up
+
+# aplica as migrations
+pnpm db:deploy
+
+# sobe a API em modo desenvolvimento
+pnpm dev
+```
+
+Depois disso:
+
+| Endereço                           | O que é                           |
+| ---------------------------------- | --------------------------------- |
+| http://localhost:3333/health/live  | Liveness probe                    |
+| http://localhost:3333/health/ready | Readiness, verifica banco e Redis |
+| http://localhost:3333/docs         | Documentação OpenAPI              |
+| http://localhost:8025              | Mailpit, caixa de entrada local   |
+
+### Codespaces
+
+O repositório traz um dev container. Abrir no GitHub Codespaces já entrega
+Node, pnpm, Docker e os serviços de apoio configurados, sem instalar nada
+localmente.
+
+## Estrutura do repositório
+
+```
+paynow/
+├── apps/
+│   ├── api/                  # NestJS: HTTP e worker no mesmo artefato
+│   │   └── src/
+│   │       ├── config/       # validação de ambiente
+│   │       └── modules/
+│   │           ├── platform/ # relógio, outbox, idempotência, telemetria
+│   │           └── ...       # módulos de domínio
+│   └── web/                  # Next.js (fase 08)
+├── packages/
+│   └── money/                # value object monetário em unidade mínima
+├── tools/                    # harness de caos e testes de carga
+└── docs/
+    ├── adr/                  # decisões arquiteturais, numeradas e imutáveis
+    ├── plano-de-contas.md    # contrato contábil do ledger
+    └── why.md                # motivação do projeto
+```
+
+## Scripts
+
+| Comando            | O que faz                                             |
+| ------------------ | ----------------------------------------------------- |
+| `pnpm dev`         | Sobe a aplicação em modo desenvolvimento              |
+| `pnpm build`       | Compila todos os pacotes                              |
+| `pnpm lint`        | ESLint, incluindo as regras de fronteira e de relógio |
+| `pnpm typecheck`   | Verificação de tipos sem emitir                       |
+| `pnpm test`        | Testes unitários e de integração                      |
+| `pnpm test:cov`    | Testes com relatório de cobertura                     |
+| `pnpm format`      | Formata o repositório com Prettier                    |
+| `pnpm infra:up`    | Sobe PostgreSQL, Redis e Mailpit                      |
+| `pnpm infra:down`  | Derruba os serviços de apoio                          |
+| `pnpm infra:reset` | Derruba, apaga os volumes e sobe de novo              |
+| `pnpm db:migrate`  | Cria e aplica migration em desenvolvimento            |
+| `pnpm db:deploy`   | Aplica migrations pendentes                           |
+| `pnpm db:studio`   | Abre o Prisma Studio                                  |
+
+## Documentação
+
+| Documento                                          | Conteúdo                                              |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| [docs/why.md](docs/why.md)                         | Por que o projeto existe e qual problema ele ataca    |
+| [docs/plano-de-contas.md](docs/plano-de-contas.md) | Contrato contábil, contas e lançamentos de referência |
+| [docs/adr/](docs/adr/)                             | Decisões arquiteturais, numeradas e imutáveis         |
+
+## Roadmap
+
+Cada fase tem um critério de pronto verificável, e não opinativo.
+
+- [x] **00 Fundação.** Monorepo, dev container, health checks, primeira
+      migration, CI.
+- [ ] **01 Identidade.** Usuários, organizações, JWT com rotação de refresh e
+      detecção de reuso, RBAC, chaves de API.
+- [ ] **02 Ledger.** Contas, lançamentos, invariantes no banco, saldo derivado,
+      reconciliação, testes de propriedade.
+- [ ] **03 Catálogo e assinaturas.** Produtos, preços, planos, máquina de
+      estados, trial, rateio proporcional.
+- [ ] **04 Relógio e ciclo de cobrança.** Relógio virtual, agendamento, avanço
+      determinístico do tempo.
+- [ ] **05 Pagamentos.** Porta de gateway, idempotência, outbox, retry, dunning,
+      estorno.
+- [ ] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
+- [ ] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
+- [ ] **08 Painel e demonstração.** Linha do tempo, métricas, console de caos,
+      fatura explicável.
+- [ ] **09 Endurecimento e lançamento.** Limite de taxa, modelo de ameaças,
+      teste de carga, runbooks, deploy.
+
+## Licença
+
+Distribuído sob a Licença MIT. Veja [LICENSE](LICENSE) para o texto completo.
+
+```
+MIT License
+
+Copyright (c) 2026 Alexandre Gaia
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

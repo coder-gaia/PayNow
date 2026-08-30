@@ -1,0 +1,50 @@
+# Registros de decisão arquitetural
+
+Uma ADR (Architecture Decision Record) documenta uma decisão relevante no
+momento em que ela é tomada, com o contexto que existia na época.
+
+## Regras
+
+- ADRs são **numeradas e imutáveis**. Uma decisão revista não é editada: ganha
+  uma ADR nova, que declara qual anterior ela substitui.
+- Uma ADR é escrita **no momento da decisão**, não depois. Uma ADR escrita
+  retroativamente documenta uma justificativa, não uma decisão.
+- Toda ADR registra as **alternativas rejeitadas** e o motivo. A alternativa
+  rejeitada costuma ser a informação mais útil do documento.
+- Toda ADR tem um **gatilho de revisão**: a condição concreta que faria valer a
+  pena reabrir a discussão.
+
+## Status possíveis
+
+| Status        | Significado                                                |
+| ------------- | ---------------------------------------------------------- |
+| `Proposta`    | Em discussão, ainda não vale                               |
+| `Aceita`      | Vale, e o código deve refleti-la                           |
+| `Substituída` | Foi trocada por outra ADR, que é referenciada no cabeçalho |
+| `Descartada`  | Foi considerada e rejeitada sem substituição               |
+
+## Índice
+
+| ADR                                         | Título                                                        | Status |
+| ------------------------------------------- | ------------------------------------------------------------- | ------ |
+| [0001](0001-monolito-modular.md)            | Monólito modular em vez de microserviços                      | Aceita |
+| [0002](0002-dinheiro-como-inteiro.md)       | Dinheiro como inteiro em unidade mínima                       | Aceita |
+| [0003](0003-ledger-de-partidas-dobradas.md) | Ledger append-only de partidas dobradas como fonte da verdade | Aceita |
+
+As ADRs 0004 a 0013 estão previstas no plano do projeto e são escritas na fase
+em que a decisão passa a valer, e não antes.
+
+| Prevista | Título                                                     | Fase |
+| -------- | ---------------------------------------------------------- | ---- |
+| 0004     | Prisma para schema e tipos, SQL cru no núcleo transacional | 02   |
+| 0005     | Outbox transacional em vez de publicação direta            | 05   |
+| 0006     | Idempotency-Key no modelo do Stripe                        | 05   |
+| 0007     | Advisory locks para mutação de assinatura                  | 03   |
+| 0008     | Relógio injetado em vez de acesso direto ao tempo          | 04   |
+| 0009     | Autenticação própria em vez de provedor externo            | 01   |
+| 0010     | Porta de gateway com implementação falsa e Stripe em teste | 05   |
+| 0011     | Worker no mesmo processo, com flag e gatilho de extração   | 05   |
+| 0012     | OpenTelemetry com Datadog como backend                     | 09   |
+| 0013     | Escopo PCI-DSS SAQ-A por desenho                           | 05   |
+
+Use [template.md](template.md) para criar uma nova.
