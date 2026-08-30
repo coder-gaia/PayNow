@@ -1,0 +1,47 @@
+{
+  "name": "paynow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Motor de cobranca recorrente com ledger de partidas dobradas",
+  "license": "MIT",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:cov": "turbo run test:cov",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:reset": "docker compose down -v && docker compose up -d",
+    "db:migrate": "pnpm --filter @paynow/api db:migrate",
+    "db:deploy": "pnpm --filter @paynow/api db:deploy",
+    "db:studio": "pnpm --filter @paynow/api db:studio",
+    "commitlint": "commitlint"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-boundaries": "^7.2.0",
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.12",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 100,
+    "semi": true,
+    "endOfLine": "lf"
+  }
+}

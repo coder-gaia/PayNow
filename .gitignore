@@ -1,0 +1,42 @@
+# dependencias
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# ambiente
+.env
+.env.*
+!.env.example
+
+# testes e cobertura
+coverage/
+*.lcov
+.nyc_output/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editores
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# sistema operacional
+.DS_Store
+Thumbs.db
+
+# artefatos locais
+tmp/
+*.local
