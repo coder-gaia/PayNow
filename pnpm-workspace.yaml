@@ -2,3 +2,10 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'tools/*'
+
+# Dependencias autorizadas a rodar script de instalacao. As duas compilam
+# binario nativo: unrs-resolver e usado pela resolucao de modulos do ESLint e
+# @parcel/watcher pelo modo watch.
+allowBuilds:
+  '@parcel/watcher': true
+  unrs-resolver: true
