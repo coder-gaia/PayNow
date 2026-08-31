@@ -2,7 +2,7 @@ import { InvalidAmountError } from './errors';
 import { divideRounded, type RoundingMode } from './rounding';
 
 describe('divideRounded', () => {
-  it('recusa divisao por zero', () => {
+  it('recusa divisão por zero', () => {
     expect(() => divideRounded(10n, 0n)).toThrow(InvalidAmountError);
   });
 

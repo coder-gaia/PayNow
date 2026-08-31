@@ -171,7 +171,7 @@ export class RefreshTokenService {
   private async handleReuse(familyId: string, userId: string): Promise<void> {
     const revoked = await this.revokeFamily(familyId, RefreshTokenRevocationReason.REUSE_DETECTED);
 
-    // Registrado como warn de proposito: e o sinal mais forte de credencial
+    // Registrado como warn de propósito: é o sinal mais forte de credencial
     // vazada que o sistema consegue emitir sozinho.
     this.logger.warn(
       `Reuso de refresh token detectado. Familia ${familyId} do usuário ${userId} revogada, ` +

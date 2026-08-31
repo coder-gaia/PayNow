@@ -7,7 +7,7 @@ export const metadata = { title: 'Razão · Paynow' };
 /**
  * Explorador do razão.
  *
- * A tela existe para tornar visivel a decisão central do projeto: saldo não e
+ * A tela existe para tornar visível a decisão central do projeto: saldo não é
  * um campo, é a soma das linhas. Por isso ela mostra as duas coisas lado a
  * lado, e não apenas o saldo: a coluna de linhas diz de quantos lançamentos
  * cada saldo veio, e o total confere que tudo se anula.
@@ -41,7 +41,7 @@ export default async function LedgerPage() {
       ) : (
         <Alert tone="error">
           <span className="font-medium">
-            {verification.violations.length} violacao(oes) encontrada(s).
+            {verification.violations.length} violação(ões) encontrada(s).
           </span>
           <ul className="mt-2 ml-4 list-disc space-y-1 text-[13px]">
             {verification.violations.map((violation) => (
@@ -145,8 +145,8 @@ function EntryRow({ entry }: { entry: JournalEntry }) {
 /**
  * Valor com cor por natureza.
  *
- * Verde para débito e vermelho para crédito não e escolha estetica: é a mesma
- * convenção do razão em papel, e a paleta do painel foi construida em volta
+ * Verde para débito e vermelho para crédito não é escolha estética: é a mesma
+ * convenção do razão em papel, e a paleta do painel foi construída em volta
  * dela desde a fase 01.
  */
 function Amount({ value, currency }: { value: string; currency: string }) {

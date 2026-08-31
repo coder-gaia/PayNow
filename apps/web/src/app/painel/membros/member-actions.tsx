@@ -15,7 +15,7 @@ const ROLES: OrganizationRole[] = ['OWNER', 'ADMIN', 'MEMBER', 'READONLY'];
  *
  * A interface deixa tentar ações que o servidor pode recusar, como rebaixar o
  * último OWNER. Isso é deliberado: a regra vive no backend, e esconder o
- * controle aqui criaria uma segunda copia da regra que pode divergir da
+ * controle aqui criaria uma segunda cópia da regra que pode divergir da
  * primeira.
  *
  * O papel exibido usa `useOptimistic` justamente por causa disso. Um `<select>`

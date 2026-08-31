@@ -3,7 +3,7 @@
 import { type ComponentProps, createContext, type ReactNode, useContext, useId } from 'react';
 
 /**
- * Campos de formulario.
+ * Campos de formulário.
  *
  * O rotulo se liga ao controle por `htmlFor`, e não envolvendo-o. A diferença
  * parece cosmetica e não e: quando um campo tem adorno interno, como o botão

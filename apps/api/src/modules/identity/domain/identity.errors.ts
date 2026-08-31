@@ -12,7 +12,7 @@ import {
  * Duas regras guiam as mensagens:
  *
  * 1. Erro de autenticação nunca diz se o problema foi o email ou a senha. A
- *    distincao transforma o formulario de login em um verificador de quais
+ *    distinção transforma o formulário de login em um verificador de quais
  *    emails existem no sistema.
  * 2. Erro de autorização diz o que faltou, porque quem já está autenticado tem
  *    direito de entender por que foi barrado.

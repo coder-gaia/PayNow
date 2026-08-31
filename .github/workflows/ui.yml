@@ -1,6 +1,6 @@
 name: Interface
 
-# Separado do CI principal de proposito: esta suite sobe a pilha inteira,
+# Separado do CI principal de propósito: esta suíte sobe a pilha inteira,
 # baixa um navegador e leva minutos, enquanto lint, tipos e testes de unidade
 # respondem em segundos. Manter os dois juntos atrasaria o retorno de todo
 # pull request que nem toca no painel.

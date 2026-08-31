@@ -17,7 +17,7 @@
  *
  * A escolha e alterar o prototipo uma única vez, no boot, de forma explicita e
  * documentada. Bigint vira string em JSON, nunca number, porque number
- * reintroduziria a perda de precisao que a ADR-0002 existe para eliminar.
+ * reintroduziria a perda de precisão que a ADR-0002 existe para eliminar.
  *
  * Este arquivo precisa ser importado antes de qualquer serialização acontecer.
  */

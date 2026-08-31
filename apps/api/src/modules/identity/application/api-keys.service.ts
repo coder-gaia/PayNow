@@ -6,7 +6,7 @@ import { PrismaService } from '../../platform/prisma/prisma.service';
 import { ApiKeyNotFoundError } from '../domain/identity.errors';
 import { TokenHasher } from '../infrastructure/token-hasher';
 
-/** Quantos caracteres do segredo entram no prefixo visivel. */
+/** Quantos caracteres do segredo entram no prefixo visível. */
 const PREFIX_SAMPLE_LENGTH = 8;
 
 const ENVIRONMENT_LABEL: Readonly<Record<ApiKeyEnvironment, string>> = {

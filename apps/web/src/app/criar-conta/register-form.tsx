@@ -26,7 +26,7 @@ export function RegisterForm() {
         <PasswordInput name="password" autoComplete="new-password" required minLength={10} />
       </Field>
 
-      <Field label="Nome da organizacao">
+      <Field label="Nome da organização">
         <Input name="organizationName" required minLength={2} placeholder="Livraria Aurora" />
       </Field>
 

@@ -5,15 +5,15 @@ import boundaries from 'eslint-plugin-boundaries';
 import tseslint from 'typescript-eslint';
 
 /**
- * Duas decisoes arquiteturais deste repositorio sao aplicadas aqui como erro
- * de lint, e nao como convencao escrita:
+ * Duas decisões arquiteturais deste repositório são aplicadas aqui como erro
+ * de lint, e não como convenção escrita:
  *
- *   ADR-0001  modulos de dominio nao podem se importar entre si
- *   ADR-0009  o tempo e injetado, nao lido do relogio do sistema
+ *   ADR-0001  módulos de domínio não podem se importar entre si
+ *   ADR-0009  o tempo é injetado, não lido do relógio do sistema
  *
- * Que as duas realmente disparam e verificado por `pnpm verify:architecture`,
- * que roda no CI. Uma regra que existe no arquivo mas nao dispara e pior do
- * que nenhuma regra: ela da a impressao de que a fronteira esta protegida.
+ * Que as duas realmente disparam é verificado por `pnpm verify:architecture`,
+ * que roda no CI. Uma regra que existe no arquivo mas não dispara é pior do
+ * que nenhuma regra: ela dá a impressão de que a fronteira está protegida.
  */
 export default tseslint.config(
   {
@@ -57,22 +57,25 @@ export default tseslint.config(
   },
 
   // ---------------------------------------------------------------------
-  // ADR-0009: o relogio e injetado.
+  // ADR-0009: o relógio é injetado.
   //
-  // O modulo platform esta fora da regra porque abriga a unica implementacao
-  // autorizada do relogio, alem de usos legitimos de hora de parede que nao
-  // sao tempo de dominio, como o carimbo do probe de prontidao.
+  // O módulo platform está fora da regra porque abriga a única implementação
+  // autorizada do relógio, além de usos legítimos de hora de parede que não
+  // são tempo de domínio, como o carimbo do probe de prontidão.
   // ---------------------------------------------------------------------
   {
     files: ['apps/api/src/modules/*/**/*.ts'],
-    ignores: ['apps/api/src/modules/platform/**'],
+    // O módulo platform abriga a única implementação autorizada do relógio.
+    // Testes ficam de fora porque constroem instantes explícitos de propósito,
+    // que é o oposto do acoplamento com tempo ambiente que a regra evita.
+    ignores: ['apps/api/src/modules/platform/**', '**/*.spec.ts'],
     rules: {
       'no-restricted-globals': [
         'error',
         {
           name: 'Date',
           message:
-            'ADR-0009: use o Clock injetado (modules/platform/clock) em vez de acessar o relogio do sistema.',
+            'ADR-0009: use o Clock injetado (modules/platform/clock) em vez de acessar o relógio do sistema.',
         },
       ],
       'no-restricted-syntax': [
@@ -92,32 +95,32 @@ export default tseslint.config(
   },
 
   // ---------------------------------------------------------------------
-  // ADR-0001: fronteiras entre modulos.
+  // ADR-0001: fronteiras entre módulos.
   //
   // Hierarquia permitida:
   //
   //   config    ->  config
   //   platform  ->  platform, config
-  //   dominio   ->  platform, config, ele mesmo
-  //   dominio   ->  outro dominio: o build quebra
+  //   domínio   ->  platform, config, ele mesmo
+  //   domínio   ->  outro domínio: o build quebra
   //
-  // A raiz de composicao (main.ts e app.module.ts) fica deliberadamente sem
-  // classificacao: e o unico lugar cuja funcao e enxergar todos os modulos
-  // para liga-los.
+  // A raiz de composição (main.ts e app.module.ts) fica deliberadamente sem
+  // classificação: é o único lugar cuja função é enxergar todos os módulos
+  // para ligá-los.
   // ---------------------------------------------------------------------
   {
     files: ['apps/api/src/**/*.ts'],
     plugins: { boundaries },
     settings: {
-      // Padroes ancorados pelo fim (**/src/...) de proposito: o lint roda
-      // tanto da raiz do repositorio quanto de dentro de apps/api, e o plugin
-      // resolve caminhos relativos ao diretorio de execucao. Padrao ancorado
-      // no inicio fica inerte quando o lint roda de dentro do pacote, que e
+      // Padrões ancorados pelo fim (**/src/...) de propósito: o lint roda
+      // tanto da raiz do repositório quanto de dentro de apps/api, e o plugin
+      // resolve caminhos relativos ao diretório de execução. Padrão ancorado
+      // no início fica inerte quando o lint roda de dentro do pacote, que é
       // como o script do package.json o executa.
-      // O plugin resolve dependencias via eslint-import-resolver-node, que por
-      // padrao so conhece .js, .mjs, .json e .node. Sem isto, todo import
+      // O plugin resolve dependências via eslint-import-resolver-node, que por
+      // padrão só conhece .js, .mjs, .json e .node. Sem isto, todo import
       // relativo entre arquivos .ts fica classificado como desconhecido e a
-      // regra de fronteira nao dispara em lugar nenhum, silenciosamente.
+      // regra de fronteira não dispara em lugar nenhum, silenciosamente.
       'import/resolver': {
         node: { extensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json'] },
       },
@@ -158,9 +161,9 @@ export default tseslint.config(
     },
   },
 
-  // As respostas do supertest sao tipadas como `any`, e tipar cada corpo de
-  // resposta em teste so acrescentaria cerimonia: o que o teste afirma ja e a
-  // forma da resposta. As regras de `unsafe` sao desligadas apenas aqui.
+  // As respostas do supertest são tipadas como `any`, e tipar cada corpo de
+  // resposta em teste só acrescentaria cerimônia: o que o teste afirma já é a
+  // forma da resposta. As regras de `unsafe` são desligadas apenas aqui.
   {
     files: ['**/*.spec.ts', '**/*.test.ts', '**/test/**/*.ts'],
     rules: {

@@ -1,8 +1,8 @@
-# Servicos de apoio para desenvolvimento e testes.
+# Serviços de apoio para desenvolvimento e testes.
 #
-# A aplicacao em si roda fora do compose, com `pnpm dev`, porque o ciclo de
-# recompilacao em container e mais lento sem nenhum ganho nesta fase. O
-# empacotamento da aplicacao para deploy entra na fase 09.
+# A aplicação em si roda fora do compose, com `pnpm dev`, porque o ciclo de
+# recompilação em container é mais lento sem nenhum ganho nesta fase. O
+# empacotamento da aplicação para deploy entra na fase 09.
 
 name: paynow
 
@@ -14,13 +14,13 @@ services:
       POSTGRES_USER: paynow
       POSTGRES_PASSWORD: paynow
       POSTGRES_DB: paynow
-      # O ledger depende de ordenacao e comparacao estaveis. Fixar a collation
-      # evita que o banco local divirja do de producao em ordenacao de texto.
+      # O ledger depende de ordenação e comparação estáveis. Fixar a collation
+      # evita que o banco local divirja do de produção em ordenação de texto.
       LANG: C
       POSTGRES_INITDB_ARGS: '--locale=C --encoding=UTF8'
     ports:
-      # Publicado em 5433 de proposito. A 5432 costuma ja estar ocupada por uma
-      # instalacao nativa do PostgreSQL, e quando isso acontece a aplicacao
+      # Publicado em 5433 de propósito. A 5432 costuma já estar ocupada por uma
+      # instalação nativa do PostgreSQL, e quando isso acontece a aplicação
       # conecta silenciosamente no banco errado em vez de falhar.
       - '5433:5432'
     volumes:
@@ -36,7 +36,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: paynow-redis
-    # Persistencia ligada: filas do BullMQ com jobs agendados nao podem sumir
+    # Persistência ligada: filas do BullMQ com jobs agendados não podem sumir
     # quando o container reinicia durante o desenvolvimento.
     command: ['redis-server', '--appendonly', 'yes']
     ports:
@@ -49,7 +49,7 @@ services:
       timeout: 3s
       retries: 12
 
-  # Servidor SMTP local com interface web. Nenhum email sai da maquina.
+  # Servidor SMTP local com interface web. Nenhum email sai da máquina.
   mailpit:
     image: axllent/mailpit:v1.21
     container_name: paynow-mailpit

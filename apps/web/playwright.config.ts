@@ -9,16 +9,16 @@ import { defineConfig, devices } from '@playwright/test';
  * confirmação esperava um clique dentro de uma transição do React. Nenhum dos
  * dois seria pego por teste de unidade ou por teste de API.
  *
- * Exigem a pilha inteira de pe: PostgreSQL, Redis, a API e os dados de
- * demonstracao. Ver o README.
+ * Exigem a pilha inteira de pé: PostgreSQL, Redis, a API e os dados de
+ * demonstração. Ver o README.
  */
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   forbidOnly: process.env['CI'] === 'true',
   retries: process.env['CI'] === 'true' ? 1 : 0,
-  // Serial de proposito: os testes compartilham a organização de demonstracao,
-  // e rodar em paralelo faria um mexer no papel que o outro esta conferindo.
+  // Serial de propósito: os testes compartilham a organização de demonstração,
+  // e rodar em paralelo faria um mexer no papel que o outro está conferindo.
   workers: 1,
   reporter: process.env['CI'] === 'true' ? 'list' : [['list'], ['html', { open: 'never' }]],
 

@@ -213,7 +213,7 @@ export class Money {
 
     // Fracao pendente de cada parte, ainda multiplicada por totalWeight para
     // continuar em inteiros. Comparar estes numeradores equivale a comparar as
-    // fracoes, sem introduzir divisao e sem introduzir ponto flutuante.
+    // frações, sem introduzir divisão e sem introduzir ponto flutuante.
     const pending = parsed.map((weight, index) => {
       const exactNumerator = this.minor * weight;
       const takenNumerator = (shares[index] ?? 0n) * totalWeight;

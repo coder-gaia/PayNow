@@ -37,7 +37,7 @@ export function divideRounded(
   mode: RoundingMode = DEFAULT_ROUNDING,
 ): bigint {
   if (denominator === 0n) {
-    throw new InvalidAmountError('Divisao por zero.');
+    throw new InvalidAmountError('Divisão por zero.');
   }
 
   // Normaliza para denominador positivo, o que simplifica o raciocinio de sinal.

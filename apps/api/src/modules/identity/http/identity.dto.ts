@@ -81,7 +81,7 @@ export class UpdateMemberRoleDto {
 }
 
 export class CreateApiKeyDto {
-  @ApiProperty({ example: 'Servidor de producao' })
+  @ApiProperty({ example: 'Servidor de produção' })
   @IsString()
   @Length(2, 80)
   name!: string;
@@ -128,7 +128,7 @@ export class ApiKeyResponse {
   @ApiProperty() id!: string;
   @ApiProperty() name!: string;
   @ApiProperty({ enum: ApiKeyEnvironment }) environment!: ApiKeyEnvironment;
-  @ApiProperty({ example: 'sk_test_a1b2c3d4', description: 'Parte visivel da chave.' })
+  @ApiProperty({ example: 'sk_test_a1b2c3d4', description: 'Parte visível da chave.' })
   prefix!: string;
   @ApiPropertyOptional() lastUsedAt?: Date | null;
   @ApiPropertyOptional() revokedAt?: Date | null;

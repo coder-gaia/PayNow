@@ -25,7 +25,7 @@ export class HealthService {
 
   /**
    * Responde se o processo esta vivo. Não toca em dependência externa de
-   * proposito: um banco fora do ar não e motivo para o orquestrador reiniciar
+   * propósito: um banco fora do ar não e motivo para o orquestrador reiniciar
    * o container, e sim para tira-lo do balanceador.
    */
   liveness(): LivenessReport {

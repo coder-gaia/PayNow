@@ -102,7 +102,7 @@ export class LedgerController {
       lineCount: report.lineCount,
       balanced: report.balanced,
       // O relatório interno usa lista somente leitura; a resposta da API e
-      // serializada, então a copia mutavel é o que o contrato declara.
+      // serializada, então a cópia mutável é o que o contrato declara.
       violations: [...report.violations],
     };
   }

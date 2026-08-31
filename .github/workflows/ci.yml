@@ -30,10 +30,10 @@ jobs:
       - name: Checagem de tipos
         run: pnpm typecheck
 
-      # As decisoes arquiteturais viram erro de lint, e esta etapa prova que as
-      # regras realmente disparam. Ja aconteceu de as regras estarem
-      # configuradas e inertes, o que e pior do que nao ter regra: da a
-      # impressao de que a fronteira esta protegida.
+      # As decisões arquiteturais viram erro de lint, e esta etapa prova que as
+      # regras realmente disparam. Já aconteceu de as regras estarem
+      # configuradas e inertes, o que é pior do que não ter regra: dá a
+      # impressão de que a fronteira está protegida.
       - name: Regras arquiteturais
         run: pnpm verify:architecture
 
@@ -63,9 +63,9 @@ jobs:
     name: Testes ponta a ponta
     runs-on: ubuntu-latest
 
-    # Aqui os servicos usam as portas padrao. O docker-compose local publica o
-    # PostgreSQL em 5433 para nao colidir com instalacao nativa, situacao que
-    # nao existe em runner efemero.
+    # Aqui os serviços usam as portas padrão. O docker-compose local publica o
+    # PostgreSQL em 5433 para não colidir com instalação nativa, situação que
+    # não existe em runner efêmero.
     services:
       postgres:
         image: postgres:16-alpine
@@ -96,8 +96,8 @@ jobs:
       DATABASE_URL: postgresql://paynow:paynow@localhost:5432/paynow?schema=public
       REDIS_URL: redis://localhost:6379
       WORKER_ENABLED: 'false'
-      # Segredo descartavel do runner. Nao e credencial: existe apenas para que
-      # a validacao de ambiente aceite subir a aplicacao durante os testes.
+      # Segredo descartável do runner. Não é credencial: existe apenas para que
+      # a validação de ambiente aceite subir a aplicação durante os testes.
       JWT_SECRET: chave-de-assinatura-descartavel-exclusiva-do-ci-do-paynow
 
     steps:

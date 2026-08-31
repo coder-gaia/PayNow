@@ -38,7 +38,7 @@ export class ApiKeysController {
 
   @Get()
   @ApiOperation({
-    summary: 'Lista as chaves da organizacao',
+    summary: 'Lista as chaves da organização',
     description: 'Apenas o prefixo é devolvido. O segredo não e recuperável depois da criação.',
   })
   @ApiOkResponse({ type: [ApiKeyResponse] })

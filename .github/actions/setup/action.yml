@@ -17,8 +17,8 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
-    # O cliente Prisma e gerado, e nao versionado. Sem esta etapa a checagem de
-    # tipos falha, porque PrismaService estende uma classe que ainda nao existe.
+    # O cliente Prisma é gerado, e não versionado. Sem esta etapa a checagem de
+    # tipos falha, porque PrismaService estende uma classe que ainda não existe.
     - name: Gerar cliente Prisma
       shell: bash
       run: pnpm --filter @paynow/api db:generate

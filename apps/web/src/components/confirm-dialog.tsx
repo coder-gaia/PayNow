@@ -18,7 +18,7 @@ import { Button } from './ui';
  * Substitui `window.confirm`, que trava a aba inteira, não aceita estilo e não
  * deixa distinguir uma remoção de uma revogação definitiva.
  *
- * Usa o elemento `<dialog>` nativo com `showModal()`, que já traz de graca o
+ * Usa o elemento `<dialog>` nativo com `showModal()`, que já traz de graça o
  * que uma implementação caseira erra: prender o foco dentro do modal, devolver
  * o foco ao elemento de origem ao fechar, tornar o resto da página inerte para
  * leitores de tela, e fechar no Escape.
@@ -40,7 +40,7 @@ export function useConfirm(): Confirm {
   const confirm = useContext(ConfirmContext);
 
   if (confirm === null) {
-    throw new Error('useConfirm exige que a arvore esteja dentro de <ConfirmProvider>.');
+    throw new Error('useConfirm exige que a árvore esteja dentro de <ConfirmProvider>.');
   }
 
   return confirm;
@@ -60,7 +60,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       new Promise<boolean>((resolve) => {
         setPending((previous) => {
           // Uma segunda confirmação pedida antes de a primeira ser respondida
-          // deixaria a promessa anterior pendurada para sempre, é quem a
+          // deixaria a promessa anterior pendurada para sempre, e quem a
           // aguardava nunca sairia do estado de carregamento. Resolver como
           // recusa encerra o pedido antigo antes de abrir o novo.
           previous?.resolve(false);

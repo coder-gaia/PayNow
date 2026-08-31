@@ -19,7 +19,7 @@ export function CreateApiKeyForm({ organizationId }: { organizationId: string })
 
       <form action={action} className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
         <Field label="Nome">
-          <Input name="name" required minLength={2} placeholder="Servidor de producao" />
+          <Input name="name" required minLength={2} placeholder="Servidor de produção" />
         </Field>
 
         <Field label="Ambiente">
@@ -38,7 +38,7 @@ export function CreateApiKeyForm({ organizationId }: { organizationId: string })
 }
 
 /**
- * Exibicao do segredo recem criado.
+ * Exibição do segredo recém criado.
  *
  * Aparece uma única vez porque o servidor guarda apenas o hash: nem o painel
  * nem a API conseguem recuperar o valor depois. O aviso e explicito para que

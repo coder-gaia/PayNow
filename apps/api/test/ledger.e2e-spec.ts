@@ -34,7 +34,7 @@ describe('Ledger (e2e)', () => {
     prisma = app.get(PrismaService);
 
     const organization = await prisma.organization.create({
-      data: { name: 'Razao de Teste', slug: `razao-${randomUUID().slice(0, 8)}` },
+      data: { name: 'Razão de Teste', slug: `razao-${randomUUID().slice(0, 8)}` },
     });
     organizationId = organization.id;
   });
@@ -274,7 +274,7 @@ describe('Ledger (e2e)', () => {
      *
      * Gera sequências aleatorias de lançamentos balanceados e afirma, depois de
      * cada sequência, que o razão continua íntegro e que a soma global é zero.
-     * O número de execuções e modesto de proposito: cada uma abre transações de
+     * O número de execuções é modesto de propósito: cada uma abre transações de
      * verdade, e a suíte precisa caber no tempo de um pull request. A fase 07
      * roda esta mesma ideia em escala, no harness adversarial.
      */

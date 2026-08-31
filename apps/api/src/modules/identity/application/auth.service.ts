@@ -14,7 +14,7 @@ import { resolveUniqueSlug } from '../domain/slug';
 import { PasswordHasher } from '../infrastructure/password-hasher';
 import { RefreshTokenService } from './refresh-token.service';
 
-/** Conteudo assinado no token de acesso. Nada sensível entra aqui. */
+/** Conteúdo assinado no token de acesso. Nada sensível entra aqui. */
 export interface AccessTokenPayload {
   readonly sub: string;
   readonly email: string;

@@ -188,7 +188,7 @@ describe('Organizações, papéis e chaves (e2e)', () => {
       expect(response.body.message).toMatch(/ao menos um OWNER/);
     });
 
-    it('recusa que o unico OWNER saia da organizacao', async () => {
+    it('recusa que o único OWNER saia da organização', async () => {
       const ana = await createAccount('ana');
 
       await request(httpServer(app))

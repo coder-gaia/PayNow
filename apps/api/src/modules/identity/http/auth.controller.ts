@@ -24,7 +24,7 @@ export class AuthController {
   @Post('register')
   @Public()
   @ApiOperation({
-    summary: 'Cria conta e primeira organizacao',
+    summary: 'Cria conta e primeira organização',
     description:
       'Conta e organização nascem na mesma transação. Um usuário sem organização não ' +
       'consegue fazer nada no sistema, então não existe estado intermediário.',

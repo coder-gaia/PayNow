@@ -51,14 +51,14 @@ export class OrganizationsController {
 
   @Get(':organizationId')
   @UseGuards(OrganizationRoleGuard)
-  @ApiOperation({ summary: 'Detalhe da organizacao' })
+  @ApiOperation({ summary: 'Detalhe da organização' })
   findOne(@Param('organizationId', uuid()) organizationId: string) {
     return this.organizations.findById(organizationId);
   }
 
   @Get(':organizationId/members')
   @UseGuards(OrganizationRoleGuard)
-  @ApiOperation({ summary: 'Membros da organizacao' })
+  @ApiOperation({ summary: 'Membros da organização' })
   @ApiOkResponse({ type: [MemberResponse] })
   listMembers(@Param('organizationId', uuid()) organizationId: string) {
     return this.organizations.listMembers(organizationId);

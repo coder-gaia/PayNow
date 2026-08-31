@@ -40,7 +40,7 @@ export class PasswordHasher {
    *
    * O hash é gerado uma única vez, sob demanda, a partir de bytes aleatorios:
    * um literal fixo no código não passaria pelo parser do Argon2 e retornaria
-   * rapido demais, justamente perdendo a propriedade que se quer.
+   * rápido demais, justamente perdendo a propriedade que se quer.
    */
   async verifyAgainstDummy(plain: string): Promise<boolean> {
     this.dummy ??= this.hash(randomBytes(32).toString('hex'));

@@ -106,7 +106,7 @@ describe('Autenticação (e2e)', () => {
      * Este e o critério de pronto da fase 01.
      *
      * Um refresh token consumido que reaparece significa que alguém guardou uma
-     * copia. Não há como saber se quem apresenta e o dono ou o ladrao, então a
+     * cópia. Não há como saber se quem apresenta é o dono ou o ladrão, então a
      * sessão inteira cai, inclusive o token válido emitido na rotação.
      */
     it('reusar um token consumido derruba a familia inteira', async () => {

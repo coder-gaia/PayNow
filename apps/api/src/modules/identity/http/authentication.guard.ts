@@ -108,7 +108,7 @@ export class AuthenticationGuard implements CanActivate {
    * Limite por chave, em janela fixa no Redis.
    *
    * Janela fixa deixa passar até o dobro do teto na virada, e isso é aceito de
-   * proposito: a alternativa correta e janela deslizante, que custa mais e só
+   * propósito: a alternativa correta é janela deslizante, que custa mais e só
    * se paga quando existir cota contratual por plano. O contador expira
    * sozinho, então não há rotina de limpeza.
    */

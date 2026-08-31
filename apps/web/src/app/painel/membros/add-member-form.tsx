@@ -30,7 +30,7 @@ export function AddMemberForm({
 
   // O membro adicionado aparece na tabela acima, fora do campo de visao de quem
   // acabou de digitar aqui, então a confirmação vira toast. O erro fica no
-  // formulario, que é onde o email errado será corrigido.
+  // formulário, que é onde o email errado será corrigido.
   useEffect(() => {
     if (state.ok === true) {
       toast.success('Membro adicionado.');

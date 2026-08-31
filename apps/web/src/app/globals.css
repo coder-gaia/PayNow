@@ -3,15 +3,15 @@
 /*
  * Identidade visual do painel.
  *
- * A paleta vem do mundo do assunto: papel de razao contabil, tinta escura,
+ * A paleta vem do mundo do assunto: papel de razão contábil, tinta escura,
  * verde de livro-caixa para o que soma e vermelho de tinta para o que subtrai.
- * O verde tambem carrega o estado positivo, e o vermelho o negativo, entao
- * cor semantica e cor de marca sao a mesma coisa aqui de proposito: em um
- * sistema de dinheiro, credito e debito sao a marca.
+ * O verde também carrega o estado positivo, e o vermelho o negativo, então
+ * cor semântica e cor de marca são a mesma coisa aqui de propósito: em um
+ * sistema de dinheiro, crédito e débito são a marca.
  */
 @theme {
-  /* As variaveis --font-* sao geradas pelo next/font no layout raiz, que
-     hospeda as fontes junto com a aplicacao em vez de buscar em CDN. */
+  /* As variáveis --font-* são geradas pelo next/font no layout raiz, que
+     hospeda as fontes junto com a aplicação em vez de buscar em CDN. */
   --font-display: var(--font-zilla), Georgia, serif;
   --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
@@ -65,8 +65,8 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Numero em coluna precisa alinhar. Em um painel financeiro isso nao e
-     detalhe estetico: e o que permite comparar valores de relance. */
+  /* Número em coluna precisa alinhar. Em um painel financeiro isso não é
+     detalhe estético: é o que permite comparar valores de relance. */
   table,
   .tabular {
     font-variant-numeric: tabular-nums;
@@ -84,8 +84,8 @@
 }
 
 @layer components {
-  /* Entrada do toast. Fica sob `motion-safe` no componente, entao quem pediu
-     movimento reduzido no sistema recebe o aviso sem animacao alguma. */
+  /* Entrada do toast. Fica sob `motion-safe` no componente, então quem pediu
+     movimento reduzido no sistema recebe o aviso sem animação alguma. */
   @keyframes toast-in {
     from {
       opacity: 0;
@@ -97,7 +97,7 @@
     }
   }
 
-  /* O dialogo nativo comeca com margens do agente de usuario. Centralizar e
+  /* O diálogo nativo começa com margens do agente de usuário. Centralizar e
      dar largura fica por conta das classes no componente. */
   dialog {
     max-width: none;

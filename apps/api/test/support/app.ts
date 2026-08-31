@@ -32,7 +32,7 @@ export const httpServer = (app: INestApplication): Server => app.getHttpServer()
  * Email único por execução.
  *
  * Os testes rodam contra um banco de verdade que não e limpo entre execuções,
- * então isolar pelos dados e mais barato e mais rapido do que truncar tabelas,
+ * então isolar pelos dados é mais barato e mais rápido do que truncar tabelas,
  * e ainda deixa os testes seguros para rodar em paralelo.
  */
 export const uniqueEmail = (prefix = 'teste'): string =>

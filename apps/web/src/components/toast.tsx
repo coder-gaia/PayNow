@@ -8,7 +8,7 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo, useSta
  * Substitui `window.alert`, que bloqueia a página inteira, não e estilizavel e
  * some sem deixar rastro do que aconteceu.
  *
- * A regra de quando usar toast e quando usar mensagem no formulario:
+ * A regra de quando usar toast e quando usar mensagem no formulário:
  *
  *   - mensagem sobre o que a pessoa acabou de digitar fica ao lado do campo,
  *     porque e ali que ela vai corrigir;
@@ -41,7 +41,7 @@ export function useToast(): ToastApi {
   const api = useContext(ToastContext);
 
   if (api === null) {
-    throw new Error('useToast exige que a arvore esteja dentro de <ToastProvider>.');
+    throw new Error('useToast exige que a árvore esteja dentro de <ToastProvider>.');
   }
 
   return api;

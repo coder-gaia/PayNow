@@ -13,10 +13,10 @@ import { useFieldControlProps } from './form';
  * persiste entre carregamentos.
  *
  * O botão fica dentro do campo, mas fora do fluxo de digitacao: `tabIndex={-1}`
- * evita que o Tab pare nele no meio do preenchimento do formulario. Ainda e
+ * evita que o Tab pare nele no meio do preenchimento do formulário. Ainda é
  * alcançável por clique e por navegação de leitor de tela.
  *
- * O estado visivel e anunciado pelo `aria-pressed` do próprio botão. Uma
+ * O estado visível é anunciado pelo `aria-pressed` do próprio botão. Uma
  * primeira versão tinha um texto de status ao lado, mas ele ficava dentro do
  * `<label>` do campo é passava a fazer parte do nome acessivel do input, que
  * virava "Senha A senha está oculta". O teste de interface pegou.
