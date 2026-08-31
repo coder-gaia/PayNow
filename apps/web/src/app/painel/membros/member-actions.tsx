@@ -4,7 +4,7 @@ import { useOptimistic, useTransition } from 'react';
 
 import { useConfirm } from '@/components/confirm-dialog';
 import { useToast } from '@/components/toast';
-import { Select } from '@/components/ui';
+import { Select } from '@/components/form';
 import { changeMemberRole, removeMember } from '@/lib/actions';
 import type { Member, OrganizationRole } from '@/lib/api';
 
@@ -57,27 +57,34 @@ export function MemberActions({
     });
   };
 
-  const handleRemove = () => {
+  /**
+   * A confirmacao fica fora da transicao. Esperar a resposta de uma pessoa
+   * dentro de `startTransition` prende a transicao por tempo indefinido e
+   * torna a abertura do dialogo uma atualizacao presa dentro da propria
+   * transicao que depende dela para terminar. Transicao cobre o trabalho no
+   * servidor, nao a espera por um clique.
+   */
+  const handleRemove = async (): Promise<void> => {
+    const confirmed = await confirm(
+      isSelf
+        ? {
+            title: 'Sair da organizacao',
+            description:
+              'Voce perde o acesso a esta organizacao. Para voltar, alguem precisara te adicionar de novo.',
+            confirmLabel: 'Sair',
+          }
+        : {
+            title: `Remover ${member.name}`,
+            description: `${member.email} perde o acesso a esta organizacao imediatamente.`,
+            confirmLabel: 'Remover',
+          },
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     startTransition(async () => {
-      const confirmed = await confirm(
-        isSelf
-          ? {
-              title: 'Sair da organizacao',
-              description:
-                'Voce perde o acesso a esta organizacao. Para voltar, alguem precisara te adicionar de novo.',
-              confirmLabel: 'Sair',
-            }
-          : {
-              title: `Remover ${member.name}`,
-              description: `${member.email} perde o acesso a esta organizacao imediatamente.`,
-              confirmLabel: 'Remover',
-            },
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
       const result = await removeMember(organizationId, member.userId);
 
       if (result.error !== undefined) {
@@ -110,7 +117,9 @@ export function MemberActions({
       <button
         type="button"
         disabled={pending}
-        onClick={handleRemove}
+        onClick={() => {
+          void handleRemove();
+        }}
         className="border border-rule px-2 py-1 text-[13px] text-debit transition hover:border-debit disabled:opacity-50"
       >
         {isSelf ? 'Sair' : 'Remover'}

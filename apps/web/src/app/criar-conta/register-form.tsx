@@ -3,7 +3,8 @@
 import { useActionState } from 'react';
 
 import { PasswordInput } from '@/components/password-input';
-import { Alert, Button, Field, Input } from '@/components/ui';
+import { Field, Input } from '@/components/form';
+import { Alert, Button } from '@/components/ui';
 import { type FormState, register } from '@/lib/actions';
 
 export function RegisterForm() {

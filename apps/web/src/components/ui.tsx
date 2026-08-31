@@ -112,44 +112,6 @@ export function Button({
   );
 }
 
-export function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-faint">
-        {label}
-      </span>
-      <div className="mt-1.5">{children}</div>
-      {hint !== undefined && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
-    </label>
-  );
-}
-
-export function Input({ className = '', ...props }: ComponentProps<'input'>) {
-  return (
-    <input
-      {...props}
-      className={`w-full border border-rule-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint ${className}`}
-    />
-  );
-}
-
-export function Select({ className = '', ...props }: ComponentProps<'select'>) {
-  return (
-    <select
-      {...props}
-      className={`w-full border border-rule-strong bg-surface px-3 py-2 text-sm text-ink ${className}`}
-    />
-  );
-}
-
 export function Alert({
   tone,
   children,

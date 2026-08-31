@@ -1,6 +1,8 @@
 'use client';
 
-import { type ComponentProps, useId, useState } from 'react';
+import { type ComponentProps, useState } from 'react';
+
+import { useFieldControlProps } from './form';
 
 /**
  * Campo de senha com alternancia de visibilidade.
@@ -13,17 +15,21 @@ import { type ComponentProps, useId, useState } from 'react';
  * O botao fica dentro do campo, mas fora do fluxo de digitacao: `tabIndex={-1}`
  * evita que o Tab pare nele no meio do preenchimento do formulario. Ainda e
  * alcancavel por clique e por navegacao de leitor de tela.
+ *
+ * O estado visivel e anunciado pelo `aria-pressed` do proprio botao. Uma
+ * primeira versao tinha um texto de status ao lado, mas ele ficava dentro do
+ * `<label>` do campo e passava a fazer parte do nome acessivel do input, que
+ * virava "Senha A senha esta oculta". O teste de interface pegou.
  */
 export function PasswordInput({ className = '', ...props }: ComponentProps<'input'>) {
   const [visible, setVisible] = useState(false);
-  const describedBy = useId();
 
   return (
     <div className="relative">
       <input
+        {...useFieldControlProps()}
         {...props}
         type={visible ? 'text' : 'password'}
-        aria-describedby={describedBy}
         className={`w-full border border-rule-strong bg-surface py-2 pr-11 pl-3 text-sm text-ink placeholder:text-ink-faint ${className}`}
       />
 
@@ -39,10 +45,6 @@ export function PasswordInput({ className = '', ...props }: ComponentProps<'inpu
       >
         {visible ? <EyeOffIcon /> : <EyeIcon />}
       </button>
-
-      <span id={describedBy} className="sr-only">
-        {visible ? 'A senha esta visivel na tela.' : 'A senha esta oculta.'}
-      </span>
     </div>
   );
 }

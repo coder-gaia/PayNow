@@ -1,0 +1,108 @@
+name: Interface
+
+# Separado do CI principal de proposito: esta suite sobe a pilha inteira,
+# baixa um navegador e leva minutos, enquanto lint, tipos e testes de unidade
+# respondem em segundos. Manter os dois juntos atrasaria o retorno de todo
+# pull request que nem toca no painel.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/api/**'
+      - '.github/workflows/ui.yml'
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'apps/api/**'
+      - '.github/workflows/ui.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  painel:
+    name: Fluxo do painel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: paynow
+          POSTGRES_PASSWORD: paynow
+          POSTGRES_DB: paynow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U paynow -d paynow"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://paynow:paynow@localhost:5432/paynow?schema=public
+      REDIS_URL: redis://localhost:6379
+      WORKER_ENABLED: 'false'
+      JWT_SECRET: chave-de-assinatura-descartavel-exclusiva-do-ci-do-paynow
+      PAYNOW_API_URL: http://localhost:3333/v1
+      PAYNOW_WEB_URL: http://localhost:3000
+      CI: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Aplicar migrations
+        working-directory: apps/api
+        run: pnpm exec prisma migrate deploy
+
+      - name: Compilar
+        run: pnpm build
+
+      - name: Popular dados de demonstracao
+        working-directory: apps/api
+        run: node dist/seed.js
+
+      - name: Instalar navegador
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Subir API e painel
+        run: |
+          node apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          pnpm --filter @paynow/web exec next start --port 3000 > /tmp/web.log 2>&1 &
+          npx --yes wait-on http://localhost:3333/health/ready http://localhost:3000/entrar --timeout 90000
+
+      - name: Testes de interface
+        working-directory: apps/web
+        run: pnpm exec playwright test
+
+      - name: Guardar diagnostico da falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright
+          path: |
+            apps/web/test-results/
+            /tmp/api.log
+            /tmp/web.log
+          retention-days: 7

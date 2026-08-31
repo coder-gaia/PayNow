@@ -66,7 +66,12 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     cache: 'no-store',
   });
 
-  if (response.status === 401) {
+  // Um 401 em chamada autenticada significa que a sessao acabou, e quem chamou
+  // redireciona para o login. Em chamada anonima significa outra coisa
+  // completamente: a credencial que a pessoa acabou de digitar esta errada, e
+  // a mensagem da API e que precisa chegar ao formulario. Tratar os dois casos
+  // igual fazia o login com senha errada dizer "Sessao expirada".
+  if (response.status === 401 && options.anonymous !== true) {
     throw new UnauthenticatedError();
   }
 

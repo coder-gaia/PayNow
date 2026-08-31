@@ -58,7 +58,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const confirm = useCallback<Confirm>(
     (options) =>
       new Promise<boolean>((resolve) => {
-        setPending({ options, resolve });
+        setPending((previous) => {
+          // Uma segunda confirmacao pedida antes de a primeira ser respondida
+          // deixaria a promessa anterior pendurada para sempre, e quem a
+          // aguardava nunca sairia do estado de carregamento. Resolver como
+          // recusa encerra o pedido antigo antes de abrir o novo.
+          previous?.resolve(false);
+          return { options, resolve };
+        });
       }),
     [],
   );

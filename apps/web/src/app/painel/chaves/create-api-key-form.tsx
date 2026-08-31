@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from 'react';
 
-import { Alert, Button, Field, Input, Select } from '@/components/ui';
+import { Field, Input, Select } from '@/components/form';
+import { Alert, Button } from '@/components/ui';
 import { createApiKey, type FormState } from '@/lib/actions';
 
 export function CreateApiKeyForm({ organizationId }: { organizationId: string }) {

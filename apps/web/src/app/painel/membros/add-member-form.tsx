@@ -3,7 +3,8 @@
 import { useActionState, useEffect, useRef } from 'react';
 
 import { useToast } from '@/components/toast';
-import { Alert, Button, Field, Input, Select } from '@/components/ui';
+import { Field, Input, Select } from '@/components/form';
+import { Alert, Button } from '@/components/ui';
 import { addMember, type FormState } from '@/lib/actions';
 import type { OrganizationRole } from '@/lib/api';
 

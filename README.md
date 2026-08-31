@@ -1,6 +1,7 @@
 # Paynow
 
 [![CI](https://github.com/coder-gaia/PayNow/actions/workflows/ci.yml/badge.svg)](https://github.com/coder-gaia/PayNow/actions/workflows/ci.yml)
+[![Interface](https://github.com/coder-gaia/PayNow/actions/workflows/ui.yml/badge.svg)](https://github.com/coder-gaia/PayNow/actions/workflows/ui.yml)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-14654A.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-22.13-14654A.svg)](.nvmrc)
 
@@ -219,6 +220,18 @@ curl -s localhost:3333/v1/merchant/me \
 
 Esses dados só existem em banco local recriável e não valem nada fora dele. O
 seed recusa rodar com `NODE_ENV=production`.
+
+As suítes ponta a ponta criam contas e organizações descartáveis a cada
+execução, e não as apagam. Isso é proposital: um teste que limpa o banco no fim
+esconde o estado que causou a falha. Para voltar ao ponto de partida, use
+`pnpm db:reset`, que recria o schema e roda o seed.
+
+### Limitação conhecida
+
+`POST /auth/register` sempre cria uma organização para quem se cadastra, e o
+painel abre sempre a primeira da lista. Uma pessoa convidada para outra
+organização participa de duas e, sem seletor, não chega à segunda pela
+interface. O seletor está previsto para a fase 03, junto com os planos.
 
 Depois disso:
 
