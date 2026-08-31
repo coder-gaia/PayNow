@@ -12,9 +12,9 @@ import { OrganizationSwitcher } from './organization-switcher';
 /**
  * Casca do painel.
  *
- * O perfil e carregado aqui, no servidor, uma vez por navegação. As páginas
+ * O perfil é carregado aqui, no servidor, uma vez por navegação. As páginas
  * filhas resolvem a organização ativa pelo mesmo caminho, o que mantém a
- * escolha coerente entre o cabeçalho e o conteudo.
+ * escolha coerente entre o cabeçalho e o conteúdo.
  */
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   let profile;
@@ -41,7 +41,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <OrganizationSwitcher organizations={profile.organizations} active={active} />
 
           <nav className="flex items-center gap-1 text-sm">
-            <NavLink href="/painel">Visao geral</NavLink>
+            <NavLink href="/painel">Visão geral</NavLink>
+            <NavLink href="/painel/assinaturas">Assinaturas</NavLink>
             <NavLink href="/painel/ledger">Razão</NavLink>
             <NavLink href="/painel/membros">Membros</NavLink>
             <NavLink href="/painel/chaves">Chaves de API</NavLink>
@@ -58,7 +59,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <footer className="mx-auto max-w-5xl px-6 pb-10">
         <p className="border-t border-rule pt-4 font-mono text-[11px] text-ink-faint">
-          Fase 02 de 09. As telas de assinaturas e cobrança chegam nas fases seguintes.
+          Fase 03 de 09. O ciclo de cobrança e os pagamentos chegam nas fases seguintes.
         </p>
       </footer>
     </div>

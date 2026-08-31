@@ -84,8 +84,13 @@ export class LedgerService {
    * As contas envolvidas são criadas sob demanda, na mesma transação. Isso
    * evita que o módulo de identidade precise conhecer o ledger para provisionar
    * o plano de contas ao criar a organização, o que a ADR-0001 proíbe.
+   *
+   * Recebendo uma transação, escreve dentro dela em vez de abrir a sua. É o que
+   * permite que o efeito contábil de um evento de domínio viva ou morra junto
+   * com o fato que o produziu: trocar de plano e registrar o rateio acontecem
+   * na mesma transação, ou nenhum dos dois acontece.
    */
-  async post(input: PostEntryInput): Promise<PostedEntry> {
+  async post(input: PostEntryInput, tx?: Prisma.TransactionClient): Promise<PostedEntry> {
     assertBalanced({ lines: input.lines });
 
     for (const line of input.lines) {
@@ -99,48 +104,51 @@ export class LedgerService {
 
     const occurredAt = input.occurredAt ?? this.clock.now();
 
-    try {
-      const entry = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.journalEntry.create({
-          data: {
-            organizationId: input.organizationId,
-            eventType: input.event.type,
-            eventId: input.event.id,
-            description: input.description,
-            occurredAt,
-          },
-        });
+    const escrever = async (client: Prisma.TransactionClient) => {
+      const created = await client.journalEntry.create({
+        data: {
+          organizationId: input.organizationId,
+          eventType: input.event.type,
+          eventId: input.event.id,
+          description: input.description,
+          occurredAt,
+        },
+      });
 
-        for (const line of input.lines) {
-          const account = await tx.account.upsert({
-            where: {
-              organizationId_code_currency: {
-                organizationId: input.organizationId,
-                code: line.account,
-                currency: line.amount.currencyCode,
-              },
-            },
-            create: {
+      for (const line of input.lines) {
+        const account = await client.account.upsert({
+          where: {
+            organizationId_code_currency: {
               organizationId: input.organizationId,
               code: line.account,
-              kind: accountDefinition(line.account).kind,
               currency: line.amount.currencyCode,
             },
-            update: {},
-          });
+          },
+          create: {
+            organizationId: input.organizationId,
+            code: line.account,
+            kind: accountDefinition(line.account).kind,
+            currency: line.amount.currencyCode,
+          },
+          update: {},
+        });
 
-          await tx.journalLine.create({
-            data: {
-              entryId: created.id,
-              accountId: account.id,
-              amountMinor: line.amount.minor,
-              currency: line.amount.currencyCode,
-            },
-          });
-        }
+        await client.journalLine.create({
+          data: {
+            entryId: created.id,
+            accountId: account.id,
+            amountMinor: line.amount.minor,
+            currency: line.amount.currencyCode,
+          },
+        });
+      }
 
-        return created;
-      });
+      return created;
+    };
+
+    try {
+      const entry =
+        tx === undefined ? await this.prisma.$transaction(escrever) : await escrever(tx);
 
       return {
         id: entry.id,

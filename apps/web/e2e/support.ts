@@ -6,7 +6,7 @@ import { type APIRequestContext, expect, type Page } from '@playwright/test';
  * Cada teste monta a própria organização chamando a API direto, e só depois
  * exercita a interface. Duas razões:
  *
- * 1. Os dados de demonstracao pertencem a quem está usando o projeto. Uma
+ * 1. Os dados de demonstração pertencem a quem está usando o projeto. Uma
  *    suíte que muda o papel da Carla e enche a lista de chaves deixa o painel
  *    pior a cada execução.
  * 2. Estado compartilhado entre testes produz falha intermitente, que é o pior
@@ -121,6 +121,65 @@ export async function createApiKey(
     data: { name, environment: 'TEST' },
     token: workspace.accessToken,
   });
+}
+
+/**
+ * Cria um plano publicado: produto mais preço.
+ *
+ * Preço é imutável, então cada plano do teste é um par novo. Devolve o
+ * identificador do preço, que é o que a troca de plano recebe.
+ */
+export async function createPlan(
+  request: APIRequestContext,
+  workspace: Workspace,
+  name: string,
+  amountMinor: string,
+): Promise<{ priceId: string; product: string }> {
+  const product = await json<{ id: string }>(
+    request,
+    'post',
+    `/organizations/${workspace.organizationId}/products`,
+    { data: { name }, token: workspace.accessToken },
+  );
+
+  const price = await json<{ id: string }>(
+    request,
+    'post',
+    `/organizations/${workspace.organizationId}/products/${product.id}/prices`,
+    {
+      data: { amountMinor, currency: 'BRL', interval: 'MONTH', trialDays: 0 },
+      token: workspace.accessToken,
+    },
+  );
+
+  return { priceId: price.id, product: name };
+}
+
+/** Cadastra um cliente e o coloca em uma assinatura do plano indicado. */
+export async function startSubscription(
+  request: APIRequestContext,
+  workspace: Workspace,
+  priceId: string,
+  customerName: string,
+): Promise<{ id: string; customerName: string }> {
+  const customer = await json<{ id: string }>(
+    request,
+    'post',
+    `/organizations/${workspace.organizationId}/customers`,
+    {
+      data: { email: `${unique('cliente')}@paynow.test`, name: customerName },
+      token: workspace.accessToken,
+    },
+  );
+
+  const subscription = await json<{ id: string }>(
+    request,
+    'post',
+    `/organizations/${workspace.organizationId}/subscriptions`,
+    { data: { customerId: customer.id, priceId, skipTrial: true }, token: workspace.accessToken },
+  );
+
+  return { id: subscription.id, customerName };
 }
 
 export async function login(page: Page, email: string): Promise<void> {

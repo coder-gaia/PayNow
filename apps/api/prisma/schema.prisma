@@ -51,6 +51,9 @@ model Organization {
   apiKeys        ApiKey[]
   accounts       Account[]
   journalEntries JournalEntry[]
+  customers      Customer[]
+  products       Product[]
+  subscriptions  Subscription[]
 
   @@map("organizations")
 }
@@ -239,4 +242,155 @@ model JournalLine {
   @@index([entryId])
   @@index([accountId])
   @@map("journal_lines")
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo e assinaturas (fase 03)
+// ---------------------------------------------------------------------------
+
+/// Cliente do merchant.
+///
+/// Não confundir com `User`, que é quem opera o painel do Paynow. Este é quem
+/// paga a assinatura do merchant, e nunca tem acesso ao sistema.
+model Customer {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  /// Identificador do cliente no sistema do merchant, quando existir.
+  externalId     String?  @map("external_id")
+  email          String   @db.Citext
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  subscriptions Subscription[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@map("customers")
+}
+
+/// O que o merchant vende. "Plano Pro", por exemplo.
+model Product {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  description    String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  prices       Price[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("products")
+}
+
+enum BillingInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+
+  @@map("billing_interval")
+}
+
+/// Quanto custa e de quanto em quanto tempo.
+///
+/// Preço é imutável depois de ter assinatura: mudar o valor de um preço em uso
+/// reescreveria silenciosamente o que já foi cobrado. Para mudar de valor,
+/// cria-se um preço novo e migram-se as assinaturas, que é o que a troca de
+/// plano faz.
+model Price {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  productId      String          @map("product_id") @db.Uuid
+  amountMinor    BigInt          @map("amount_minor")
+  currency       String          @db.Char(3)
+  interval       BillingInterval
+  intervalCount  Int             @default(1) @map("interval_count")
+  trialDays      Int             @default(0) @map("trial_days")
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  subscriptions Subscription[]
+
+  @@index([organizationId])
+  @@index([productId])
+  @@map("prices")
+}
+
+/// Estados possíveis de uma assinatura.
+///
+/// A máquina de estados é explícita, e as transições válidas vivem em
+/// domain/subscription-state.ts. Um campo de texto livre com "status" deixaria
+/// qualquer transição passar.
+enum SubscriptionStatus {
+  /// Criada, esperando o primeiro pagamento confirmar.
+  INCOMPLETE
+  /// Em período de teste, ainda sem cobrança.
+  TRIALING
+  /// Em dia.
+  ACTIVE
+  /// Cobrança falhou e a recuperação está em andamento.
+  PAST_DUE
+  /// Encerrada, por pedido ou por esgotamento da recuperação.
+  CANCELED
+  /// Recuperação esgotada sem sucesso.
+  UNPAID
+
+  @@map("subscription_status")
+}
+
+model Subscription {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  customerId     String             @map("customer_id") @db.Uuid
+  priceId        String             @map("price_id") @db.Uuid
+  status         SubscriptionStatus
+
+  currentPeriodStart DateTime  @map("current_period_start") @db.Timestamptz(3)
+  currentPeriodEnd   DateTime  @map("current_period_end") @db.Timestamptz(3)
+  trialEndsAt        DateTime? @map("trial_ends_at") @db.Timestamptz(3)
+  /// Cancelamento pedido para o fim do ciclo, ainda não efetivado.
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+  canceledAt         DateTime? @map("canceled_at") @db.Timestamptz(3)
+
+  /// Versão para concorrência otimista. Ver ADR-0008.
+  version   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer     Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  price        Price               @relation(fields: [priceId], references: [id], onDelete: Restrict)
+  events       SubscriptionEvent[]
+
+  @@index([organizationId, status])
+  @@index([customerId])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+/// Histórico de tudo que aconteceu com uma assinatura.
+///
+/// Append-only pelo mesmo motivo do razão: a trilha do que mudou vale tanto
+/// quanto o estado atual, e é ela que responde "por que esta assinatura está
+/// assim". Alimenta a fatura explicável da fase 08.
+model SubscriptionEvent {
+  id             String              @id @default(uuid(7)) @db.Uuid
+  subscriptionId String              @map("subscription_id") @db.Uuid
+  fromStatus     SubscriptionStatus? @map("from_status")
+  toStatus       SubscriptionStatus  @map("to_status")
+  reason         String
+  occurredAt     DateTime            @map("occurred_at") @db.Timestamptz(3)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+
+  @@index([subscriptionId, occurredAt])
+  @@map("subscription_events")
 }

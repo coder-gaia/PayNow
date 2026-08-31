@@ -55,3 +55,40 @@ export function isAfterOrEqual(instant: Date, other: Date): boolean {
 export function differenceInMilliseconds(later: Date, earlier: Date): number {
   return later.getTime() - earlier.getTime();
 }
+
+/**
+ * Soma meses de calendário, grudando no último dia quando o mês de destino é
+ * mais curto.
+ *
+ * 31 de janeiro mais um mês é 28 ou 29 de fevereiro, e não 3 de março, que é o
+ * que a aritmética ingênua de datas produz. Quem assina no dia 31 espera ser
+ * cobrado no último dia do mês seguinte, mesmo sem saber explicar por quê.
+ *
+ * Todo o cálculo é em UTC, porque ciclo de cobrança não pode mudar de dia
+ * conforme o fuso do servidor que rodou a conta.
+ */
+export function addCalendarMonths(instant: Date, months: number): Date {
+  const ano = instant.getUTCFullYear();
+  const mes = instant.getUTCMonth();
+  const dia = instant.getUTCDate();
+
+  // Dia 0 do mês seguinte é o último dia do mês de destino.
+  const ultimoDiaDoDestino = new Date(Date.UTC(ano, mes + months + 1, 0)).getUTCDate();
+
+  return new Date(
+    Date.UTC(
+      ano,
+      mes + months,
+      Math.min(dia, ultimoDiaDoDestino),
+      instant.getUTCHours(),
+      instant.getUTCMinutes(),
+      instant.getUTCSeconds(),
+      instant.getUTCMilliseconds(),
+    ),
+  );
+}
+
+/** Dias inteiros entre dois instantes, arredondando para baixo. */
+export function differenceInDays(later: Date, earlier: Date): number {
+  return Math.floor(differenceInMilliseconds(later, earlier) / MILLISECONDS_PER_DAY);
+}

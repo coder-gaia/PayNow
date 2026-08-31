@@ -206,8 +206,9 @@ pnpm dev
 
 ### Dados de demonstração
 
-`pnpm db:seed` cria uma organização com quatro contas, uma por papel, e uma
-chave de API de teste. É idempotente: rodar de novo não duplica nada.
+`pnpm db:seed` cria uma organização com quatro contas, uma por papel, uma
+chave de API de teste, o razão de referência do plano de contas e uma carteira
+de assinaturas. É idempotente: rodar de novo não duplica nada.
 
 | Papel      | Email                        | Para que serve                                         |
 | ---------- | ---------------------------- | ------------------------------------------------------ |
@@ -218,6 +219,17 @@ chave de API de teste. É idempotente: rodar de novo não duplica nada.
 
 A senha é `paynow-demo-2026` para todas. A chave de API de teste é
 `sk_test_paynowdemo0000000000000000000000000000`.
+
+A carteira de demonstração traz três planos e quatro assinaturas, cada uma em um
+estado diferente, para que a máquina de estados apareça na tela em vez de virar
+uma lista de linhas iguais:
+
+| Cliente     | Plano      | Estado     | Por que este estado                              |
+| ----------- | ---------- | ---------- | ------------------------------------------------ |
+| Padaria Lua | Pro        | `ACTIVE`   | O caso comum: assinatura em dia                  |
+| Studio Vega | Enterprise | `ACTIVE`   | Serve para exercitar a troca de plano com rateio |
+| Bike Norte  | Pro        | `TRIALING` | Em período de teste, ainda sem fatura no razão   |
+| Mercado Sul | Básico     | `PAST_DUE` | Cobrança falhou, mas o acesso continua valendo   |
 
 ```bash
 # entra como a dona da conta
@@ -306,6 +318,7 @@ paynow/
 | `pnpm db:migrate`  | Cria e aplica migration em desenvolvimento            |
 | `pnpm db:deploy`   | Aplica migrations pendentes                           |
 | `pnpm db:studio`   | Abre o Prisma Studio                                  |
+| `pnpm db:seed`     | Popula o banco local com os dados de demonstração     |
 
 ## Documentação
 
@@ -325,7 +338,7 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       detecção de reuso, RBAC, chaves de API.
 - [x] **02 Ledger.** Contas, lançamentos, invariantes no banco, saldo derivado,
       auditoria, testes de propriedade.
-- [ ] **03 Catálogo e assinaturas.** Produtos, preços, planos, máquina de
+- [x] **03 Catálogo e assinaturas.** Produtos, preços, planos, máquina de
       estados, trial, rateio proporcional.
 - [ ] **04 Relógio e ciclo de cobrança.** Relógio virtual, agendamento, avanço
       determinístico do tempo.

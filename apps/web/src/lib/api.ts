@@ -8,8 +8,8 @@ import { ACCESS_COOKIE } from './session';
  * Cliente da API do Paynow, usado apenas no servidor.
  *
  * A fase 08 troca este arquivo por um cliente gerado a partir do contrato
- * OpenAPI, que a API já pública em /docs/openapi.json. Até la os tipos são
- * escritos a mão, e a duplicação e consciente: gerar cliente antes de o
+ * OpenAPI, que a API já publica em /docs/openapi.json. Até lá os tipos são
+ * escritos a mão, e a duplicação é consciente: gerar cliente antes de o
  * contrato estabilizar produz ruído a cada mudança de rota.
  */
 
@@ -66,10 +66,10 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     cache: 'no-store',
   });
 
-  // Um 401 em chamada autenticada significa que a sessão acabou, é quem chamou
-  // redireciona para o login. Em chamada anonima significa outra coisa
-  // completamente: a credencial que a pessoa acabou de digitar esta errada, e
-  // a mensagem da API e que precisa chegar ao formulario. Tratar os dois casos
+  // Um 401 em chamada autenticada significa que a sessão acabou, e quem chamou
+  // redireciona para o login. Em chamada anônima significa outra coisa
+  // completamente: a credencial que a pessoa acabou de digitar está errada, e
+  // a mensagem da API é que precisa chegar ao formulário. Tratar os dois casos
   // igual fazia o login com senha errada dizer "Sessão expirada".
   if (response.status === 401 && options.anonymous !== true) {
     throw new UnauthenticatedError();
@@ -193,6 +193,71 @@ export interface JournalEntry {
   lines: JournalLine[];
 }
 
+export type SubscriptionStatus =
+  'INCOMPLETE' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'EXPIRED';
+
+export interface Plan {
+  priceId: string;
+  product: string;
+  amount: string;
+  currency: string;
+  interval: string;
+}
+
+export interface Subscription {
+  id: string;
+  status: SubscriptionStatus;
+  hasAccess: boolean;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  trialEndsAt: string | null;
+  version: number;
+  customer: { id: string; name: string; email: string };
+  plan: Plan;
+}
+
+export interface SubscriptionDetail extends Subscription {
+  allowedTransitions: SubscriptionStatus[];
+  canceledAt: string | null;
+  history: {
+    id: string;
+    from: SubscriptionStatus | null;
+    to: SubscriptionStatus;
+    reason: string | null;
+    occurredAt: string;
+  }[];
+}
+
+export interface Price {
+  id: string;
+  amountMinor: string;
+  amount: string;
+  currency: string;
+  interval: string;
+  intervalCount: number;
+  trialDays: number;
+  active: boolean;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  active: boolean;
+  prices: Price[];
+}
+
+/** O que a troca de plano devolve: o rateio calculado, em reais. */
+export interface Proration {
+  credit: string;
+  charge: string;
+  net: string;
+  currency: string;
+  remainingDays: number;
+  cycleDays: number;
+}
+
 export interface LedgerVerification {
   checkedAt: string;
   entryCount: number;
@@ -211,4 +276,8 @@ export const api = {
   ledgerEntries: (id: string) => apiFetch<JournalEntry[]>(`/organizations/${id}/ledger/entries`),
   ledgerVerification: (id: string) =>
     apiFetch<LedgerVerification>(`/organizations/${id}/ledger/verification`),
+  subscriptions: (id: string) => apiFetch<Subscription[]>(`/organizations/${id}/subscriptions`),
+  subscription: (id: string, subscriptionId: string) =>
+    apiFetch<SubscriptionDetail>(`/organizations/${id}/subscriptions/${subscriptionId}`),
+  products: (id: string) => apiFetch<Product[]>(`/organizations/${id}/products`),
 };

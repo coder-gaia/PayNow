@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { ClockModule } from './clock/clock.module';
+import { EventsModule } from './events/events.module';
 import { OrganizationRoleGuard } from './http/organization-role.guard';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,7 +19,7 @@ import { RedisModule } from './redis/redis.module';
  * módulo recebe também o outbox transacional e a camada de idempotência.
  */
 @Module({
-  imports: [ClockModule, PrismaModule, RedisModule, HealthModule],
+  imports: [ClockModule, EventsModule, PrismaModule, RedisModule, HealthModule],
   providers: [OrganizationRoleGuard],
   exports: [OrganizationRoleGuard],
 })

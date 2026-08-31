@@ -93,6 +93,45 @@ export function RolePill({ role }: { role: OrganizationRole }) {
   );
 }
 
+/**
+ * Estado da assinatura.
+ *
+ * A cor segue a mesma leitura do resto do painel: verde é dinheiro entrando,
+ * vermelho é dinheiro que não entrou, âmbar é decisão pendente. PAST_DUE fica
+ * em âmbar de propósito, e não em vermelho: a assinatura ainda dá acesso, e
+ * pintar de vermelho sugeriria que o acesso acabou.
+ */
+const SUBSCRIPTION_STYLE: Record<string, string> = {
+  ACTIVE: 'border-credit text-credit bg-credit-soft',
+  TRIALING: 'border-rule-strong text-ink bg-surface-sunken',
+  INCOMPLETE: 'border-caution text-ink bg-caution-soft',
+  PAST_DUE: 'border-caution text-ink bg-caution-soft',
+  CANCELED: 'border-rule text-ink-faint bg-surface',
+  EXPIRED: 'border-rule text-ink-faint bg-surface',
+};
+
+const SUBSCRIPTION_LABEL: Record<string, string> = {
+  ACTIVE: 'Ativa',
+  TRIALING: 'Em teste',
+  INCOMPLETE: 'Aguardando pagamento',
+  PAST_DUE: 'Em atraso',
+  CANCELED: 'Cancelada',
+  EXPIRED: 'Expirada',
+};
+
+export function StatusPill({ status }: { status: string }) {
+  return (
+    <span
+      className={`inline-block border px-2 py-0.5 font-mono text-[10.5px] tracking-[0.08em] ${
+        SUBSCRIPTION_STYLE[status] ?? 'border-rule text-ink-muted bg-surface'
+      }`}
+      title={status}
+    >
+      {SUBSCRIPTION_LABEL[status] ?? status}
+    </span>
+  );
+}
+
 export function Button({
   variant = 'primary',
   className = '',

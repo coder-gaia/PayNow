@@ -5,7 +5,14 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { ACTIVE_ORGANIZATION_COOKIE } from './active-organization';
-import { ApiError, apiFetch, type CreatedApiKey, type OrganizationRole, type Session } from './api';
+import {
+  ApiError,
+  apiFetch,
+  type CreatedApiKey,
+  type OrganizationRole,
+  type Proration,
+  type Session,
+} from './api';
 import {
   ACCESS_COOKIE,
   accessCookieOptions,
@@ -19,18 +26,18 @@ import {
  *
  * Toda mutação passa por aqui, no servidor, e nenhuma resposta com token chega
  * ao navegador: os tokens são gravados em cookie httpOnly e ficam do lado de
- * ca. Ver o comentario em session.ts para o motivo.
+ * cá. Ver o comentário em session.ts para o motivo.
  */
 
 export interface FormState {
   readonly error?: string;
   readonly ok?: boolean;
-  /** Segredo recem criado, exibido uma única vez. */
+  /** Segredo recém criado, exibido uma única vez. */
   readonly secret?: string;
 }
 
 /**
- * Le um campo de texto do formulario.
+ * Lê um campo de texto do formulário.
  *
  * `FormData.get` devolve string ou File. Passar um File por `String()` produz
  * "[object Object]" em silêncio, então o tipo é verificado e um envio
@@ -47,7 +54,7 @@ async function persistSession(session: Session): Promise<void> {
   jar.set(REFRESH_COOKIE, session.refreshToken, refreshCookieOptions());
 }
 
-/** Converte a falha da API em mensagem de formulario, sem vazar detalhe interno. */
+/** Converte a falha da API em mensagem de formulário, sem vazar detalhe interno. */
 function toFormState(error: unknown): FormState {
   if (error instanceof ApiError) {
     return { error: error.message };
@@ -103,7 +110,7 @@ export async function register(_previous: FormState, formData: FormData): Promis
  *
  * Não verifica se a pessoa participa da organização: quem faz isso é
  * `resolveActiveOrganization`, que confere o cookie contra a lista real vinda
- * da API a cada renderizacao. Validar aqui também seria uma segunda copia da
+ * da API a cada renderização. Validar aqui também seria uma segunda cópia da
  * mesma regra, que pode divergir.
  */
 export async function selectOrganization(organizationId: string): Promise<void> {
@@ -222,5 +229,98 @@ export async function revokeApiKey(organizationId: string, apiKeyId: string): Pr
   }
 
   revalidatePath('/painel/chaves');
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Assinaturas
+// ---------------------------------------------------------------------------
+
+/**
+ * `expectedVersion` viaja em toda mutação de assinatura.
+ *
+ * A versão é lida junto com a assinatura na renderização da página. Se alguém
+ * tiver mudado o plano nesse meio tempo, a API recusa em vez de deixar a
+ * segunda decisão, tomada sobre dado velho, sobrescrever a primeira. Ver a
+ * ADR-0008: o advisory lock resolve corrida dentro do servidor, e a versão
+ * resolve a corrida entre a tela e o servidor.
+ */
+export interface ProrationState extends FormState {
+  readonly proration?: Proration;
+}
+
+export async function startSubscription(
+  organizationId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await apiFetch(`/organizations/${organizationId}/subscriptions`, {
+      method: 'POST',
+      body: {
+        customerId: text(formData, 'customerId'),
+        priceId: text(formData, 'priceId'),
+        skipTrial: formData.get('skipTrial') === 'on',
+      },
+    });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  revalidatePath('/painel/assinaturas');
+  return { ok: true };
+}
+
+export async function changePlan(
+  organizationId: string,
+  subscriptionId: string,
+  priceId: string,
+  expectedVersion: number,
+): Promise<ProrationState> {
+  try {
+    const result = await apiFetch<{ proration: Proration }>(
+      `/organizations/${organizationId}/subscriptions/${subscriptionId}/change-plan`,
+      { method: 'POST', body: { priceId, expectedVersion } },
+    );
+
+    revalidatePath('/painel/assinaturas');
+    return { ok: true, proration: result.proration };
+  } catch (error) {
+    return toFormState(error);
+  }
+}
+
+export async function cancelSubscription(
+  organizationId: string,
+  subscriptionId: string,
+  immediate: boolean,
+  expectedVersion: number,
+): Promise<FormState> {
+  try {
+    await apiFetch(`/organizations/${organizationId}/subscriptions/${subscriptionId}/cancel`, {
+      method: 'POST',
+      body: { immediate, expectedVersion },
+    });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  revalidatePath('/painel/assinaturas');
+  return { ok: true };
+}
+
+export async function resumeSubscription(
+  organizationId: string,
+  subscriptionId: string,
+): Promise<FormState> {
+  try {
+    await apiFetch(`/organizations/${organizationId}/subscriptions/${subscriptionId}/resume`, {
+      method: 'POST',
+    });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  revalidatePath('/painel/assinaturas');
   return { ok: true };
 }

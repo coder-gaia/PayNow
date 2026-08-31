@@ -1,13 +1,20 @@
 import './bigint-serialization';
 
 import { hash } from '@node-rs/argon2';
-import { AccountKind, ApiKeyEnvironment, OrganizationRole, PrismaClient } from '@prisma/client';
+import {
+  AccountKind,
+  ApiKeyEnvironment,
+  BillingInterval,
+  OrganizationRole,
+  PrismaClient,
+  SubscriptionStatus,
+} from '@prisma/client';
 
 /**
- * Dados de demonstracao.
+ * Dados de demonstração.
  *
  * Existe para que qualquer pessoa consiga exercitar o sistema inteiro sem
- * cadastrar nada a mão. O conteudo cresce a cada fase: a fase 01 cria contas,
+ * cadastrar nada a mão. O conteúdo cresce a cada fase: a fase 01 cria contas,
  * organização e chaves de API; a fase 02 acrescenta o plano de contas do
  * ledger; a fase 03, produtos, preços e assinaturas.
  *
@@ -16,12 +23,12 @@ import { AccountKind, ApiKeyEnvironment, OrganizationRole, PrismaClient } from '
  * idempotência e do próprio banco: o índice único sobre o evento de origem
  * recusa o mesmo lançamento duas vezes.
  *
- * Nada aqui deve rodar em producao. O script recusa se NODE_ENV for production.
+ * Nada aqui deve rodar em produção. O script recusa se NODE_ENV for production.
  */
 
 const ARGON2_OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 } as const;
 
-/** Senha única para todas as contas de demonstracao. Impressa no fim. */
+/** Senha única para todas as contas de demonstração. Impressa no fim. */
 const DEMO_PASSWORD = 'paynow-demo-2026';
 
 const ORGANIZATION = {
@@ -57,7 +64,7 @@ const PEOPLE = [
 ] as const;
 
 /**
- * Chave de API fixa, exclusiva do ambiente de demonstracao.
+ * Chave de API fixa, exclusiva do ambiente de demonstração.
  *
  * Uma chave gerada aleatoriamente obrigaria a copiar o valor a cada seed. Como
  * este segredo só existe em banco local recriável, e como o valor esta no
@@ -70,7 +77,7 @@ const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
   if (process.env['NODE_ENV'] === 'production') {
-    throw new Error('O seed de demonstracao não roda em producao.');
+    throw new Error('O seed de demonstração não roda em produção.');
   }
 
   const passwordHash = await hash(DEMO_PASSWORD, ARGON2_OPTIONS);
@@ -99,6 +106,7 @@ async function main(): Promise<void> {
 
   await seedApiKey(organization.id);
   await seedLedger(organization.id);
+  await seedBilling(organization.id);
   await report(organization.id);
 }
 
@@ -112,7 +120,7 @@ async function seedApiKey(organizationId: string): Promise<void> {
     update: { revokedAt: null },
     create: {
       organizationId,
-      name: 'Chave de demonstracao',
+      name: 'Chave de demonstração',
       environment: ApiKeyEnvironment.TEST,
       prefix,
       tokenHash,
@@ -146,7 +154,7 @@ async function seedLedger(organizationId: string): Promise<void> {
   const refunds = await conta('merchant:refunds', AccountKind.CONTRA_REVENUE);
 
   // Datas fixas, e não relativas ao momento do seed, para que o razão da
-  // demonstracao conte sempre a mesma historia.
+  // demonstração conte sempre a mesma história.
   const entradas = [
     {
       eventType: 'invoice.issued',
@@ -241,6 +249,148 @@ async function seedLedger(organizationId: string): Promise<void> {
   }
 }
 
+/**
+ * Catálogo e assinaturas de demonstração.
+ *
+ * Três planos e quatro clientes, cada um em um estado diferente, para que o
+ * painel mostre a máquina de estados funcionando em vez de uma lista de linhas
+ * iguais. As assinaturas são criadas direto no banco, sem passar pelo serviço,
+ * porque o serviço publicaria eventos e lançaria no razão, e o razão de
+ * demonstração já tem os cinco lançamentos de referência do plano de contas.
+ */
+async function seedBilling(organizationId: string): Promise<void> {
+  const planos = [
+    { nome: 'Básico', valor: 2_900n, trial: 0 },
+    { nome: 'Pro', valor: 10_000n, trial: 14 },
+    { nome: 'Enterprise', valor: 30_000n, trial: 0 },
+  ];
+
+  const precos = new Map<string, string>();
+
+  for (const plano of planos) {
+    const product = await prisma.product.upsert({
+      where: { organizationId_name: { organizationId, name: plano.nome } },
+      update: {},
+      create: {
+        organizationId,
+        name: plano.nome,
+        description: `Plano ${plano.nome} da Livraria Aurora`,
+      },
+    });
+
+    const existente = await prisma.price.findFirst({ where: { productId: product.id } });
+    const price =
+      existente ??
+      (await prisma.price.create({
+        data: {
+          organizationId,
+          productId: product.id,
+          amountMinor: plano.valor,
+          currency: 'BRL',
+          interval: BillingInterval.MONTH,
+          trialDays: plano.trial,
+        },
+      }));
+
+    precos.set(plano.nome, price.id);
+  }
+
+  const clientes = [
+    {
+      email: 'contato@padaria-lua.test',
+      nome: 'Padaria Lua',
+      plano: 'Pro',
+      estado: SubscriptionStatus.ACTIVE,
+    },
+    {
+      email: 'financeiro@studio-vega.test',
+      nome: 'Studio Vega',
+      plano: 'Enterprise',
+      estado: SubscriptionStatus.ACTIVE,
+    },
+    {
+      email: 'ola@bike-norte.test',
+      nome: 'Bike Norte',
+      plano: 'Pro',
+      estado: SubscriptionStatus.TRIALING,
+    },
+    {
+      email: 'contas@mercado-sul.test',
+      nome: 'Mercado Sul',
+      plano: 'Básico',
+      estado: SubscriptionStatus.PAST_DUE,
+    },
+  ];
+
+  // Ciclo fixo, para que a demonstração conte sempre a mesma história.
+  const inicioDoCiclo = new Date('2026-08-01T12:00:00Z');
+  const fimDoCiclo = new Date('2026-09-01T12:00:00Z');
+
+  for (const cliente of clientes) {
+    const customer = await prisma.customer.upsert({
+      where: { organizationId_email: { organizationId, email: cliente.email } },
+      update: { name: cliente.nome },
+      create: { organizationId, email: cliente.email, name: cliente.nome },
+    });
+
+    const jaTem = await prisma.subscription.findFirst({ where: { customerId: customer.id } });
+    if (jaTem !== null) {
+      continue;
+    }
+
+    const priceId = precos.get(cliente.plano)!;
+    const emTeste = cliente.estado === SubscriptionStatus.TRIALING;
+
+    const subscription = await prisma.subscription.create({
+      data: {
+        organizationId,
+        customerId: customer.id,
+        priceId,
+        status: cliente.estado,
+        currentPeriodStart: inicioDoCiclo,
+        currentPeriodEnd: fimDoCiclo,
+        trialEndsAt: emTeste ? new Date('2026-09-10T12:00:00Z') : null,
+      },
+    });
+
+    await prisma.subscriptionEvent.create({
+      data: {
+        subscriptionId: subscription.id,
+        toStatus: cliente.estado,
+        reason: descreverEstado(cliente.estado),
+        occurredAt: inicioDoCiclo,
+      },
+    });
+  }
+}
+
+function descreverEstado(estado: SubscriptionStatus): string {
+  switch (estado) {
+    case SubscriptionStatus.TRIALING:
+      return 'Assinatura criada com 14 dias de teste';
+    case SubscriptionStatus.PAST_DUE:
+      return 'Cobrança falhou, recuperação em andamento';
+    default:
+      return 'Assinatura ativa desde o início do ciclo';
+  }
+}
+
+/**
+ * Centavos em reais, para o relatório impresso no terminal.
+ *
+ * Feito em bigint, e não com divisão por 100, porque dividir traz de volta o
+ * ponto flutuante que a ADR-0002 existe para manter fora do sistema. Vale
+ * também para saída de terminal: uma vez que a conversão entra no código, ela
+ * acaba copiada para algum lugar onde importa.
+ */
+function reais(minor: bigint): string {
+  const negativo = minor < 0n;
+  const absoluto = negativo ? -minor : minor;
+  const centavos = (absoluto % 100n).toString().padStart(2, '0');
+
+  return `${negativo ? '-' : ''}${(absoluto / 100n).toString()},${centavos}`;
+}
+
 async function report(organizationId: string): Promise<void> {
   const members = await prisma.membership.findMany({
     where: { organizationId },
@@ -250,7 +400,7 @@ async function report(organizationId: string): Promise<void> {
 
   const lines = [
     '',
-    'Dados de demonstracao prontos.',
+    'Dados de demonstração prontos.',
     '',
     `  Organização   ${ORGANIZATION.name}  (${organizationId})`,
     `  Senha         ${DEMO_PASSWORD}   (a mesma para todas as contas)`,
@@ -277,13 +427,27 @@ async function report(organizationId: string): Promise<void> {
 
   lines.push('', '  Razão');
   for (const saldo of saldos) {
-    const reais = (Number(saldo.balance) / 100).toFixed(2).padStart(10);
-    lines.push(`    ${saldo.code.padEnd(22)} ${reais}`);
+    lines.push(`    ${saldo.code.padEnd(22)} ${reais(saldo.balance).padStart(11)}`);
   }
   const total = saldos.reduce((soma, saldo) => soma + saldo.balance, 0n);
-  lines.push(
-    `    ${'soma (deve ser zero)'.padEnd(22)} ${(Number(total) / 100).toFixed(2).padStart(10)}`,
-  );
+  lines.push(`    ${'soma (deve ser zero)'.padEnd(22)} ${reais(total).padStart(11)}`);
+
+  const assinaturas = await prisma.subscription.findMany({
+    where: { organizationId },
+    include: { customer: true, price: { include: { product: true } } },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (assinaturas.length > 0) {
+    lines.push('', '  Assinaturas');
+    for (const assinatura of assinaturas) {
+      lines.push(
+        `    ${assinatura.status.padEnd(10)} ${assinatura.customer.name.padEnd(16)} ` +
+          `${assinatura.price.product.name.padEnd(12)} ` +
+          `R$ ${reais(assinatura.price.amountMinor).padStart(9)}`,
+      );
+    }
+  }
 
   lines.push(
     '',
@@ -303,7 +467,7 @@ async function report(organizationId: string): Promise<void> {
 
 main()
   .catch((error: unknown) => {
-    console.error('Falha ao popular os dados de demonstracao:', error);
+    console.error('Falha ao popular os dados de demonstração:', error);
     process.exitCode = 1;
   })
   .finally(() => {

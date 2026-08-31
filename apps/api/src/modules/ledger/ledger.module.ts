@@ -1,6 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, type OnModuleInit } from '@nestjs/common';
 
 import { LedgerService } from './application/ledger.service';
+import { SubscriptionAccountingHandler } from './application/subscription-accounting.handler';
+import { DomainEventPublisher } from '../platform/events/domain-event-publisher';
 import { LedgerController } from './http/ledger.controller';
 
 /**
@@ -13,7 +15,16 @@ import { LedgerController } from './http/ledger.controller';
  */
 @Module({
   controllers: [LedgerController],
-  providers: [LedgerService],
+  providers: [LedgerService, SubscriptionAccountingHandler],
   exports: [LedgerService],
 })
-export class LedgerModule {}
+export class LedgerModule implements OnModuleInit {
+  constructor(
+    private readonly publisher: DomainEventPublisher,
+    private readonly subscriptionAccounting: SubscriptionAccountingHandler,
+  ) {}
+
+  onModuleInit(): void {
+    this.publisher.register(this.subscriptionAccounting);
+  }
+}

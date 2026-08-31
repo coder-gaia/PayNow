@@ -75,6 +75,14 @@ produzir mensagem útil, o banco existe para garantir.
 - Quem for mexer no ledger precisa saber ler PL/pgSQL, e não apenas Prisma.
 - O trigger de append-only impede limpeza de dados de teste sem desativá-lo,
   o que já aconteceu durante o desenvolvimento e é um incômodo real.
+- **Migration aplicada é imutável.** O Prisma guarda o checksum do arquivo em
+  `_prisma_migrations` e recusa rodar se o conteúdo mudar, inclusive quando a
+  mudança é só um comentário. Por isso os comentários dentro das migrations já
+  aplicadas ficaram sem acento: corrigi-los quebraria o banco de todo mundo que
+  já rodou a migration, e o texto que chega ao usuário final não vem do
+  comentário, e sim do corpo da função. Quando uma mensagem precisa mudar, o
+  caminho é uma migration nova com `CREATE OR REPLACE FUNCTION`, como fez a
+  `20260831153241_acentuar_mensagens_do_ledger`.
 
 ## Alternativas consideradas
 

@@ -4,12 +4,14 @@ import { expect, test } from '@playwright/test';
 import {
   addPerson,
   createApiKey,
+  createPlan,
   createWorkspace,
   login,
   memberRow,
   navLink,
   notice,
   PASSWORD,
+  startSubscription,
   toast,
 } from './support';
 
@@ -17,8 +19,8 @@ import {
  * Fluxo do painel com navegador de verdade.
  *
  * Cada teste monta a própria organização pela API antes de abrir a interface,
- * então não há estado compartilhado entre eles e os dados de demonstracao
- * ficam intactos. Ver o comentario em support.ts.
+ * então não há estado compartilhado entre eles e os dados de demonstração
+ * ficam intactos. Ver o comentário em support.ts.
  */
 
 test.describe('autenticação', () => {
@@ -313,7 +315,7 @@ test.describe('restrições por papel', () => {
     await expect(page.getByText(/administradas por OWNER e ADMIN/)).toBeVisible();
   });
 
-  test('MEMBER ve a lista de membros em modo leitura', async ({ page }) => {
+  test('MEMBER vê a lista de membros em modo leitura', async ({ page }) => {
     await entrarComoMembroDemo(page);
 
     await page.goto('/painel/membros');
@@ -324,9 +326,9 @@ test.describe('restrições por papel', () => {
 
 test.describe('razão', () => {
   test('mostra o balancete somando zero e afirma a integridade', async ({ page }) => {
-    // Usa a organização de demonstracao, que o seed carrega com os cinco
+    // Usa a organização de demonstração, que o seed carrega com os cinco
     // lançamentos de referência de docs/plano-de-contas.md. Criar um razão na
-    // hora exigiria uma rota de escrita, e o ledger não tem uma de proposito:
+    // hora exigiria uma rota de escrita, e o ledger não tem uma de propósito:
     // lançamento nasce de evento de domínio, nunca de chamada HTTP avulsa.
     await page.goto('/entrar');
     await page.getByLabel('Email').fill('ana@livraria-aurora.test');
@@ -339,12 +341,101 @@ test.describe('razão', () => {
 
     await expect(notice(page, 'Razão íntegro')).toBeVisible();
 
-    // O balancete traz o plano de contas inteiro, é a soma tem de fechar.
+    // O balancete traz o plano de contas inteiro, e a soma tem de fechar.
     const balancete = page.getByRole('row').filter({ hasText: 'customer:receivable' });
     await expect(balancete).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: 'Soma' }).getByText('0,00')).toBeVisible();
 
     // E os lançamentos carregam o evento de domínio que os originou.
     await expect(page.getByText('payment.succeeded').first()).toBeVisible();
+  });
+});
+
+test.describe('assinaturas', () => {
+  test('troca de plano mostra o rateio e escreve no razão', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'assinaturas');
+    const basico = await createPlan(request, workspace, 'Plano Base', '2000');
+    await createPlan(request, workspace, 'Plano Alto', '5000');
+    const assinatura = await startSubscription(
+      request,
+      workspace,
+      basico.priceId,
+      'Livraria Teste',
+    );
+
+    await login(page, workspace.owner.email);
+    await navLink(page, 'Assinaturas').click();
+    await expect(page).toHaveURL(/\/painel\/assinaturas$/);
+
+    const linha = page.getByRole('row').filter({ hasText: assinatura.customerName });
+    await expect(linha).toContainText('Plano Base');
+    await expect(linha).toContainText('Aguardando pagamento');
+
+    // O rateio aparece por extenso no toast. Não basta a troca dar certo: quem
+    // trocou de plano precisa ver o que aconteceu com o dinheiro do ciclo.
+    const seletor = page.getByLabel(`Plano de ${assinatura.customerName}`);
+    await seletor.selectOption({ label: 'Plano Alto · 50,00' });
+
+    await expect(notice(page, 'Plano trocado')).toBeVisible();
+    await expect(notice(page, 'Crédito de')).toContainText('dias restantes');
+    await expect(linha).toContainText('Plano Alto');
+
+    // E o lançamento correspondente chegou ao razão, no mesmo instante e sem
+    // desbalancear nada. Esta é a razão de o barramento de eventos existir.
+    await navLink(page, 'Razão').click();
+    await expect(notice(page, 'Razão íntegro')).toBeVisible();
+    await expect(page.getByText('subscription.plan_changed').first()).toBeVisible();
+  });
+
+  test('cancelamento pede confirmação e pode ser desfeito', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'cancelamento');
+    const plano = await createPlan(request, workspace, 'Plano Único', '3000');
+    const assinatura = await startSubscription(request, workspace, plano.priceId, 'Padaria Teste');
+
+    await login(page, workspace.owner.email);
+    await page.goto('/painel/assinaturas');
+
+    const linha = page.getByRole('row').filter({ hasText: assinatura.customerName });
+    await linha.getByRole('button', { name: 'Cancelar' }).click();
+
+    // Diálogo nativo, e não window.confirm: o texto precisa dizer o que vai
+    // acontecer com o acesso, e um confirm do navegador não permite isso.
+    const dialogo = page.getByRole('dialog');
+    await expect(dialogo).toContainText('continua com acesso até');
+    await dialogo.getByRole('button', { name: 'Agendar cancelamento' }).click();
+
+    await expect(notice(page, 'encerra em')).toBeVisible();
+    await expect(linha).toContainText('encerra no fim do ciclo');
+
+    // Cancelamento agendado é reversível, e o botão troca sozinho para dizer
+    // isso. Quem cancelou por engano tem como voltar atrás antes do fim do
+    // ciclo, que é justamente o motivo de o padrão não ser encerrar na hora.
+    await linha.getByRole('button', { name: 'Retomar' }).click();
+    await expect(notice(page, 'retomada')).toBeVisible();
+    await expect(linha).not.toContainText('encerra no fim do ciclo');
+  });
+
+  test('a carteira de demonstração mostra a máquina de estados', async ({ page }) => {
+    // Aqui a organização de demonstração é o próprio objeto do teste: o seed
+    // monta uma assinatura em cada estado justamente para que a tela mostre a
+    // máquina funcionando, e uma regressão no seed apagaria isso em silêncio.
+    await page.goto('/entrar');
+    await page.getByLabel('Email').fill('ana@livraria-aurora.test');
+    await page.getByLabel('Senha', { exact: true }).fill('paynow-demo-2026');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL(/\/painel$/);
+
+    // Em atraso continua com acesso: quatro assinaturas e quatro com acesso,
+    // porque cortar no primeiro dia de atraso transformaria uma falha de
+    // cartão em cancelamento.
+    await expect(page.getByText('4 com acesso ao produto')).toBeVisible();
+
+    await navLink(page, 'Assinaturas').click();
+
+    await expect(page.getByRole('row').filter({ hasText: 'Padaria Lua' })).toContainText('Ativa');
+    await expect(page.getByRole('row').filter({ hasText: 'Bike Norte' })).toContainText('Em teste');
+    await expect(page.getByRole('row').filter({ hasText: 'Mercado Sul' })).toContainText(
+      'Em atraso',
+    );
   });
 });
