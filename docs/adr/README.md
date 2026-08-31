@@ -30,21 +30,24 @@ momento em que ela é tomada, com o contexto que existia na época.
 | [0001](0001-monolito-modular.md)            | Monólito modular em vez de microserviços                      | Aceita |
 | [0002](0002-dinheiro-como-inteiro.md)       | Dinheiro como inteiro em unidade mínima                       | Aceita |
 | [0003](0003-ledger-de-partidas-dobradas.md) | Ledger append-only de partidas dobradas como fonte da verdade | Aceita |
+| [0004](0004-nestjs-11-em-vez-de-12.md)      | NestJS 11 em vez de 12, com gatilho de migração               | Aceita |
 
-As ADRs 0004 a 0013 estão previstas no plano do projeto e são escritas na fase
-em que a decisão passa a valer, e não antes.
+As ADRs seguintes estão previstas no plano do projeto e são escritas na fase em
+que a decisão passa a valer, e não antes. A numeração é cronológica, então uma
+decisão que surgir fora da ordem prevista assume o próximo número livre e esta
+tabela é reajustada.
 
 | Prevista | Título                                                     | Fase |
 | -------- | ---------------------------------------------------------- | ---- |
-| 0004     | Prisma para schema e tipos, SQL cru no núcleo transacional | 02   |
-| 0005     | Outbox transacional em vez de publicação direta            | 05   |
-| 0006     | Idempotency-Key no modelo do Stripe                        | 05   |
-| 0007     | Advisory locks para mutação de assinatura                  | 03   |
-| 0008     | Relógio injetado em vez de acesso direto ao tempo          | 04   |
-| 0009     | Autenticação própria em vez de provedor externo            | 01   |
-| 0010     | Porta de gateway com implementação falsa e Stripe em teste | 05   |
-| 0011     | Worker no mesmo processo, com flag e gatilho de extração   | 05   |
-| 0012     | OpenTelemetry com Datadog como backend                     | 09   |
-| 0013     | Escopo PCI-DSS SAQ-A por desenho                           | 05   |
+| 0005     | Prisma para schema e tipos, SQL cru no núcleo transacional | 02   |
+| 0006     | Outbox transacional em vez de publicação direta            | 05   |
+| 0007     | Idempotency-Key no modelo do Stripe                        | 05   |
+| 0008     | Advisory locks para mutação de assinatura                  | 03   |
+| 0009     | Relógio injetado em vez de acesso direto ao tempo          | 04   |
+| 0010     | Autenticação própria em vez de provedor externo            | 01   |
+| 0011     | Porta de gateway com implementação falsa e Stripe em teste | 05   |
+| 0012     | Worker no mesmo processo, com flag e gatilho de extração   | 05   |
+| 0013     | OpenTelemetry com Datadog como backend                     | 09   |
+| 0014     | Escopo PCI-DSS SAQ-A por desenho                           | 05   |
 
 Use [template.md](template.md) para criar uma nova.

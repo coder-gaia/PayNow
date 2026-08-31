@@ -5,7 +5,7 @@ Este documento é o contrato contábil do Paynow. Ele foi escrito e revisado
 dobradas mal modeladas são piores do que não ter ledger nenhum, e corrigir o
 plano de contas depois obriga a reescrever tudo que foi construído em cima dele.
 
-Referência conceitual: ADR-003.
+Referência conceitual: ADR-0003.
 
 ## Princípios
 
@@ -20,7 +20,7 @@ Referência conceitual: ADR-003.
 4. **Toda linha aponta para a causa.** Cada lançamento carrega o identificador do
    evento de domínio que o originou. Um lançamento sem causa rastreável é um bug.
 5. **Valores em unidade mínima.** Sempre inteiro em centavos, nunca decimal de
-   ponto flutuante. Ver ADR-002.
+   ponto flutuante. Ver ADR-0002.
 
 ## Convenção de sinal
 

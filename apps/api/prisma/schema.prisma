@@ -1,0 +1,16 @@
+// Schema do Paynow.
+//
+// A fase 00 estabelece apenas a base do banco: as extensoes que o restante do
+// sistema assume existirem. Os modelos de dominio chegam a partir da fase 01,
+// e o ledger, que e o nucleo do projeto, na fase 02.
+//
+// Ver docs/plano-de-contas.md para o contrato contabil que a fase 02 implementa.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

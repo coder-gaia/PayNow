@@ -99,7 +99,7 @@ de uma porta única, com duas implementações: um gateway falso programável e 
 Stripe em modo de teste.
 
 Essa restrição mantém o escopo PCI-DSS em SAQ-A por desenho, e é uma decisão
-arquitetural imposta desde o início, registrada na ADR-013.
+arquitetural imposta desde o início, registrada na ADR-0014.
 
 ## Escopo declaradamente fora da primeira versão
 

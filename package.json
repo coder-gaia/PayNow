@@ -15,6 +15,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:cov": "turbo run test:cov",
+    "verify:architecture": "node tools/verify-architecture.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "infra:up": "docker compose up -d",
@@ -34,7 +35,7 @@
     "eslint-plugin-boundaries": "^7.2.0",
     "prettier": "^3.9.6",
     "turbo": "^2.10.12",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.68.0"
   },
   "prettier": {
