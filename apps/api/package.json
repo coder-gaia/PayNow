@@ -21,7 +21,8 @@
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "db:seed": "dotenv -e ../../.env -- node dist/seed.js",
     "db:studio": "dotenv -e ../../.env -- prisma studio",
-    "db:reset": "dotenv -e ../../.env -- prisma migrate reset --force"
+    "db:reset": "dotenv -e ../../.env -- prisma migrate reset --force",
+    "ledger:verify": "dotenv -e ../../.env -- node dist/ledger-verify.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.3",
@@ -48,6 +49,7 @@
     "@types/supertest": "^7.2.1",
     "concurrently": "^10.0.5",
     "dotenv-cli": "^11.0.0",
+    "fast-check": "^4.9.0",
     "jest": "^30.5.0",
     "prisma": "6.19.3",
     "source-map-support": "^0.5.21",

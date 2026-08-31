@@ -29,7 +29,8 @@
     "db:seed": "pnpm --filter @paynow/api build && pnpm --filter @paynow/api db:seed",
     "db:reset": "pnpm --filter @paynow/api db:reset",
     "db:studio": "pnpm --filter @paynow/api db:studio",
-    "commitlint": "commitlint"
+    "commitlint": "commitlint",
+    "ledger:verify": "pnpm --filter @paynow/api build && pnpm --filter @paynow/api ledger:verify"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

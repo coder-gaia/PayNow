@@ -59,21 +59,20 @@ export default async function OverviewPage() {
       <Panel title="O que vem a seguir">
         <div className="space-y-3 px-5 py-4 text-sm text-ink-muted">
           <p>
-            Esta e a fase 01, que entrega identidade: contas, organizacoes, papeis e chaves de API.
-            O painel cresce junto com o backend a cada fase.
+            Ate aqui: identidade na fase 01 e o razao de partidas dobradas na fase 02. O painel
+            cresce junto com o backend a cada fase.
           </p>
           <ul className="ml-4 list-disc space-y-1">
-            <li>Fase 02: explorador do ledger, com os lancamentos e o saldo derivado</li>
             <li>Fase 03: planos, precos e assinaturas</li>
             <li>Fase 04: linha do tempo arrastavel, para simular meses em segundos</li>
             <li>Fase 05: cobrancas, tentativas e recuperacao</li>
           </ul>
           <p>
-            Enquanto isso, de uma olhada em{' '}
-            <Link href="/painel/chaves" className="text-credit underline underline-offset-2">
-              chaves de API
+            Enquanto isso, o{' '}
+            <Link href="/painel/ledger" className="text-credit underline underline-offset-2">
+              razao
             </Link>{' '}
-            para exercitar a autenticacao de servidor.
+            ja mostra a decisao central do projeto: saldo nao e um campo, e a soma das linhas.
           </p>
         </div>
       </Panel>

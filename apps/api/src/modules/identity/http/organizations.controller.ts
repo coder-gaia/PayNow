@@ -24,7 +24,7 @@ import {
   OrganizationSummary,
   UpdateMemberRoleDto,
 } from './identity.dto';
-import { OrganizationRoleGuard } from './organization-role.guard';
+import { OrganizationRoleGuard } from '../../platform/http/organization-role.guard';
 
 type UserContext = AuthContext & { kind: 'user' };
 

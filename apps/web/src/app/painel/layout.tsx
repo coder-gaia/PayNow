@@ -42,6 +42,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
           <nav className="flex items-center gap-1 text-sm">
             <NavLink href="/painel">Visao geral</NavLink>
+            <NavLink href="/painel/ledger">Razao</NavLink>
             <NavLink href="/painel/membros">Membros</NavLink>
             <NavLink href="/painel/chaves">Chaves de API</NavLink>
           </nav>
@@ -57,7 +58,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <footer className="mx-auto max-w-5xl px-6 pb-10">
         <p className="border-t border-rule pt-4 font-mono text-[11px] text-ink-faint">
-          Fase 01 de 09. As telas de ledger, assinaturas e cobranca chegam nas fases seguintes.
+          Fase 02 de 09. As telas de assinaturas e cobranca chegam nas fases seguintes.
         </p>
       </footer>
     </div>

@@ -163,9 +163,52 @@ export interface CreatedApiKey extends ApiKey {
   secret: string;
 }
 
+export interface AccountBalance {
+  code: string;
+  label: string;
+  kind: string;
+  normalBalance: 'debit' | 'credit';
+  balanceMinor: string;
+  balance: string;
+  currency: string;
+  lineCount: number;
+}
+
+export interface JournalLine {
+  id: string;
+  account: string;
+  amountMinor: string;
+  amount: string;
+  currency: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  eventType: string;
+  eventId: string;
+  description: string;
+  occurredAt: string;
+  createdAt: string;
+  total: string;
+  lines: JournalLine[];
+}
+
+export interface LedgerVerification {
+  checkedAt: string;
+  entryCount: number;
+  lineCount: number;
+  balanced: boolean;
+  violations: string[];
+}
+
 export const api = {
   profile: () => apiFetch<Profile>('/auth/me'),
   organization: (id: string) => apiFetch<OrganizationDetail>(`/organizations/${id}`),
   members: (id: string) => apiFetch<Member[]>(`/organizations/${id}/members`),
   apiKeys: (id: string) => apiFetch<ApiKey[]>(`/organizations/${id}/api-keys`),
+  ledgerBalances: (id: string) =>
+    apiFetch<AccountBalance[]>(`/organizations/${id}/ledger/balances`),
+  ledgerEntries: (id: string) => apiFetch<JournalEntry[]>(`/organizations/${id}/ledger/entries`),
+  ledgerVerification: (id: string) =>
+    apiFetch<LedgerVerification>(`/organizations/${id}/ledger/verification`),
 };

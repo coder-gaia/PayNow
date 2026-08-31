@@ -321,3 +321,30 @@ test.describe('restricoes por papel', () => {
     await expect(page.getByLabel(/Papel de/)).toHaveCount(0);
   });
 });
+
+test.describe('razao', () => {
+  test('mostra o balancete somando zero e afirma a integridade', async ({ page }) => {
+    // Usa a organizacao de demonstracao, que o seed carrega com os cinco
+    // lancamentos de referencia de docs/plano-de-contas.md. Criar um razao na
+    // hora exigiria uma rota de escrita, e o ledger nao tem uma de proposito:
+    // lancamento nasce de evento de dominio, nunca de chamada HTTP avulsa.
+    await page.goto('/entrar');
+    await page.getByLabel('Email').fill('ana@livraria-aurora.test');
+    await page.getByLabel('Senha', { exact: true }).fill('paynow-demo-2026');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL(/\/painel$/);
+
+    await navLink(page, 'Razao').click();
+    await expect(page).toHaveURL(/\/painel\/ledger$/);
+
+    await expect(notice(page, 'Razao integro')).toBeVisible();
+
+    // O balancete traz o plano de contas inteiro, e a soma tem de fechar.
+    const balancete = page.getByRole('row').filter({ hasText: 'customer:receivable' });
+    await expect(balancete).toBeVisible();
+    await expect(page.getByRole('row').filter({ hasText: 'Soma' }).getByText('0,00')).toBeVisible();
+
+    // E os lancamentos carregam o evento de dominio que os originou.
+    await expect(page.getByText('payment.succeeded').first()).toBeVisible();
+  });
+});

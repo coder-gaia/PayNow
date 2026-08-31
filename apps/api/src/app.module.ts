@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { validateEnv } from './config/env';
 import { IdentityModule } from './modules/identity/identity.module';
+import { LedgerModule } from './modules/ledger/ledger.module';
 import { PlatformModule } from './modules/platform/platform.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { PlatformModule } from './modules/platform/platform.module';
     }),
     PlatformModule,
     IdentityModule,
+    LedgerModule,
   ],
 })
 export class AppModule {}

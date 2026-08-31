@@ -10,7 +10,7 @@ import {
   OrganizationNotFoundError,
   UserNotFoundError,
 } from '../domain/identity.errors';
-import { outranks, roleSatisfies } from '../domain/roles';
+import { outranks, roleSatisfies } from '../../platform/authorization/roles';
 import { resolveUniqueSlug } from '../domain/slug';
 
 const UNIQUE_VIOLATION = 'P2002';

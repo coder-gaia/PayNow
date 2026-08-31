@@ -158,7 +158,13 @@ export function Table({ headers, children }: { headers: string[]; children: Reac
   );
 }
 
-export function Cell({ className = '', children }: { className?: string; children: ReactNode }) {
+export function Cell({
+  className = '',
+  children = null,
+}: {
+  className?: string;
+  children?: ReactNode;
+}) {
   return <td className={`border-b border-rule px-5 py-3 align-middle ${className}`}>{children}</td>;
 }
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
@@ -8,6 +8,7 @@ import { ApiKeysService } from './application/api-keys.service';
 import { AuthService } from './application/auth.service';
 import { OrganizationsService } from './application/organizations.service';
 import { RefreshTokenService } from './application/refresh-token.service';
+import { ORGANIZATION_MEMBERSHIP } from '../platform/http/organization-role.guard';
 import { ApiKeysController, MerchantContextController } from './http/api-keys.controller';
 import { AuthController } from './http/auth.controller';
 import { AuthenticationGuard } from './http/authentication.guard';
@@ -24,6 +25,7 @@ import { TokenHasher } from './infrastructure/token-hasher';
  * e um erro silencioso, esquecer de liberar uma e um 401 obvio no primeiro
  * teste.
  */
+@Global()
 @Module({
   imports: [
     JwtModule.registerAsync({
@@ -50,7 +52,11 @@ import { TokenHasher } from './infrastructure/token-hasher';
     OrganizationsService,
     ApiKeysService,
     { provide: APP_GUARD, useClass: AuthenticationGuard },
+    // O guard de papel vive em platform e depende desta porta. Ver ADR-0001:
+    // modulo de dominio nao importa modulo de dominio, entao platform declara
+    // o contrato e identity, que e quem sabe ler vinculo, o implementa.
+    { provide: ORGANIZATION_MEMBERSHIP, useExisting: OrganizationsService },
   ],
-  exports: [OrganizationsService],
+  exports: [OrganizationsService, ORGANIZATION_MEMBERSHIP],
 })
 export class IdentityModule {}

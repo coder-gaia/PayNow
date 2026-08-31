@@ -56,10 +56,21 @@ garantido por constraint no banco. A role da aplicação não tem permissão de
 `UPDATE` nem `DELETE` no ledger: correção acontece por lançamento de estorno,
 preservando a evidência do erro.
 
-Os invariantes são verificados por testes de propriedade que geram milhares de
-sequências aleatórias de operações.
+Os invariantes não vivem no código da aplicação, e sim no banco, porque uma
+regra contábil que só vale no caminho feliz do código não é garantia:
 
-Ver [ADR-0003](docs/adr/0003-ledger-de-partidas-dobradas.md) e
+| Invariante                               | Onde é garantido                                  |
+| ---------------------------------------- | ------------------------------------------------- |
+| Todo lançamento soma zero, por moeda     | Constraint trigger diferida, verificada no commit |
+| Nenhuma linha é alterada ou removida     | Trigger que recusa `UPDATE` e `DELETE`            |
+| Linha de valor zero é recusada           | `CHECK (amount_minor <> 0)`                       |
+| O mesmo evento não vira dois lançamentos | Índice único sobre `(organização, tipo, evento)`  |
+
+`pnpm ledger:verify` recalcula tudo a partir das linhas, sem confiar em nenhum
+valor derivado gravado, e sai com código diferente de zero se algo não fechar.
+
+Ver [ADR-0003](docs/adr/0003-ledger-de-partidas-dobradas.md),
+[ADR-0005](docs/adr/0005-prisma-e-sql-cru.md) e o
 [plano de contas](docs/plano-de-contas.md).
 
 ### 2. Relógio virtual
@@ -82,7 +93,8 @@ servidor do Next é o único que vê os tokens, e a renovação acontece no
 middleware, antes de qualquer página renderizar.
 
 Ele nasceu na fase 01 e cresce junto com o backend, em vez de aparecer inteiro
-no fim. Hoje mostra contas, organização, membros e chaves de API.
+no fim. Hoje mostra contas, organização, membros, chaves de API e o explorador
+do razão.
 
 ### 3. Suíte adversarial
 
@@ -311,8 +323,8 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       migration, CI.
 - [x] **01 Identidade.** Usuários, organizações, JWT com rotação de refresh e
       detecção de reuso, RBAC, chaves de API.
-- [ ] **02 Ledger.** Contas, lançamentos, invariantes no banco, saldo derivado,
-      reconciliação, testes de propriedade.
+- [x] **02 Ledger.** Contas, lançamentos, invariantes no banco, saldo derivado,
+      auditoria, testes de propriedade.
 - [ ] **03 Catálogo e assinaturas.** Produtos, preços, planos, máquina de
       estados, trial, rateio proporcional.
 - [ ] **04 Relógio e ciclo de cobrança.** Relógio virtual, agendamento, avanço

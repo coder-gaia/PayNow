@@ -3,6 +3,15 @@ import { OrganizationRole } from '@prisma/client';
 export { OrganizationRole };
 
 /**
+ * Hierarquia de papeis dentro de uma organizacao.
+ *
+ * Vive em `platform` porque autorizacao atravessa modulos: identidade, ledger
+ * e, a partir da fase 03, assinaturas e cobranca precisam da mesma comparacao.
+ * A ADR-0001 impede que qualquer um deles importe do outro, entao o vocabulario
+ * compartilhado fica aqui.
+ */
+
+/**
  * Poder relativo de cada papel. Numero maior manda mais.
  *
  * Com quatro papeis estritamente ordenados, comparar niveis resolve toda

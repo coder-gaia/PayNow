@@ -47,8 +47,10 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  memberships Membership[]
-  apiKeys     ApiKey[]
+  memberships    Membership[]
+  apiKeys        ApiKey[]
+  accounts       Account[]
+  journalEntries JournalEntry[]
 
   @@map("organizations")
 }
@@ -147,4 +149,94 @@ model ApiKey {
 
   @@index([organizationId])
   @@map("api_keys")
+}
+
+// ---------------------------------------------------------------------------
+// Ledger (fase 02)
+//
+// Ver docs/plano-de-contas.md para o contrato contabil e docs/adr/0003 para a
+// decisao. Tres regras nao vivem aqui, e sim no SQL da migration, porque o
+// Prisma nao as expressa e elas precisam valer para qualquer caminho que
+// escreva no banco, inclusive um psql aberto por engano:
+//
+//   1. todo lancamento soma zero por moeda, verificado no commit;
+//   2. lancamento e linha nao aceitam UPDATE nem DELETE;
+//   3. linha com valor zero e recusada.
+// ---------------------------------------------------------------------------
+
+/// Natureza contabil da conta. Define de que lado fica o saldo normal e como o
+/// valor entra no balancete.
+enum AccountKind {
+  ASSET
+  LIABILITY
+  REVENUE
+  CONTRA_REVENUE
+
+  @@map("account_kind")
+}
+
+/// Conta do razao, escopada por organizacao.
+///
+/// Contas nascem sob demanda, no primeiro lancamento que as usa. Provisionar
+/// na criacao da organizacao exigiria que o modulo de identidade conhecesse o
+/// ledger, e a ADR-0001 proibe modulo de dominio importar modulo de dominio.
+model Account {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
+  code           String
+  kind           AccountKind
+  currency       String      @db.Char(3)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  lines        JournalLine[]
+
+  @@unique([organizationId, code, currency])
+  @@index([organizationId])
+  @@map("accounts")
+}
+
+/// Lancamento contabil: um evento de dominio e suas linhas balanceadas.
+///
+/// A chave unica sobre o evento e idempotencia no nivel do banco. Reprocessar o
+/// mesmo webhook nao duplica lancamento nem quando a camada de aplicacao falha
+/// em perceber a repeticao.
+model JournalEntry {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  eventType      String   @map("event_type")
+  eventId        String   @map("event_id")
+  description    String
+  /// Quando o fato aconteceu, vindo do relogio injetado (ADR-0009).
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(3)
+  /// Quando a linha foi gravada, vindo do relogio do banco.
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  lines        JournalLine[]
+
+  @@unique([organizationId, eventType, eventId])
+  @@index([organizationId, occurredAt])
+  @@map("journal_entries")
+}
+
+/// Uma perna do lancamento.
+///
+/// Convencao de sinal unico: positivo e debito, negativo e credito. Isso
+/// substitui duas colunas por uma e transforma "debitos igualam creditos" na
+/// verificacao mais simples possivel, que e somar e comparar com zero.
+model JournalLine {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  entryId     String   @map("entry_id") @db.Uuid
+  accountId   String   @map("account_id") @db.Uuid
+  amountMinor BigInt   @map("amount_minor")
+  currency    String   @db.Char(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  account Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([entryId])
+  @@index([accountId])
+  @@map("journal_lines")
 }

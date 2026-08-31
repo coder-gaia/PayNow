@@ -24,7 +24,7 @@ import { OrganizationsService } from '../application/organizations.service';
 import { AllowApiKey, CurrentApiKey, RequireRole } from '../../platform/http/auth-context';
 import type { AuthContext } from '../../platform/http/auth-context';
 import { ApiKeyResponse, CreateApiKeyDto, CreatedApiKeyResponse } from './identity.dto';
-import { OrganizationRoleGuard } from './organization-role.guard';
+import { OrganizationRoleGuard } from '../../platform/http/organization-role.guard';
 
 const uuid = () => new ParseUUIDPipe({ version: '7' });
 
