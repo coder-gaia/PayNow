@@ -348,6 +348,14 @@ test.describe('razão', () => {
 
     // E os lançamentos carregam o evento de domínio que os originou.
     await expect(page.getByText('payment.succeeded').first()).toBeVisible();
+
+    // As linhas são apresentadas como partida dobrada de verdade, em colunas
+    // de débito e crédito, e com o nome da conta e não só o código. Valor com
+    // sinal fazia a mesma conta aparecer duas vezes parecendo contraditória.
+    const lancamento = page.getByRole('listitem').filter({ hasText: 'payment.succeeded' });
+    await expect(lancamento.getByText('Débito').first()).toBeVisible();
+    await expect(lancamento.getByText('Crédito').first()).toBeVisible();
+    await expect(lancamento.getByText('Em liquidação no gateway').first()).toBeVisible();
   });
 });
 
@@ -438,4 +446,63 @@ test.describe('assinaturas', () => {
       'Em atraso',
     );
   });
+});
+
+/**
+ * Largura de celular.
+ *
+ * Um balancete é tabular por natureza, então em tela estreita ele rola em vez
+ * de virar outra coisa. O que não pode acontecer é a tabela ser simplesmente
+ * cortada: sem um ancestral que role, a coluna da direita fica inalcançável e
+ * parece que o dado sumiu.
+ *
+ * O teste afirma as duas coisas: a página não rola na horizontal, e todo
+ * elemento mais largo que a tela está dentro de algo que rola. Trocar a
+ * rolagem do painel por `overflow: hidden` faz este teste falhar, que é
+ * exatamente o defeito que ele existe para pegar.
+ */
+test.describe('tela pequena', () => {
+  const PAGINAS = ['/painel', '/painel/assinaturas', '/painel/ledger', '/painel/membros'];
+
+  for (const caminho of PAGINAS) {
+    test(`${caminho} rola a tabela em vez de cortá-la em 375px`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 720 });
+
+      await page.goto('/entrar');
+      await page.getByLabel('Email').fill('ana@livraria-aurora.test');
+      await page.getByLabel('Senha', { exact: true }).fill('paynow-demo-2026');
+      await page.getByRole('button', { name: 'Entrar' }).click();
+      await expect(page).toHaveURL(/\/painel$/);
+
+      await page.goto(caminho);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+      const diagnostico = await page.evaluate(() => {
+        const largura = document.documentElement.clientWidth;
+
+        const rolavel = (el: Element | null): boolean => {
+          for (let atual = el; atual !== null; atual = atual.parentElement) {
+            const overflow = getComputedStyle(atual).overflowX;
+            if (
+              (overflow === 'auto' || overflow === 'scroll') &&
+              atual.scrollWidth > atual.clientWidth
+            ) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        return {
+          paginaRola: document.documentElement.scrollWidth > largura,
+          presas: [...document.querySelectorAll('table, img, pre')]
+            .filter((el) => el.getBoundingClientRect().width > largura && !rolavel(el))
+            .map((el) => `${el.tagName.toLowerCase()}.${el.className.toString().slice(0, 40)}`),
+        };
+      });
+
+      expect(diagnostico.paginaRola, `${caminho} rola na horizontal`).toBe(false);
+      expect(diagnostico.presas, `${caminho} tem conteúdo largo sem rolagem`).toEqual([]);
+    });
+  }
 });

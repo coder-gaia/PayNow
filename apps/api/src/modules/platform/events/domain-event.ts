@@ -33,10 +33,22 @@ export interface MoneyPayload {
   readonly currency: string;
 }
 
+/**
+ * Os payloads carregam nome, e não apenas identificador.
+ *
+ * O razão escreve a descrição do lançamento uma vez e nunca mais a altera, e
+ * ela precisa dizer o que era verdade no instante do fato. Resolver o nome na
+ * hora da leitura teria dois defeitos: obrigaria o razão a consultar tabelas
+ * de cobrança, que a ADR-0001 proíbe, e reescreveria a história toda vez que
+ * alguém renomeasse um produto. Um extrato que muda quando o catálogo muda não
+ * serve para conferir nada.
+ */
 export interface SubscriptionStartedPayload {
   readonly subscriptionId: string;
   readonly customerId: string;
+  readonly customerName: string;
   readonly priceId: string;
+  readonly planName: string;
   readonly amount: MoneyPayload;
   readonly periodStart: string;
   readonly periodEnd: string;
@@ -45,6 +57,8 @@ export interface SubscriptionStartedPayload {
 export interface SubscriptionTrialStartedPayload {
   readonly subscriptionId: string;
   readonly customerId: string;
+  readonly customerName: string;
+  readonly planName: string;
   readonly trialEndsAt: string;
 }
 
@@ -58,8 +72,11 @@ export interface SubscriptionTrialStartedPayload {
 export interface SubscriptionPlanChangedPayload {
   readonly subscriptionId: string;
   readonly customerId: string;
+  readonly customerName: string;
   readonly fromPriceId: string;
+  readonly fromPlanName: string;
   readonly toPriceId: string;
+  readonly toPlanName: string;
   readonly credit: MoneyPayload;
   readonly charge: MoneyPayload;
   readonly net: MoneyPayload;

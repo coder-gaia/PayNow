@@ -123,12 +123,16 @@ export class SubscriptionsService {
             ? {
                 subscriptionId: subscription.id,
                 customerId: input.customerId,
+                customerName: customer.name,
+                planName: price.product.name,
                 trialEndsAt: trialEndsAt!.toISOString(),
               }
             : {
                 subscriptionId: subscription.id,
                 customerId: input.customerId,
+                customerName: customer.name,
                 priceId: price.id,
+                planName: price.product.name,
                 amount: money(Money.fromMinor(price.amountMinor, price.currency)),
                 periodStart: periodStart.toISOString(),
                 periodEnd: periodEnd.toISOString(),
@@ -165,13 +169,17 @@ export class SubscriptionsService {
 
       const proximo = await tx.price.findFirst({
         where: { id: input.priceId, organizationId: input.organizationId, active: true },
+        include: { product: true },
       });
 
       if (proximo === null) {
         throw new NotFoundException('Preço de destino não encontrado ou inativo.');
       }
 
-      const atual = await tx.price.findUniqueOrThrow({ where: { id: subscription.priceId } });
+      const atual = await tx.price.findUniqueOrThrow({
+        where: { id: subscription.priceId },
+        include: { product: true },
+      });
 
       if (atual.currency !== proximo.currency) {
         throw new BadRequestException(
@@ -215,8 +223,11 @@ export class SubscriptionsService {
           payload: {
             subscriptionId: subscription.id,
             customerId: subscription.customerId,
+            customerName: subscription.customer.name,
             fromPriceId: atual.id,
+            fromPlanName: atual.product.name,
             toPriceId: proximo.id,
+            toPlanName: proximo.product.name,
             credit: money(rateio.credit),
             charge: money(rateio.charge),
             net: money(rateio.net),
@@ -374,6 +385,9 @@ export class SubscriptionsService {
 
     const subscription = await tx.subscription.findFirst({
       where: { id: subscriptionId, organizationId },
+      // O cliente vem junto porque o evento publicado carrega o nome dele: a
+      // descrição do lançamento precisa ser legível sem consultar cobrança.
+      include: { customer: true },
     });
 
     if (subscription === null) {

@@ -80,7 +80,15 @@ export default async function SubscriptionsPage() {
             carregar a carteira de demonstração.
           </EmptyState>
         ) : (
-          <Table headers={['Cliente', 'Plano', 'Estado', 'Ciclo atual', 'Ações']}>
+          <Table
+            headers={[
+              'Cliente',
+              'Plano',
+              'Estado',
+              'Ciclo atual',
+              { label: 'Ações', align: 'right' },
+            ]}
+          >
             {subscriptions.map((subscription) => (
               <tr key={subscription.id}>
                 <Cell>
@@ -137,11 +145,11 @@ export default async function SubscriptionsPage() {
         {planos.length === 0 ? (
           <EmptyState>Nenhum plano cadastrado.</EmptyState>
         ) : (
-          <Table headers={['Produto', 'Valor', 'Intervalo', 'Teste']}>
+          <Table headers={['Produto', { label: 'Valor', align: 'right' }, 'Intervalo', 'Teste']}>
             {planos.map((plano) => (
               <tr key={plano.id}>
                 <Cell className="font-medium">{plano.product}</Cell>
-                <Cell className="tabular">
+                <Cell className="tabular text-right whitespace-nowrap">
                   {plano.amount.replace('.', ',')} {plano.currency}
                 </Cell>
                 <Cell className="text-[13px] text-ink-muted">

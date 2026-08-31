@@ -19,6 +19,7 @@ export class AccountBalanceResponse {
 export class JournalLineResponse {
   @ApiProperty() id!: string;
   @ApiProperty({ example: 'gateway:clearing' }) account!: string;
+  @ApiProperty({ example: 'Em liquidação no gateway' }) label!: string;
   @ApiProperty({ example: '10000', description: 'Positivo é débito, negativo é crédito.' })
   amountMinor!: string;
   @ApiProperty({ example: '100.00' }) amount!: string;

@@ -103,4 +103,44 @@
     max-width: none;
     max-height: none;
   }
+
+  /* Rolagem horizontal que se anuncia.
+   *
+   * Um balancete é tabular por natureza, então em tela estreita ele rola em
+   * vez de virar outra coisa. O problema é que rolagem sem aviso parece
+   * conteúdo cortado: o navegador esconde a barra até alguém arrastar, e quem
+   * olha conclui que a coluna sumiu.
+   *
+   * As sombras nas bordas resolvem isso sem JavaScript. A cor vem de
+   * `--color-rule-strong`, que ja inverte entre os temas: escura sobre papel
+   * claro, clara sobre fundo escuro. As duas primeiras
+   * camadas usam `background-attachment: local` e andam junto com o conteúdo,
+   * cobrindo as duas seguintes, que são `scroll` e ficam paradas. O efeito é
+   * que a sombra aparece só no lado para onde ainda dá para rolar. */
+  .scroll-x {
+    overflow-x: auto;
+    background:
+      linear-gradient(to right, var(--color-surface) 40%, transparent) left center / 2rem 100%
+        no-repeat local,
+      linear-gradient(to left, var(--color-surface) 40%, transparent) right center / 2rem 100%
+        no-repeat local,
+      linear-gradient(to right, var(--color-rule-strong), transparent) left center / 0.75rem 100%
+        no-repeat scroll,
+      linear-gradient(to left, var(--color-rule-strong), transparent) right center / 0.75rem 100%
+        no-repeat scroll;
+  }
+
+  /* Barra fina e visível, para que a rolagem também se anuncie no desktop. */
+  .scroll-x::-webkit-scrollbar {
+    height: 0.5rem;
+  }
+
+  .scroll-x::-webkit-scrollbar-thumb {
+    background-color: var(--color-rule-strong);
+  }
+
+  .scroll-x {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-rule-strong) transparent;
+  }
 }

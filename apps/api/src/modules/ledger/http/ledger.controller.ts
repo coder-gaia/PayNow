@@ -88,7 +88,7 @@ export class LedgerController {
     summary: 'Auditoria dos invariantes contábeis',
     description:
       'Recalcula tudo a partir das linhas, sem confiar em valor derivado gravado. ' +
-      'E a mesma verificação que `pnpm ledger:verify` roda no terminal.',
+      'É a mesma verificação que `pnpm ledger:verify` roda no terminal.',
   })
   @ApiOkResponse({ type: VerificationResponse })
   async verification(
@@ -101,7 +101,7 @@ export class LedgerController {
       entryCount: report.entryCount,
       lineCount: report.lineCount,
       balanced: report.balanced,
-      // O relatório interno usa lista somente leitura; a resposta da API e
+      // O relatório interno usa lista somente leitura; a resposta da API é
       // serializada, então a cópia mutável é o que o contrato declara.
       violations: [...report.violations],
     };
@@ -122,6 +122,7 @@ function presentEntry(entry: ServiceEntry): JournalEntryResponse {
     lines: entry.lines.map((line) => ({
       id: line.id,
       account: line.account,
+      label: line.label,
       amountMinor: line.amount.minor.toString(),
       amount: line.amount.toDecimalString(),
       currency: line.amount.currencyCode,

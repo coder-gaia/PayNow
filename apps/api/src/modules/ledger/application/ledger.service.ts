@@ -235,7 +235,7 @@ export class LedgerService {
    * Auditoria completa do razão.
    *
    * Recalcula os invariantes a partir das linhas, sem confiar em nenhum valor
-   * derivado que já esteja gravado. E o que `pnpm ledger:verify` roda, é o que
+   * derivado que já esteja gravado. É o que `pnpm ledger:verify` roda, e o que
    * a rotina de reconciliação vai chamar quando o worker entrar na fase 05.
    */
   async verify(organizationId?: string): Promise<VerificationReport> {
@@ -346,6 +346,11 @@ export class LedgerService {
     const lines = entry.lines.map((line) => ({
       id: line.id,
       account: line.account.code,
+      // O rótulo vem do plano de contas, e não do banco: o código é o que
+      // identifica a conta, e o texto legível é apresentação.
+      label: isAccountCode(line.account.code)
+        ? accountDefinition(line.account.code).label
+        : line.account.code,
       amount: Money.fromMinor(line.amountMinor, line.currency),
     }));
 

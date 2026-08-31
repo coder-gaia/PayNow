@@ -175,18 +175,33 @@ export function EmptyState({ children }: { children: ReactNode }) {
   return <p className="px-5 py-8 text-center text-sm text-ink-muted">{children}</p>;
 }
 
-export function Table({ headers, children }: { headers: string[]; children: ReactNode }) {
+/**
+ * Cabeçalho de coluna.
+ *
+ * Coluna de número alinha à direita, e o rótulo precisa alinhar junto: título
+ * à esquerda com valor à direita faz o olho procurar a que coluna cada número
+ * pertence, que é exatamente o trabalho que uma tabela deveria poupar.
+ */
+export type Header = string | { label: string; align: 'right' };
+
+const headerLabel = (header: Header): string =>
+  typeof header === 'string' ? header : header.label;
+
+const headerAlign = (header: Header): string =>
+  typeof header === 'string' ? 'text-left' : 'text-right';
+
+export function Table({ headers, children }: { headers: Header[]; children: ReactNode }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[36rem] text-sm">
+    <div className="scroll-x">
+      <table className="w-full min-w-[30rem] text-sm">
         <thead>
           <tr>
             {headers.map((header) => (
               <th
-                key={header}
-                className="border-b border-rule-strong px-5 py-2.5 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-ink-faint"
+                key={headerLabel(header)}
+                className={`border-b border-rule-strong px-3 py-2.5 font-mono text-[10.5px] font-medium tracking-[0.1em] text-ink-faint uppercase sm:px-5 ${headerAlign(header)}`}
               >
-                {header}
+                {headerLabel(header)}
               </th>
             ))}
           </tr>
@@ -204,7 +219,11 @@ export function Cell({
   className?: string;
   children?: ReactNode;
 }) {
-  return <td className={`border-b border-rule px-5 py-3 align-middle ${className}`}>{children}</td>;
+  return (
+    <td className={`border-b border-rule px-3 py-3 align-middle sm:px-5 ${className}`}>
+      {children}
+    </td>
+  );
 }
 
 /** Data no formato brasileiro, sem hora, que é o que o painel precisa mostrar. */

@@ -4,7 +4,7 @@ import { AccountKind } from '@prisma/client';
  * Plano de contas do Paynow.
  *
  * Espelha docs/plano-de-contas.md, que é o documento que manda: o código aqui
- * só torna a lista executavel. Uma conta nova entra por ADR, com os lançamentos
+ * só torna a lista executável. Uma conta nova entra por ADR, com os lançamentos
  * de referência e os testes correspondentes escritos antes da implementação.
  *
  * Seis contas cobrem a primeira versão inteira. A restrição é deliberada: cada

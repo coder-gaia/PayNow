@@ -177,6 +177,8 @@ export interface AccountBalance {
 export interface JournalLine {
   id: string;
   account: string;
+  /** Nome legível da conta, vindo do plano de contas. */
+  label: string;
   amountMinor: string;
   amount: string;
   currency: string;

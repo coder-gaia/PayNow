@@ -52,16 +52,20 @@ describe('Cobrança (e2e)', () => {
       name: 'Cliente de Teste',
     });
 
+  // Devolve o preço com o nome do produto junto: o nome entra na descrição do
+  // lançamento, e o sufixo aleatório impede colisão entre execuções.
   const criarPlano = async (nome: string, valor: string, trialDays = 0) => {
     const product = await catalog.createProduct(organizationId, {
       name: `${nome} ${randomUUID().slice(0, 6)}`,
     });
 
-    return catalog.createPrice(organizationId, product.id, {
+    const price = await catalog.createPrice(organizationId, product.id, {
       amount: brl(valor),
       interval: BillingInterval.MONTH,
       trialDays,
     });
+
+    return { ...price, productName: product.name };
   };
 
   describe('catálogo', () => {
@@ -109,6 +113,11 @@ describe('Cobrança (e2e)', () => {
       expect(fatura).toBeDefined();
       expect(fatura?.lines).toHaveLength(2);
       expect(fatura?.total.toDecimalString()).toBe('100.00');
+
+      // A descrição diz de quem é a fatura, e não o identificador da
+      // assinatura: o razão existe para ser lido por gente.
+      expect(fatura?.description).toContain('Cliente de Teste');
+      expect(fatura?.description).not.toContain(subscription.id);
     });
 
     it('com período de teste nasce TRIALING e não lança nada, porque nada foi cobrado', async () => {
@@ -189,6 +198,13 @@ describe('Cobrança (e2e)', () => {
 
       expect(troca).toBeDefined();
       expect(troca?.lines).toHaveLength(4);
+
+      // O evento carrega os nomes, então a descrição fica legível e imutável:
+      // renomear o produto depois não reescreve o que já foi lançado.
+      expect(troca?.description).toContain('Cliente de Teste');
+      expect(troca?.description).toContain(pro.productName);
+      expect(troca?.description).toContain(enterprise.productName);
+      expect(troca?.description).not.toContain(subscription.id);
     });
 
     it('o razão continua íntegro depois da troca', async () => {

@@ -69,7 +69,7 @@ export class SubscriptionAccountingHandler implements DomainEventHandler {
       {
         organizationId: event.organizationId,
         event: { type: event.type, id: event.id },
-        description: `Fatura da assinatura ${payload.subscriptionId}`,
+        description: `Fatura de ${payload.customerName}, plano ${payload.planName}`,
         occurredAt: event.occurredAt,
         lines: [
           { account: ACCOUNT.CUSTOMER_RECEIVABLE, amount },
@@ -109,8 +109,9 @@ export class SubscriptionAccountingHandler implements DomainEventHandler {
         organizationId: event.organizationId,
         event: { type: event.type, id: event.id },
         description:
-          `Troca de plano da assinatura ${payload.subscriptionId}, ` +
-          `${payload.remainingDays} de ${payload.cycleDays} dias restantes`,
+          `${payload.customerName} trocou de ${payload.fromPlanName} ` +
+          `para ${payload.toPlanName}, ${payload.remainingDays} de ` +
+          `${payload.cycleDays} dias restantes do ciclo`,
         occurredAt: event.occurredAt,
         // Linha de valor zero é recusada pelo banco, e com razão: não movimenta
         // nada. Ela aparece quando um dos lados do rateio arredonda para zero,
