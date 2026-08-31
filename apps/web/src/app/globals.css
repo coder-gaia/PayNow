@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+
+/*
+ * Identidade visual do painel.
+ *
+ * A paleta vem do mundo do assunto: papel de razao contabil, tinta escura,
+ * verde de livro-caixa para o que soma e vermelho de tinta para o que subtrai.
+ * O verde tambem carrega o estado positivo, e o vermelho o negativo, entao
+ * cor semantica e cor de marca sao a mesma coisa aqui de proposito: em um
+ * sistema de dinheiro, credito e debito sao a marca.
+ */
+@theme {
+  /* As variaveis --font-* sao geradas pelo next/font no layout raiz, que
+     hospeda as fontes junto com a aplicacao em vez de buscar em CDN. */
+  --font-display: var(--font-zilla), Georgia, serif;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --color-paper: #f1f4f0;
+  --color-surface: #fafbf9;
+  --color-surface-sunken: #e9eee8;
+  --color-ink: #17211c;
+  --color-ink-muted: #47554d;
+  --color-ink-faint: #78867d;
+  --color-rule: #d2dad2;
+  --color-rule-strong: #b4c0b6;
+
+  --color-credit: #14654a;
+  --color-credit-soft: #ddeae1;
+  --color-debit: #a33a2c;
+  --color-debit-soft: #f2e0dc;
+  --color-caution: #856011;
+  --color-caution-soft: #efe7d2;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-paper: #101512;
+    --color-surface: #171e19;
+    --color-surface-sunken: #1d2620;
+    --color-ink: #e3e9e3;
+    --color-ink-muted: #9daaa1;
+    --color-ink-faint: #74827a;
+    --color-rule: #29332c;
+    --color-rule-strong: #3b473e;
+
+    --color-credit: #57c094;
+    --color-credit-soft: #16301f;
+    --color-debit: #e28574;
+    --color-debit-soft: #33201c;
+    --color-caution: #d6a94e;
+    --color-caution-soft: #2a2415;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Numero em coluna precisa alinhar. Em um painel financeiro isso nao e
+     detalhe estetico: e o que permite comparar valores de relance. */
+  table,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--color-credit-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-credit);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}

@@ -72,6 +72,17 @@ e arrastar uma linha do tempo na interface para ver trial, rateio, falha de
 pagamento e cobrança de recuperação acontecerem ao vivo. Sem isso, demonstrar um
 sistema de cobrança exigiria esperar trinta dias.
 
+### O painel
+
+O painel é um BFF: o navegador nunca fala direto com a API. Os tokens ficam em
+cookie `httpOnly`, e não em `localStorage`, porque qualquer script injetado na
+página lê `localStorage` e um refresh token roubado vale por trinta dias. O
+servidor do Next é o único que vê os tokens, e a renovação acontece no
+middleware, antes de qualquer página renderizar.
+
+Ele nasceu na fase 01 e cresce junto com o backend, em vez de aparecer inteiro
+no fim. Hoje mostra contas, organização, membros e chaves de API.
+
 ### 3. Suíte adversarial
 
 Um gateway falso programável que falha, dá timeout, duplica webhooks e os entrega
@@ -176,7 +187,7 @@ pnpm db:deploy
 # popula dados de demonstracao
 pnpm db:seed
 
-# sobe a API em modo desenvolvimento
+# sobe a API e o painel juntos
 pnpm dev
 ```
 
@@ -213,10 +224,11 @@ Depois disso:
 
 | Endereço                                | O que é                           |
 | --------------------------------------- | --------------------------------- |
-| http://localhost:3333/health/live       | Liveness probe                    |
-| http://localhost:3333/health/ready      | Readiness, verifica banco e Redis |
+| http://localhost:3000                   | Painel                            |
 | http://localhost:3333/docs              | Documentação OpenAPI              |
 | http://localhost:3333/docs/openapi.json | Contrato OpenAPI em JSON          |
+| http://localhost:3333/health/live       | Liveness probe                    |
+| http://localhost:3333/health/ready      | Readiness, verifica banco e Redis |
 | http://localhost:8025                   | Mailpit, caixa de entrada local   |
 
 O PostgreSQL do compose é publicado em **5433**, e não na 5432. A porta padrão
@@ -244,7 +256,12 @@ paynow/
 │   │       └── modules/
 │   │           ├── platform/ # relógio, outbox, idempotência, telemetria
 │   │           └── ...       # módulos de domínio
-│   └── web/                  # Next.js (fase 08)
+│   └── web/                  # Next.js: painel, cresce a cada fase
+│       └── src/
+│           ├── app/          # rotas, Server Components e Server Actions
+│           ├── components/   # kit visual compartilhado
+│           ├── lib/          # cliente da API e ciclo de sessão
+│           └── middleware.ts # renovação de token antes de cada request
 ├── packages/
 │   └── money/                # value object monetário em unidade mínima
 ├── tools/                    # harness de caos e testes de carga

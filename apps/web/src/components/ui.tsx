@@ -1,0 +1,206 @@
+import type { ComponentProps, ReactNode } from 'react';
+
+import type { OrganizationRole } from '@/lib/api';
+
+/**
+ * Peças visuais compartilhadas.
+ *
+ * O painel é um instrumento de leitura antes de ser um formulário: quem abre
+ * está conferindo estado. Por isso o kit privilegia densidade legível, rótulos
+ * em monoespaçada e régua fina, e não cartões arredondados com sombra.
+ */
+
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-4">
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-credit">{eyebrow}</p>
+        <h1 className="mt-2 font-display text-3xl leading-tight font-semibold text-balance">
+          {title}
+        </h1>
+        {description !== undefined && (
+          <p className="mt-2 max-w-2xl text-sm text-ink-muted">{description}</p>
+        )}
+      </div>
+      {action}
+    </header>
+  );
+}
+
+export function Panel({
+  title,
+  description,
+  children,
+  action,
+}: {
+  title?: string;
+  description?: string;
+  children: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <section className="border border-rule bg-surface">
+      {title !== undefined && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">{title}</h2>
+            {description !== undefined && (
+              <p className="mt-0.5 text-[13px] text-ink-muted">{description}</p>
+            )}
+          </div>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
+  return (
+    <div className="border border-rule bg-surface px-5 py-4">
+      <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-faint">{label}</p>
+      <p className="tabular mt-2 font-display text-2xl font-semibold">{value}</p>
+      {hint !== undefined && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
+    </div>
+  );
+}
+
+const ROLE_STYLE: Record<OrganizationRole, string> = {
+  OWNER: 'border-credit text-credit bg-credit-soft',
+  ADMIN: 'border-rule-strong text-ink bg-surface-sunken',
+  MEMBER: 'border-rule text-ink-muted bg-surface',
+  READONLY: 'border-rule text-ink-faint bg-surface',
+};
+
+export function RolePill({ role }: { role: OrganizationRole }) {
+  return (
+    <span
+      className={`inline-block border px-2 py-0.5 font-mono text-[10.5px] tracking-[0.08em] ${ROLE_STYLE[role]}`}
+    >
+      {role}
+    </span>
+  );
+}
+
+export function Button({
+  variant = 'primary',
+  className = '',
+  ...props
+}: ComponentProps<'button'> & { variant?: 'primary' | 'secondary' | 'danger' }) {
+  const styles = {
+    primary: 'bg-credit text-paper border-credit hover:opacity-90',
+    secondary: 'bg-surface text-ink border-rule-strong hover:bg-surface-sunken',
+    danger: 'bg-surface text-debit border-debit hover:bg-debit-soft',
+  }[variant];
+
+  return (
+    <button
+      {...props}
+      className={`inline-flex items-center justify-center border px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
+    />
+  );
+}
+
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-faint">
+        {label}
+      </span>
+      <div className="mt-1.5">{children}</div>
+      {hint !== undefined && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
+    </label>
+  );
+}
+
+export function Input({ className = '', ...props }: ComponentProps<'input'>) {
+  return (
+    <input
+      {...props}
+      className={`w-full border border-rule-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint ${className}`}
+    />
+  );
+}
+
+export function Select({ className = '', ...props }: ComponentProps<'select'>) {
+  return (
+    <select
+      {...props}
+      className={`w-full border border-rule-strong bg-surface px-3 py-2 text-sm text-ink ${className}`}
+    />
+  );
+}
+
+export function Alert({
+  tone,
+  children,
+}: {
+  tone: 'error' | 'success' | 'caution';
+  children: ReactNode;
+}) {
+  const styles = {
+    error: 'border-debit bg-debit-soft text-ink',
+    success: 'border-credit bg-credit-soft text-ink',
+    caution: 'border-caution bg-caution-soft text-ink',
+  }[tone];
+
+  return (
+    <div role="status" className={`border-l-2 px-4 py-3 text-sm ${styles}`}>
+      {children}
+    </div>
+  );
+}
+
+export function EmptyState({ children }: { children: ReactNode }) {
+  return <p className="px-5 py-8 text-center text-sm text-ink-muted">{children}</p>;
+}
+
+export function Table({ headers, children }: { headers: string[]; children: ReactNode }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[36rem] text-sm">
+        <thead>
+          <tr>
+            {headers.map((header) => (
+              <th
+                key={header}
+                className="border-b border-rule-strong px-5 py-2.5 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-ink-faint"
+              >
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+export function Cell({ className = '', children }: { className?: string; children: ReactNode }) {
+  return <td className={`border-b border-rule px-5 py-3 align-middle ${className}`}>{children}</td>;
+}
+
+/** Data no formato brasileiro, sem hora, que é o que o painel precisa mostrar. */
+export function formatDate(value: string): string {
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value));
+}

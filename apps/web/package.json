@@ -1,0 +1,28 @@
+{
+  "name": "@paynow/web",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "dotenv-cli": "^11.0.0",
+    "postcss": "^8.5.26",
+    "server-only": "^0.0.1",
+    "tailwindcss": "^4.3.3"
+  },
+  "description": "Painel do Paynow.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "dotenv -e ../../.env -- next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
