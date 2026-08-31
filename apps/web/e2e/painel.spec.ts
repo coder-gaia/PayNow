@@ -216,6 +216,74 @@ test.describe('chaves de api', () => {
   });
 });
 
+test.describe('organizacao ativa', () => {
+  test('sem escolha, nao ha seletor', async ({ page, request }) => {
+    const workspace = await createWorkspace(request);
+    await login(page, workspace.owner.email);
+
+    // Com uma organizacao so, um seletor de um item seria ruido.
+    await expect(page.getByLabel('Organizacao ativa')).toHaveCount(0);
+  });
+
+  /**
+   * Regressao. `POST /auth/register` sempre cria uma organizacao, entao quem
+   * era convidado para outra participava de duas e o painel abria sempre a
+   * primeira. Sem seletor, a segunda era inalcancavel pela interface.
+   */
+  test('quem participa de duas consegue trocar e a escolha permanece', async ({
+    page,
+    request,
+  }) => {
+    const anfitria = await createWorkspace(request, 'anfitria');
+    const convidada = await addPerson(request, anfitria, 'ADMIN');
+
+    await login(page, convidada.email);
+
+    const seletor = page.getByLabel('Organizacao ativa');
+    await expect(seletor).toBeVisible();
+
+    // A propria organizacao e a primeira, entao e a que abre.
+    await expect(seletor).not.toHaveValue(anfitria.organizationId);
+
+    await seletor.selectOption(anfitria.organizationId);
+    await expect(seletor).toHaveValue(anfitria.organizationId);
+
+    // A escolha sobrevive a navegacao e ao recarregamento.
+    await navLink(page, 'Membros').click();
+    await expect(memberRow(page, anfitria.owner.name)).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByLabel('Organizacao ativa')).toHaveValue(anfitria.organizationId);
+  });
+
+  test('cookie apontando para organizacao alheia cai na primeira', async ({
+    page,
+    request,
+    context,
+  }) => {
+    const propria = await createWorkspace(request, 'propria');
+    const alheia = await createWorkspace(request, 'alheia');
+
+    await login(page, propria.owner.email);
+
+    // Cookie forjado para uma organizacao da qual a pessoa nao participa.
+    await context.addCookies([
+      {
+        name: 'paynow_org',
+        value: alheia.organizationId,
+        domain: 'localhost',
+        path: '/',
+      },
+    ]);
+
+    await page.goto('/painel/membros');
+
+    // Cai na organizacao real, e nao na do cookie.
+    await expect(memberRow(page, propria.owner.name)).toBeVisible();
+    await expect(memberRow(page, alheia.owner.name)).toHaveCount(0);
+  });
+});
+
 /**
  * Estes dois usam as contas de demonstracao, e nao uma organizacao criada na
  * hora, por uma limitacao que o painel ainda tem: `/auth/register` sempre cria

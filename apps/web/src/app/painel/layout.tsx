@@ -3,17 +3,18 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { LogoutButton } from '@/components/logout-button';
-import { RolePill } from '@/components/ui';
+import { resolveActiveOrganization } from '@/lib/active-organization';
 import { api, UnauthenticatedError } from '@/lib/api';
 
 import { NavLink } from './nav-link';
+import { OrganizationSwitcher } from './organization-switcher';
 
 /**
  * Casca do painel.
  *
- * O perfil e carregado aqui, no servidor, uma vez por navegacao, e as paginas
- * filhas recebem a organizacao ativa pelo caminho. Isso evita que cada tela
- * repita a mesma consulta.
+ * O perfil e carregado aqui, no servidor, uma vez por navegacao. As paginas
+ * filhas resolvem a organizacao ativa pelo mesmo caminho, o que mantem a
+ * escolha coerente entre o cabecalho e o conteudo.
  */
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   let profile;
@@ -27,12 +28,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     throw error;
   }
 
-  const active = profile.organizations[0];
-
-  if (active === undefined) {
-    // Nao deveria acontecer: cadastro sempre cria a primeira organizacao.
-    redirect('/entrar');
-  }
+  const active = await resolveActiveOrganization(profile);
 
   return (
     <div className="min-h-screen">
@@ -42,10 +38,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             Paynow
           </Link>
 
-          <span className="flex items-center gap-2 border-l border-rule pl-4 text-sm">
-            <span className="text-ink-muted">{active.name}</span>
-            <RolePill role={active.role} />
-          </span>
+          <OrganizationSwitcher organizations={profile.organizations} active={active} />
 
           <nav className="flex items-center gap-1 text-sm">
             <NavLink href="/painel">Visao geral</NavLink>

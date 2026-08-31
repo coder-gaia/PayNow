@@ -1,4 +1,5 @@
 import { Cell, formatDate, PageHeader, Panel, RolePill, Table } from '@/components/ui';
+import { resolveActiveOrganization } from '@/lib/active-organization';
 import { api } from '@/lib/api';
 
 import { AddMemberForm } from './add-member-form';
@@ -11,7 +12,7 @@ const CAN_MANAGE = new Set(['OWNER', 'ADMIN']);
 
 export default async function MembersPage() {
   const profile = await api.profile();
-  const active = profile.organizations[0]!;
+  const active = await resolveActiveOrganization(profile);
   const members = await api.members(active.id);
 
   const canManage = CAN_MANAGE.has(active.role);

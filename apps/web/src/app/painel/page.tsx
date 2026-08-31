@@ -1,13 +1,14 @@
 import Link from 'next/link';
 
 import { formatDate, PageHeader, Panel, RolePill, Stat } from '@/components/ui';
+import { resolveActiveOrganization } from '@/lib/active-organization';
 import { api } from '@/lib/api';
 
 export const metadata = { title: 'Visao geral · Paynow' };
 
 export default async function OverviewPage() {
   const profile = await api.profile();
-  const active = profile.organizations[0]!;
+  const active = await resolveActiveOrganization(profile);
   const organization = await api.organization(active.id);
 
   return (
@@ -39,7 +40,7 @@ export default async function OverviewPage() {
       {profile.organizations.length > 1 && (
         <Panel
           title="Outras organizacoes"
-          description="Voce participa de mais de uma. O seletor entra na fase 03, junto com os planos."
+          description="Troque a organizacao ativa pelo seletor no cabecalho."
         >
           <ul className="divide-y divide-rule">
             {profile.organizations.map((organizacao) => (

@@ -226,13 +226,6 @@ execução, e não as apagam. Isso é proposital: um teste que limpa o banco no 
 esconde o estado que causou a falha. Para voltar ao ponto de partida, use
 `pnpm db:reset`, que recria o schema e roda o seed.
 
-### Limitação conhecida
-
-`POST /auth/register` sempre cria uma organização para quem se cadastra, e o
-painel abre sempre a primeira da lista. Uma pessoa convidada para outra
-organização participa de duas e, sem seletor, não chega à segunda pela
-interface. O seletor está previsto para a fase 03, junto com os planos.
-
 Depois disso:
 
 | Endereço                                | O que é                           |

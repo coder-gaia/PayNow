@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { ACTIVE_ORGANIZATION_COOKIE } from './active-organization';
 import { ApiError, apiFetch, type CreatedApiKey, type OrganizationRole, type Session } from './api';
 import {
   ACCESS_COOKIE,
@@ -97,6 +98,27 @@ export async function register(_previous: FormState, formData: FormData): Promis
   redirect('/painel');
 }
 
+/**
+ * Troca a organizacao ativa.
+ *
+ * Nao verifica se a pessoa participa da organizacao: quem faz isso e
+ * `resolveActiveOrganization`, que confere o cookie contra a lista real vinda
+ * da API a cada renderizacao. Validar aqui tambem seria uma segunda copia da
+ * mesma regra, que pode divergir.
+ */
+export async function selectOrganization(organizationId: string): Promise<void> {
+  const jar = await cookies();
+  jar.set(ACTIVE_ORGANIZATION_COOKIE, organizationId, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  revalidatePath('/painel', 'layout');
+}
+
 export async function logout(): Promise<void> {
   const jar = await cookies();
   const refreshToken = jar.get(REFRESH_COOKIE)?.value;
@@ -116,6 +138,7 @@ export async function logout(): Promise<void> {
 
   jar.set(ACCESS_COOKIE, '', clearedCookieOptions());
   jar.set(REFRESH_COOKIE, '', clearedCookieOptions());
+  jar.set(ACTIVE_ORGANIZATION_COOKIE, '', clearedCookieOptions());
 
   redirect('/entrar');
 }

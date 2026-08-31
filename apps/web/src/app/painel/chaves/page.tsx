@@ -1,4 +1,5 @@
 import { Cell, formatDate, PageHeader, Panel, Table } from '@/components/ui';
+import { resolveActiveOrganization } from '@/lib/active-organization';
 import { api } from '@/lib/api';
 
 import { CreateApiKeyForm } from './create-api-key-form';
@@ -10,7 +11,7 @@ const CAN_MANAGE = new Set(['OWNER', 'ADMIN']);
 
 export default async function ApiKeysPage() {
   const profile = await api.profile();
-  const active = profile.organizations[0]!;
+  const active = await resolveActiveOrganization(profile);
 
   if (!CAN_MANAGE.has(active.role)) {
     return (
