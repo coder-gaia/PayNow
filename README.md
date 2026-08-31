@@ -310,6 +310,7 @@ paynow/
 ├── tools/                    # harness de caos e testes de carga
 └── docs/
     ├── adr/                  # decisões arquiteturais, numeradas e imutáveis
+    ├── pagina-inicial.md     # desenho da porta de entrada
     ├── plano-de-contas.md    # contrato contábil do ledger
     └── why.md                # motivação do projeto
 ```
@@ -333,12 +334,29 @@ paynow/
 | `pnpm db:studio`   | Abre o Prisma Studio                                  |
 | `pnpm db:seed`     | Popula o banco local com os dados de demonstração     |
 
+## Página inicial
+
+A porta de entrada do projeto é um lançamento contábil: coluna de débito com o
+que quebra em um sistema de cobrança, coluna de crédito com o que o Paynow faz
+a respeito, e a soma fechando em zero no rodapé. A forma da página é a ideia
+central do produto.
+
+Uma página que **afirma** ser confiável contradiz a tese, que é a de que
+corretude se verifica. Por isso, abaixo do lançamento, três botões agem contra
+a API de verdade e mostram as linhas nascendo: emitir uma fatura, trocar de
+plano no meio do ciclo, adiantar três meses.
+
+O desenho está em [docs/pagina-inicial.md](docs/pagina-inicial.md) e a
+implementação é da fase 08, porque depende de uma organização pública de
+demonstração com limite de taxa.
+
 ## Documentação
 
 | Documento                                          | Conteúdo                                              |
 | -------------------------------------------------- | ----------------------------------------------------- |
 | [docs/why.md](docs/why.md)                         | Por que o projeto existe e qual problema ele ataca    |
 | [docs/plano-de-contas.md](docs/plano-de-contas.md) | Contrato contábil, contas e lançamentos de referência |
+| [docs/pagina-inicial.md](docs/pagina-inicial.md)   | Desenho da porta de entrada, em forma de razão        |
 | [docs/adr/](docs/adr/)                             | Decisões arquiteturais, numeradas e imutáveis         |
 
 ## Roadmap
@@ -359,8 +377,8 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       estorno.
 - [ ] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
 - [ ] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
-- [ ] **08 Painel e demonstração.** Linha do tempo, métricas, console de caos,
-      fatura explicável.
+- [ ] **08 Painel e demonstração.** Página inicial em forma de razão, métricas,
+      console de caos, fatura explicável.
 - [ ] **09 Endurecimento e lançamento.** Limite de taxa, modelo de ameaças,
       teste de carga, runbooks, deploy.
 
