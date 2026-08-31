@@ -168,9 +168,18 @@ export class Money {
    * soma das partes seja exatamente igual ao valor original.
    *
    * Esta e a resposta do Paynow ao arredondamento em rateio: em vez de escolher
-   * um modo e aceitar a sobra, o resto e distribuido unidade a unidade entre as
-   * partes com peso positivo. A conservacao do total e propriedade de
-   * construcao, e nao consequencia de sorte no arredondamento.
+   * um modo e aceitar a sobra, o resto e distribuido unidade a unidade. A
+   * conservacao do total e propriedade de construcao, e nao consequencia de
+   * sorte no arredondamento.
+   *
+   * O resto vai para as partes com maior fracao pendente, e nao para as
+   * primeiras da lista. Isso e o metodo do maior resto, e ele garante uma
+   * propriedade que a distribuicao por ordem de indice nao garante: **nenhuma
+   * parte se afasta uma unidade minima inteira da sua fracao exata**. Uma parte
+   * cuja fracao exata ja e inteira nunca recebe sobra.
+   *
+   * O empate e resolvido pelo menor indice, entao o resultado e deterministico
+   * e reproduzivel.
    *
    * @example
    * Money.fromDecimal('100.00', 'BRL').allocate([1, 1, 1]);
@@ -194,19 +203,39 @@ export class Money {
       throw new AllocationError('A soma dos pesos precisa ser maior que zero.');
     }
 
-    // Primeira passada: parte inteira truncada em direcao ao zero.
+    // Primeira passada: parte inteira, truncada em direcao ao zero.
     const shares = parsed.map((weight) => (this.minor * weight) / totalWeight);
     let remainder = this.minor - shares.reduce((total, share) => total + share, 0n);
 
-    // Segunda passada: o resto vai unidade a unidade, so para pesos positivos.
+    if (remainder === 0n) {
+      return shares.map((share) => new Money(share, this.currency));
+    }
+
+    // Fracao pendente de cada parte, ainda multiplicada por totalWeight para
+    // continuar em inteiros. Comparar estes numeradores equivale a comparar as
+    // fracoes, sem introduzir divisao e sem introduzir ponto flutuante.
+    const pending = parsed.map((weight, index) => {
+      const exactNumerator = this.minor * weight;
+      const takenNumerator = (shares[index] ?? 0n) * totalWeight;
+      const gap = exactNumerator - takenNumerator;
+      return { index, gap: gap < 0n ? -gap : gap };
+    });
+
+    // Segunda passada: as sobras vao para as maiores fracoes pendentes, com
+    // empate resolvido pelo menor indice. Parte sem fracao pendente tem gap
+    // zero e fica no fim, entao nunca recebe sobra.
+    const queue = pending
+      .filter((entry) => entry.gap > 0n)
+      .sort((left, right) => {
+        if (left.gap !== right.gap) return left.gap > right.gap ? -1 : 1;
+        return left.index - right.index;
+      });
+
     const step = remainder < 0n ? -1n : 1n;
-    let cursor = 0;
-    while (remainder !== 0n) {
-      if ((parsed[cursor] ?? 0n) > 0n) {
-        shares[cursor] = (shares[cursor] ?? 0n) + step;
-        remainder -= step;
-      }
-      cursor = (cursor + 1) % shares.length;
+    for (const { index } of queue) {
+      if (remainder === 0n) break;
+      shares[index] = (shares[index] ?? 0n) + step;
+      remainder -= step;
     }
 
     return shares.map((share) => new Money(share, this.currency));

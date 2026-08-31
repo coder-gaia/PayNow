@@ -45,6 +45,13 @@ o resto de forma determinística garantindo que a soma das partes seja
 exatamente igual ao valor original. Isso elimina arredondamento em rateio, em vez
 de apenas escolher um modo para ele.
 
+A distribuição usa o **método do maior resto**: as sobras vão para as partes com
+maior fração pendente, com empate resolvido pelo menor índice. Distribuir por
+ordem de índice também conservaria o total, mas permite que uma parte cuja
+fração exata já é inteira receba sobra enquanto outra com fração pendente fica a
+menos. O método do maior resto garante a propriedade mais forte: nenhuma parte
+se afasta uma unidade mínima inteira da sua fração exata.
+
 ## Consequências
 
 ### Positivas

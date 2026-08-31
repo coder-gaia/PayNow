@@ -159,6 +159,25 @@ describe('Money', () => {
       expect(Money.sum(parts).toDecimalString()).toBe('0.11');
     });
 
+    // Contraexemplo encontrado por teste de propriedade. A distribuicao por
+    // ordem de indice dava [0.03, 0.01, 0, 0]: a primeira parte, cuja fracao
+    // exata ja era exatamente 0.02, recebia sobra enquanto outras com fracao
+    // pendente ficavam a menos. O metodo do maior resto corrige isso.
+    it('nao entrega sobra a uma parte cuja fracao exata ja e inteira', () => {
+      const parts = brl('0.04').allocate([3, 1, 1, 1]);
+
+      expect(parts.map((part) => part.toDecimalString())).toEqual(['0.02', '0.01', '0.01', '0.00']);
+      expect(Money.sum(parts).toDecimalString()).toBe('0.04');
+    });
+
+    it('resolve empate de fracao pelo menor indice, de forma reproduzivel', () => {
+      const primeira = brl('1.00').allocate([1, 1, 1]);
+      const segunda = brl('1.00').allocate([1, 1, 1]);
+
+      expect(primeira.map((part) => part.minor)).toEqual([34n, 33n, 33n]);
+      expect(segunda.map((part) => part.minor)).toEqual(primeira.map((part) => part.minor));
+    });
+
     it('preserva o total tambem com valor negativo', () => {
       const parts = brl('-100.00').split(3);
 

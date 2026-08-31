@@ -71,6 +71,22 @@ describe('propriedades de Money', () => {
       );
     });
 
+    it('parte com fracao exata inteira nunca recebe sobra', () => {
+      fc.assert(
+        fc.property(anyMinor, anyWeights, (minor, weights) => {
+          const parts = money(minor).allocate(weights);
+          const totalWeight = weights.reduce((total, weight) => total + BigInt(weight), 0n);
+
+          parts.forEach((part, index) => {
+            const exactNumerator = minor * BigInt(weights[index]!);
+            if (exactNumerator % totalWeight === 0n) {
+              expect(part.minor).toBe(exactNumerator / totalWeight);
+            }
+          });
+        }),
+      );
+    });
+
     it('peso zero nunca recebe valor', () => {
       fc.assert(
         fc.property(anyMinor, anyWeights, (minor, weights) => {
