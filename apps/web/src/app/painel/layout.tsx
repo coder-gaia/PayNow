@@ -15,6 +15,12 @@ import { OrganizationSwitcher } from './organization-switcher';
  * O perfil é carregado aqui, no servidor, uma vez por navegação. As páginas
  * filhas resolvem a organização ativa pelo mesmo caminho, o que mantém a
  * escolha coerente entre o cabeçalho e o conteúdo.
+ *
+ * Toda falha de sessão sai por /sair, e não por um redirect direto para o
+ * login. O motivo é que um Server Component não grava cookie: redirecionar
+ * daqui deixaria o refresh token velho no navegador, e o middleware, vendo um
+ * refresh token presente, mandaria de volta para o painel. O Route Handler
+ * limpa os cookies antes de mandar para o login, o que fecha o laço.
  */
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   let profile;
@@ -23,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     profile = await api.profile();
   } catch (error) {
     if (error instanceof UnauthenticatedError) {
-      redirect('/entrar?sessao=expirada');
+      redirect('/sair?motivo=expirada');
     }
     throw error;
   }

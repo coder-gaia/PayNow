@@ -137,6 +137,24 @@ export class AuthService {
     await this.refreshTokens.revokeByToken(presentedToken);
   }
 
+  /**
+   * Confere que o dono de um token de acesso ainda existe.
+   *
+   * Um JWT é válido enquanto a assinatura confere e o prazo não venceu, e isso
+   * não diz nada sobre o sujeito continuar existindo. Sem esta checagem, a
+   * conta apagada segue autenticando até o token vencer, e cada request dela
+   * quebra em um lugar diferente: aqui um 404, ali uma exceção não tratada.
+   *
+   * O email vem do banco, e não do token. Se a pessoa trocou de email depois
+   * de o token ser emitido, o valor gravado nele está velho.
+   */
+  async findTokenSubject(userId: string): Promise<{ id: string; email: string } | null> {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+  }
+
   /** Perfil do usuário autenticado, com as organizações de que ele participa. */
   async profile(userId: string) {
     const user = await this.prisma.user.findUnique({

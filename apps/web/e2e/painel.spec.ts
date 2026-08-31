@@ -75,6 +75,56 @@ test.describe('autenticação', () => {
   });
 });
 
+/**
+ * Sessão que morre no servidor.
+ *
+ * O caso apareceu de verdade: depois de recriar o banco de desenvolvimento, o
+ * token no navegador continuava criptograficamente válido, mas a conta dele
+ * não existia mais. A API respondia 404 e o painel quebrava com um stack trace
+ * na cara de quem estava usando.
+ *
+ * A correção tem dois lados. A API passou a recusar com 401 o token de uma
+ * conta que sumiu, porque o problema é a credencial e não o recurso. E o
+ * painel passou a sair por /sair, que limpa os cookies antes de mandar para o
+ * login: um Server Component não grava cookie, então redirecionar direto
+ * deixaria o refresh token velho no navegador e o middleware devolveria a
+ * pessoa ao painel, em laço.
+ *
+ * Os testes daqui cobrem a saída. O lado da API, que é onde a conta apagada
+ * deixa de autenticar, é coberto por auth.e2e-spec.ts, que apaga o usuário de
+ * verdade antes de reapresentar o token. Apagar uma conta não tem rota, então
+ * não dá para reproduzir isso pelo navegador.
+ */
+test.describe('sessão encerrada', () => {
+  test('sair limpa os cookies e leva ao login', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'saida');
+    await login(page, workspace.owner.email);
+
+    await page.goto('/sair?motivo=expirada');
+
+    await expect(page).toHaveURL(/\/entrar/);
+    await expect(page.getByText(/A sessão expirou ou foi encerrada/)).toBeVisible();
+
+    const cookies = await page.context().cookies();
+    const daSessao = cookies.filter((cookie) => cookie.name.startsWith('paynow_'));
+    expect(daSessao.filter((cookie) => cookie.value !== '')).toEqual([]);
+  });
+
+  test('com a sessão limpa, o painel manda para o login em vez de quebrar', async ({
+    page,
+    request,
+  }) => {
+    const workspace = await createWorkspace(request, 'quebrada');
+    await login(page, workspace.owner.email);
+
+    await page.context().clearCookies();
+    await page.goto('/painel/ledger');
+
+    await expect(page).toHaveURL(/\/entrar/);
+    await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible();
+  });
+});
+
 test.describe('membros', () => {
   test('papel recusado pelo servidor volta ao valor real', async ({ page, request }) => {
     const workspace = await createWorkspace(request);

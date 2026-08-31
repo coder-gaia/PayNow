@@ -12,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 
 import { CLOCK, type Clock } from '../../platform/clock/clock';
 import { RedisService } from '../../platform/redis/redis.service';
-import type { AccessTokenPayload } from '../application/auth.service';
+import { type AccessTokenPayload, AuthService } from '../application/auth.service';
 import { ApiKeysService } from '../application/api-keys.service';
 import {
   ALLOWS_API_KEY,
@@ -40,6 +40,7 @@ export class AuthenticationGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
+    private readonly auth: AuthService,
     private readonly apiKeys: ApiKeysService,
     private readonly redis: RedisService,
     @Inject(CLOCK) private readonly clock: Clock,
@@ -72,7 +73,20 @@ export class AuthenticationGuard implements CanActivate {
     return this.authenticateUser(request, token);
   }
 
-  private authenticateUser(request: AuthenticatedRequest, token: string): boolean {
+  /**
+   * Autentica uma pessoa pelo token de acesso.
+   *
+   * A verificação da assinatura não basta. Um token continua criptograficamente
+   * válido depois de a conta deixar de existir, e sem confirmar o sujeito no
+   * banco a credencial de uma conta apagada segue funcionando até vencer, com
+   * cada rota quebrando de um jeito diferente ao não encontrar o usuário.
+   *
+   * O custo é uma consulta por chave primária por request autenticado. É o
+   * preço de conseguir revogar, e é o mesmo que qualquer sistema paga quando
+   * decide que apagar uma conta tem efeito imediato. Cache aqui traria
+   * invalidação para resolver um problema que ainda não existe.
+   */
+  private async authenticateUser(request: AuthenticatedRequest, token: string): Promise<boolean> {
     let payload: AccessTokenPayload;
 
     try {
@@ -81,7 +95,16 @@ export class AuthenticationGuard implements CanActivate {
       throw new UnauthorizedException('Token de acesso inválido ou expirado.');
     }
 
-    request.auth = { kind: 'user', userId: payload.sub, email: payload.email };
+    const subject = await this.auth.findTokenSubject(payload.sub);
+
+    if (subject === null) {
+      // 401 e não 404: o problema não é o recurso pedido, é a credencial, que
+      // deixou de valer. Quem recebe isso precisa entrar de novo, e é isso que
+      // o painel faz ao encontrar este status.
+      throw new UnauthorizedException('A conta desta sessão não existe mais.');
+    }
+
+    request.auth = { kind: 'user', userId: subject.id, email: subject.email };
     return true;
   }
 

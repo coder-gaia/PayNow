@@ -1,13 +1,16 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
+import { PrismaService } from '../src/modules/platform/prisma/prisma.service';
 import { createTestApp, DEFAULT_PASSWORD, httpServer, uniqueEmail } from './support/app';
 
 describe('Autenticação (e2e)', () => {
   let app: INestApplication;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     app = await createTestApp();
+    prisma = app.get(PrismaService);
   });
 
   afterAll(async () => {
@@ -200,6 +203,39 @@ describe('Autenticação (e2e)', () => {
         .get('/v1/auth/me')
         .set('authorization', `Basic ${body.accessToken}`)
         .expect(401);
+    });
+
+    /**
+     * Token válido de uma conta que não existe mais.
+     *
+     * Um JWT continua criptograficamente válido depois de a conta sumir: a
+     * assinatura confere e o prazo não venceu. Sem conferir o sujeito no banco,
+     * a credencial de uma conta apagada seguiria autenticando até vencer, e
+     * cada rota quebraria de um jeito diferente ao não encontrar o usuário.
+     *
+     * A resposta é 401 e não 404 porque o problema não é o recurso pedido: é a
+     * credencial, que deixou de valer. É a diferença entre "isso não existe" e
+     * "entre de novo", e o painel depende dela para saber o que fazer.
+     */
+    it('recusa token de conta que não existe mais', async () => {
+      const email = uniqueEmail();
+      const { body } = await register(email).expect(201);
+
+      await request(httpServer(app))
+        .get('/v1/auth/me')
+        .set('authorization', `Bearer ${body.accessToken}`)
+        .expect(200);
+
+      const usuario = await prisma.user.findUniqueOrThrow({ where: { email } });
+      await prisma.membership.deleteMany({ where: { userId: usuario.id } });
+      await prisma.user.delete({ where: { id: usuario.id } });
+
+      const resposta = await request(httpServer(app))
+        .get('/v1/auth/me')
+        .set('authorization', `Bearer ${body.accessToken}`)
+        .expect(401);
+
+      expect(resposta.body.message).toMatch(/não existe mais/);
     });
   });
 });
