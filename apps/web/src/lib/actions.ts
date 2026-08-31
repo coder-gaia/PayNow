@@ -8,7 +8,9 @@ import { ACTIVE_ORGANIZATION_COOKIE } from './active-organization';
 import {
   ApiError,
   apiFetch,
+  type ClockState,
   type CreatedApiKey,
+  type CycleReport,
   type OrganizationRole,
   type Proration,
   type Session,
@@ -323,4 +325,80 @@ export async function resumeSubscription(
 
   revalidatePath('/painel/assinaturas');
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Relógio
+// ---------------------------------------------------------------------------
+
+export interface ClockActionState extends FormState {
+  readonly clock?: ClockState;
+  readonly cycle?: CycleReport;
+}
+
+/**
+ * Toda ação de relógio revalida o painel inteiro.
+ *
+ * Adiantar o tempo muda assinatura, razão e contadores da visão geral ao mesmo
+ * tempo. Revalidar só a tela do relógio deixaria as outras mostrando o mundo
+ * de antes do avanço, que é pior do que não mostrar nada.
+ */
+function revalidarPainel(): void {
+  revalidatePath('/painel', 'layout');
+}
+
+export async function freezeClock(organizationId: string): Promise<ClockActionState> {
+  try {
+    const clock = await apiFetch<ClockState>(`/organizations/${organizationId}/clock/freeze`, {
+      method: 'POST',
+    });
+
+    revalidarPainel();
+    return { ok: true, clock };
+  } catch (error) {
+    return toFormState(error);
+  }
+}
+
+export async function advanceClock(
+  organizationId: string,
+  days: number,
+): Promise<ClockActionState> {
+  try {
+    const result = await apiFetch<{ clock: ClockState; cycle: CycleReport }>(
+      `/organizations/${organizationId}/clock/advance`,
+      { method: 'POST', body: { days } },
+    );
+
+    revalidarPainel();
+    return { ok: true, clock: result.clock, cycle: result.cycle };
+  } catch (error) {
+    return toFormState(error);
+  }
+}
+
+export async function resetClock(organizationId: string): Promise<ClockActionState> {
+  try {
+    const clock = await apiFetch<ClockState>(`/organizations/${organizationId}/clock/reset`, {
+      method: 'POST',
+    });
+
+    revalidarPainel();
+    return { ok: true, clock };
+  } catch (error) {
+    return toFormState(error);
+  }
+}
+
+export async function runBillingCycle(organizationId: string): Promise<ClockActionState> {
+  try {
+    const cycle = await apiFetch<CycleReport>(`/organizations/${organizationId}/clock/run-cycle`, {
+      method: 'POST',
+    });
+
+    revalidarPainel();
+    return { ok: true, cycle };
+  } catch (error) {
+    return toFormState(error);
+  }
 }

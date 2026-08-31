@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 
+import { BillingCycleService } from './application/billing-cycle.service';
 import { CatalogService } from './application/catalog.service';
 import { SubscriptionsService } from './application/subscriptions.service';
+import { BillingClockController } from './http/billing-clock.controller';
 import { BillingController } from './http/billing.controller';
 
 /**
@@ -18,8 +20,8 @@ import { BillingController } from './http/billing.controller';
  * contábil muda por decisão de negócio, não por mudança de produto.
  */
 @Module({
-  controllers: [BillingController],
-  providers: [CatalogService, SubscriptionsService],
-  exports: [CatalogService, SubscriptionsService],
+  controllers: [BillingController, BillingClockController],
+  providers: [BillingCycleService, CatalogService, SubscriptionsService],
+  exports: [BillingCycleService, CatalogService, SubscriptionsService],
 })
 export class BillingModule {}

@@ -54,13 +54,38 @@ model Organization {
   customers      Customer[]
   products       Product[]
   subscriptions  Subscription[]
+  clock          OrganizationClock?
 
   @@map("organizations")
+}
+
+/// Relogio da organizacao. Ver ADR-0015.
+///
+/// A ausencia de linha significa relogio de parede, que e o caso comum: so
+/// quem congelou o tempo tem registro aqui. Guardar o instante congelado em
+/// vez de um deslocamento e deliberado, porque deslocamento continua andando
+/// e o objetivo e o oposto: o tempo so muda quando alguem manda mudar.
+model OrganizationClock {
+  organizationId String   @id @map("organization_id") @db.Uuid
+  frozenAt       DateTime @map("frozen_at") @db.Timestamptz(3)
+  /// Instante em que o relogio foi congelado, para mostrar o quanto ja avancou.
+  startedAt      DateTime @map("started_at") @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_clocks")
 }
 
 /// Papeis em ordem decrescente de poder. A comparacao e feita por hierarquia
 /// numerica no codigo, e nao por lista de permissoes, porque com quatro papeis
 /// estritamente ordenados uma matriz de permissoes so adicionaria cerimonia.
+///
+/// Os comentarios deste arquivo ficam sem acento de proposito: o Prisma os
+/// copia para o cliente gerado, e a geracao normaliza a codificacao de um
+/// jeito que corrompe caractere acentuado no Windows. Todo texto que chega a
+/// uma pessoa vive no codigo da aplicacao, acentuado.
 enum OrganizationRole {
   OWNER
   ADMIN

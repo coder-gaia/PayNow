@@ -134,6 +134,7 @@ export async function createPlan(
   workspace: Workspace,
   name: string,
   amountMinor: string,
+  trialDays = 0,
 ): Promise<{ priceId: string; product: string }> {
   const product = await json<{ id: string }>(
     request,
@@ -147,7 +148,7 @@ export async function createPlan(
     'post',
     `/organizations/${workspace.organizationId}/products/${product.id}/prices`,
     {
-      data: { amountMinor, currency: 'BRL', interval: 'MONTH', trialDays: 0 },
+      data: { amountMinor, currency: 'BRL', interval: 'MONTH', trialDays },
       token: workspace.accessToken,
     },
   );
@@ -155,12 +156,20 @@ export async function createPlan(
   return { priceId: price.id, product: name };
 }
 
-/** Cadastra um cliente e o coloca em uma assinatura do plano indicado. */
+/**
+ * Cadastra um cliente e o coloca em uma assinatura do plano indicado.
+ *
+ * `skipTrial` existe porque os dois caminhos interessam. Sem teste, a
+ * assinatura nasce INCOMPLETE e o ciclo a expira; com teste, ela nasce
+ * TRIALING e o fim do teste a ativa, que e o unico jeito de chegar a uma
+ * assinatura ativa sem inventar uma rota de pagamento que so existe na fase 05.
+ */
 export async function startSubscription(
   request: APIRequestContext,
   workspace: Workspace,
   priceId: string,
   customerName: string,
+  skipTrial = true,
 ): Promise<{ id: string; customerName: string }> {
   const customer = await json<{ id: string }>(
     request,
@@ -176,7 +185,7 @@ export async function startSubscription(
     request,
     'post',
     `/organizations/${workspace.organizationId}/subscriptions`,
-    { data: { customerId: customer.id, priceId, skipTrial: true }, token: workspace.accessToken },
+    { data: { customerId: customer.id, priceId, skipTrial }, token: workspace.accessToken },
   );
 
   return { id: subscription.id, customerName };

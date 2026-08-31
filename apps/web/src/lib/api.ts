@@ -196,7 +196,7 @@ export interface JournalEntry {
 }
 
 export type SubscriptionStatus =
-  'INCOMPLETE' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'EXPIRED';
+  'INCOMPLETE' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'UNPAID';
 
 export interface Plan {
   priceId: string;
@@ -260,6 +260,35 @@ export interface Proration {
   cycleDays: number;
 }
 
+/**
+ * Estado do relógio da organização. Ver ADR-0015.
+ *
+ * `virtual` falso significa relógio de parede, que é o caso comum. Congelado,
+ * `now` é o instante parado e `advancedDays` diz quanto de tempo virtual já
+ * foi percorrido desde o congelamento.
+ */
+export interface ClockState {
+  virtual: boolean;
+  now: string;
+  frozenSince: string | null;
+  advancedDays: number;
+  advancedMs: number;
+}
+
+export type CycleAction = 'renovada' | 'ativada' | 'encerrada' | 'expirada';
+
+export interface CycleEffect {
+  subscriptionId: string;
+  customerName: string;
+  action: CycleAction;
+  at: string;
+}
+
+export interface CycleReport {
+  ranAt: string;
+  effects: CycleEffect[];
+}
+
 export interface LedgerVerification {
   checkedAt: string;
   entryCount: number;
@@ -282,4 +311,5 @@ export const api = {
   subscription: (id: string, subscriptionId: string) =>
     apiFetch<SubscriptionDetail>(`/organizations/${id}/subscriptions/${subscriptionId}`),
   products: (id: string) => apiFetch<Product[]>(`/organizations/${id}/products`),
+  clock: (id: string) => apiFetch<ClockState>(`/organizations/${id}/clock`),
 };

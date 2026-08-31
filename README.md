@@ -77,12 +77,24 @@ Ver [ADR-0003](docs/adr/0003-ledger-de-partidas-dobradas.md),
 
 Nenhuma linha do domínio chama `new Date()`, e uma regra de lint quebra o build
 se alguém tentar. O tempo é injetado, e cada organização tem o seu próprio
-relógio.
+relógio, que pode ser congelado e adiantado por comando.
 
-Isso permite simular doze meses de ciclo de cobrança em milissegundos nos testes
-e arrastar uma linha do tempo na interface para ver trial, rateio, falha de
-pagamento e cobrança de recuperação acontecerem ao vivo. Sem isso, demonstrar um
-sistema de cobrança exigiria esperar trinta dias.
+O instante é resolvido uma vez na borda do request e guardado em um escopo de
+`AsyncLocalStorage`. Todo código chamado dentro dele enxerga a mesma hora sem
+receber parâmetro, então o relógio virtual entrou sem que nenhuma assinatura de
+método mudasse. A [ADR-0015](docs/adr/0015-relogio-virtual-por-organizacao.md)
+registra por que não foi um provedor com escopo de request do Nest.
+
+O tempo é **congelado**, e não deslocado. Um deslocamento somado ao relógio real
+continua andando sozinho, e a mesma sequência de comandos produziria históricos
+diferentes. Congelado, ela produz sempre a mesma história, que é o que torna a
+suíte adversarial da fase 07 possível.
+
+O efeito prático: um ano de ciclos de cobrança é verificado em milissegundos,
+contra o banco de verdade e sem nenhum dublê de relógio, e o painel adianta
+três meses em um clique para mostrar as renovações acontecendo e as faturas
+chegando ao razão. Sem isso, demonstrar um sistema de cobrança exigiria esperar
+trinta dias.
 
 ### O painel
 
@@ -93,8 +105,9 @@ servidor do Next é o único que vê os tokens, e a renovação acontece no
 middleware, antes de qualquer página renderizar.
 
 Ele nasceu na fase 01 e cresce junto com o backend, em vez de aparecer inteiro
-no fim. Hoje mostra contas, organização, membros, chaves de API e o explorador
-do razão.
+no fim. Hoje mostra contas, organização, membros, chaves de API, o explorador do
+razão, a carteira de assinaturas com troca de plano rateada e a linha do tempo
+que adianta o relógio e liquida o que vencer.
 
 ### 3. Suíte adversarial
 
@@ -340,7 +353,7 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       auditoria, testes de propriedade.
 - [x] **03 Catálogo e assinaturas.** Produtos, preços, planos, máquina de
       estados, trial, rateio proporcional.
-- [ ] **04 Relógio e ciclo de cobrança.** Relógio virtual, agendamento, avanço
+- [x] **04 Relógio e ciclo de cobrança.** Relógio virtual, agendamento, avanço
       determinístico do tempo.
 - [ ] **05 Pagamentos.** Porta de gateway, idempotência, outbox, retry, dunning,
       estorno.

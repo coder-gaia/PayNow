@@ -38,7 +38,9 @@ export function SubscriptionActions({
   const toast = useToast();
   const confirm = useConfirm();
 
-  const encerrada = subscription.status === 'CANCELED' || subscription.status === 'EXPIRED';
+  // CANCELED e final pela maquina de estados; UNPAID so aceita ir para
+  // CANCELED, o que a fase 05 fara pela recuperacao e nao pelo painel.
+  const encerrada = subscription.status === 'CANCELED' || subscription.status === 'UNPAID';
 
   const handlePlanChange = (nextPriceId: string) => {
     if (nextPriceId === subscription.plan.priceId) {

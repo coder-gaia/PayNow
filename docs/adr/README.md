@@ -25,16 +25,17 @@ momento em que ela é tomada, com o contexto que existia na época.
 
 ## Índice
 
-| ADR                                            | Título                                                        | Status |
-| ---------------------------------------------- | ------------------------------------------------------------- | ------ |
-| [0001](0001-monolito-modular.md)               | Monólito modular em vez de microserviços                      | Aceita |
-| [0002](0002-dinheiro-como-inteiro.md)          | Dinheiro como inteiro em unidade mínima                       | Aceita |
-| [0003](0003-ledger-de-partidas-dobradas.md)    | Ledger append-only de partidas dobradas como fonte da verdade | Aceita |
-| [0004](0004-nestjs-11-em-vez-de-12.md)         | NestJS 11 em vez de 12, com gatilho de migração               | Aceita |
-| [0005](0005-prisma-e-sql-cru.md)               | Prisma para schema e tipos, SQL cru no núcleo do ledger       | Aceita |
-| [0008](0008-advisory-locks-para-assinatura.md) | Advisory locks para mutação de assinatura                     | Aceita |
-| [0009](0009-relogio-injetado.md)               | Relógio injetado em vez de acesso direto ao tempo             | Aceita |
-| [0010](0010-autenticacao-propria.md)           | Autenticação própria em vez de provedor externo               | Aceita |
+| ADR                                             | Título                                                        | Status |
+| ----------------------------------------------- | ------------------------------------------------------------- | ------ |
+| [0001](0001-monolito-modular.md)                | Monólito modular em vez de microserviços                      | Aceita |
+| [0002](0002-dinheiro-como-inteiro.md)           | Dinheiro como inteiro em unidade mínima                       | Aceita |
+| [0003](0003-ledger-de-partidas-dobradas.md)     | Ledger append-only de partidas dobradas como fonte da verdade | Aceita |
+| [0004](0004-nestjs-11-em-vez-de-12.md)          | NestJS 11 em vez de 12, com gatilho de migração               | Aceita |
+| [0005](0005-prisma-e-sql-cru.md)                | Prisma para schema e tipos, SQL cru no núcleo do ledger       | Aceita |
+| [0008](0008-advisory-locks-para-assinatura.md)  | Advisory locks para mutação de assinatura                     | Aceita |
+| [0009](0009-relogio-injetado.md)                | Relógio injetado em vez de acesso direto ao tempo             | Aceita |
+| [0010](0010-autenticacao-propria.md)            | Autenticação própria em vez de provedor externo               | Aceita |
+| [0015](0015-relogio-virtual-por-organizacao.md) | Relógio virtual por organização, via AsyncLocalStorage        | Aceita |
 
 Os números abaixo estão reservados no plano do projeto. Cada ADR é escrita na
 fase em que a decisão passa a valer, que nem sempre é a fase prevista: a

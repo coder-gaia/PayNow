@@ -453,6 +453,120 @@ test.describe('assinaturas', () => {
   });
 });
 
+test.describe('linha do tempo', () => {
+  /**
+   * O relógio virtual, exercitado pelo caminho que uma pessoa usa.
+   *
+   * Este é o teste que prova o segundo pilar de ponta a ponta: congelar,
+   * adiantar e conferir que o ciclo de cobrança rodou de verdade, emitindo
+   * fatura e escrevendo no razão.
+   *
+   * O plano tem um dia de teste de propósito. É o único caminho que leva uma
+   * assinatura a ACTIVE sem passar por um pagamento, e pagamento é fase 05:
+   * inventar uma rota para ativar à força faria o teste exercitar algo que a
+   * aplicação não tem.
+   */
+  test('congela, adianta e a renovação chega ao razão', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'tempo');
+    const plano = await createPlan(request, workspace, 'Plano Mensal', '5000', 1);
+    await startSubscription(request, workspace, plano.priceId, 'Loja do Tempo', false);
+
+    await login(page, workspace.owner.email);
+    await navLink(page, 'Tempo').click();
+    await expect(page).toHaveURL(/\/painel\/tempo$/);
+
+    await expect(page.getByText('De parede', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Congelar o tempo' }).click();
+    await expect(notice(page, 'Tempo congelado')).toBeVisible();
+    await expect(page.getByText('Congelado', { exact: true })).toBeVisible();
+
+    // O fim do teste ativa a assinatura e só então emite a primeira fatura:
+    // período de teste não gera receita.
+    await page.getByRole('button', { name: '+ 7 dias' }).click();
+    await expect(notice(page, 'liquidada')).toBeVisible();
+    await expect(page.getByText('teste encerrado, assinatura ativada')).toBeVisible();
+
+    // O ciclo seguinte renova, e a fatura chega ao razão com ele íntegro.
+    await page.getByRole('button', { name: '+ 1 mês' }).click();
+    await expect(page.getByText('ciclo renovado')).toBeVisible();
+
+    await navLink(page, 'Razão').click();
+    await expect(notice(page, 'Razão íntegro')).toBeVisible();
+    await expect(page.getByText('Fatura de Loja do Tempo').first()).toBeVisible();
+  });
+
+  /**
+   * O teste que justifica o laço do ciclo.
+   *
+   * Um ciclo que processasse uma vez por chamada deixaria a assinatura com
+   * períodos inteiros no passado e faturas faltando. Três meses de uma vez
+   * têm de produzir mais de uma renovação.
+   */
+  test('um salto de três meses produz mais de uma renovação', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'tresmeses');
+    const plano = await createPlan(request, workspace, 'Plano Trimestre', '1000', 1);
+    await startSubscription(request, workspace, plano.priceId, 'Casa Trimestre', false);
+
+    await login(page, workspace.owner.email);
+    await page.goto('/painel/tempo');
+    await page.getByRole('button', { name: 'Congelar o tempo' }).click();
+    await expect(page.getByText('Congelado', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: '+ 3 meses' }).click();
+    await expect(notice(page, 'liquidada')).toBeVisible();
+
+    // Uma ativação de fim de teste mais pelo menos duas renovações mensais.
+    expect(await page.getByText('ciclo renovado').count()).toBeGreaterThanOrEqual(2);
+    await expect(page.getByText('teste encerrado, assinatura ativada')).toBeVisible();
+  });
+
+  test('sem o primeiro pagamento, o ciclo expira a assinatura', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'expira');
+    const plano = await createPlan(request, workspace, 'Plano Sem Teste', '3000');
+    await startSubscription(request, workspace, plano.priceId, 'Feira Sem Teste');
+
+    await login(page, workspace.owner.email);
+    await page.goto('/painel/tempo');
+    await page.getByRole('button', { name: 'Congelar o tempo' }).click();
+    await page.getByRole('button', { name: '+ 1 mês' }).click();
+
+    await expect(page.getByText('expirada sem o primeiro pagamento')).toBeVisible();
+
+    await navLink(page, 'Assinaturas').click();
+    await expect(page.getByRole('row').filter({ hasText: 'Feira Sem Teste' })).toContainText(
+      'Cancelada',
+    );
+  });
+
+  test('voltar ao relógio de parede pede confirmação e não desfaz a história', async ({
+    page,
+    request,
+  }) => {
+    const workspace = await createWorkspace(request, 'volta');
+    const plano = await createPlan(request, workspace, 'Plano Volta', '2500', 1);
+    await startSubscription(request, workspace, plano.priceId, 'Bar da Volta', false);
+
+    await login(page, workspace.owner.email);
+    await page.goto('/painel/tempo');
+    await page.getByRole('button', { name: 'Congelar o tempo' }).click();
+    await page.getByRole('button', { name: '+ 7 dias' }).click();
+    await expect(notice(page, 'liquidada')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Voltar ao relógio de parede' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await expect(dialogo).toContainText('append-only');
+    await dialogo.getByRole('button', { name: 'Voltar ao tempo real' }).click();
+
+    await expect(notice(page, 'De volta ao relógio de parede')).toBeVisible();
+    await expect(page.getByText('De parede', { exact: true })).toBeVisible();
+
+    // O lançamento criado durante a viagem continua lá.
+    await navLink(page, 'Razão').click();
+    await expect(page.getByText('Fatura de Bar da Volta').first()).toBeVisible();
+  });
+});
+
 /**
  * Largura de celular.
  *
@@ -467,7 +581,13 @@ test.describe('assinaturas', () => {
  * exatamente o defeito que ele existe para pegar.
  */
 test.describe('tela pequena', () => {
-  const PAGINAS = ['/painel', '/painel/assinaturas', '/painel/ledger', '/painel/membros'];
+  const PAGINAS = [
+    '/painel',
+    '/painel/assinaturas',
+    '/painel/tempo',
+    '/painel/ledger',
+    '/painel/membros',
+  ];
 
   for (const caminho of PAGINAS) {
     test(`${caminho} rola a tabela em vez de cortá-la em 375px`, async ({ page }) => {
