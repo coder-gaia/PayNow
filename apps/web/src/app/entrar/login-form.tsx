@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 
+import { PasswordInput } from '@/components/password-input';
 import { Alert, Button, Field, Input } from '@/components/ui';
 import { type FormState, login } from '@/lib/actions';
 
@@ -23,7 +24,7 @@ export function LoginForm({ expired }: { expired: boolean }) {
       </Field>
 
       <Field label="Senha">
-        <Input name="password" type="password" autoComplete="current-password" required />
+        <PasswordInput name="password" autoComplete="current-password" required />
       </Field>
 
       <Button type="submit" disabled={pending}>

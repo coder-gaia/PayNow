@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 
+import { PasswordInput } from '@/components/password-input';
 import { Alert, Button, Field, Input } from '@/components/ui';
 import { type FormState, register } from '@/lib/actions';
 
@@ -21,13 +22,7 @@ export function RegisterForm() {
       </Field>
 
       <Field label="Senha" hint="Ao menos 10 caracteres. Nao ha regra de composicao.">
-        <Input
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={10}
-        />
+        <PasswordInput name="password" autoComplete="new-password" required minLength={10} />
       </Field>
 
       <Field label="Nome da organizacao">

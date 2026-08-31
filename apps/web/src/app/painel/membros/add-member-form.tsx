@@ -1,7 +1,8 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 
+import { useToast } from '@/components/toast';
 import { Alert, Button, Field, Input, Select } from '@/components/ui';
 import { addMember, type FormState } from '@/lib/actions';
 import type { OrganizationRole } from '@/lib/api';
@@ -23,13 +24,24 @@ export function AddMemberForm({
     addMember.bind(null, organizationId),
     {},
   );
+  const toast = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // O membro adicionado aparece na tabela acima, fora do campo de visao de quem
+  // acabou de digitar aqui, entao a confirmacao vira toast. O erro fica no
+  // formulario, que e onde o email errado sera corrigido.
+  useEffect(() => {
+    if (state.ok === true) {
+      toast.success('Membro adicionado.');
+      formRef.current?.reset();
+    }
+  }, [state, toast]);
 
   const roles = GRANTABLE[actorRole] ?? [];
 
   return (
-    <form action={action} className="flex flex-col gap-4 px-5 py-4">
+    <form ref={formRef} action={action} className="flex flex-col gap-4 px-5 py-4">
       {state.error !== undefined && <Alert tone="error">{state.error}</Alert>}
-      {state.ok === true && <Alert tone="success">Membro adicionado.</Alert>}
 
       <div className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
         <Field label="Email">

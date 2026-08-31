@@ -82,3 +82,25 @@
     border-radius: 2px;
   }
 }
+
+@layer components {
+  /* Entrada do toast. Fica sob `motion-safe` no componente, entao quem pediu
+     movimento reduzido no sistema recebe o aviso sem animacao alguma. */
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* O dialogo nativo comeca com margens do agente de usuario. Centralizar e
+     dar largura fica por conta das classes no componente. */
+  dialog {
+    max-width: none;
+    max-height: none;
+  }
+}

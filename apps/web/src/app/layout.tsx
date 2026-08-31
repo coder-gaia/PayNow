@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import { IBM_Plex_Mono, IBM_Plex_Sans, Zilla_Slab } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { ConfirmProvider } from '@/components/confirm-dialog';
+import { ToastProvider } from '@/components/toast';
+
 import './globals.css';
 
 const display = Zilla_Slab({
@@ -33,7 +36,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ToastProvider>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </ToastProvider>
+      </body>
     </html>
   );
 }
