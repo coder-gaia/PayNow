@@ -346,6 +346,12 @@ corretude se verifica. Por isso, abaixo do lançamento, três botões agem contr
 a API de verdade e mostram as linhas nascendo: emitir uma fatura, trocar de
 plano no meio do ciclo, adiantar três meses.
 
+Uma seção de depoimentos em carrossel fecha a página. Eles são declaradamente
+fictícios, e os negócios que assinam são os mesmos da organização de
+demonstração: quem lê o depoimento da Padaria Lua e entra no painel encontra a
+Padaria Lua como assinatura de verdade. O depoimento vira porta de entrada em
+vez de enfeite.
+
 O desenho está em [docs/pagina-inicial.md](docs/pagina-inicial.md) e a
 implementação é da fase 08, porque depende de uma organização pública de
 demonstração com limite de taxa.
@@ -377,8 +383,8 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       estorno.
 - [ ] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
 - [ ] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
-- [ ] **08 Painel e demonstração.** Página inicial em forma de razão, métricas,
-      console de caos, fatura explicável.
+- [ ] **08 Painel e demonstração.** Página inicial em forma de razão, carrossel
+      de depoimentos, métricas, console de caos, fatura explicável.
 - [ ] **09 Endurecimento e lançamento.** Limite de taxa, modelo de ameaças,
       teste de carga, runbooks, deploy.
 

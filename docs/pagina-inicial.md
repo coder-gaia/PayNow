@@ -72,6 +72,63 @@ Uma frase acima da faixa:
 É aqui que a página deixa de ser marketing. Um número que a pessoa provocou e
 viu aparecer vale mais do que qualquer afirmação sobre ele.
 
+## Depoimentos
+
+Uma seção própria, em faixa de largura total e fundo diferente do resto, com os
+depoimentos girando em carrossel. Cada um traz **nome, negócio e texto**.
+
+Eles são **fictícios, e a página diz isso**. O motivo não é escrúpulo: é que a
+página inteira defende que corretude se verifica em vez de se afirmar, e
+depoimento inventado passado por verdadeiro é exatamente a coisa que ela acusa.
+Quem perceber a invenção passa a duvidar de tudo que está acima, inclusive do
+que é conferível.
+
+A saída torna a restrição um trunfo. Os negócios que aparecem aqui são os
+**mesmos da organização de demonstração**: quem lê o depoimento da Padaria Lua
+e entra no painel encontra a Padaria Lua como assinatura de verdade, com plano,
+ciclo e lançamentos. O nome do negócio é um link para ela. O depoimento deixa
+de ser enfeite e vira porta de entrada.
+
+Cabeçalho da seção, em uma linha:
+
+> Seis negócios fictícios. O sistema que eles descrevem está a um clique.
+
+### Os depoimentos
+
+Cada um demonstra um pilar em vez de elogiar. Elogio genérico não convence
+ninguém e não diz nada sobre o produto.
+
+| Nome           | Negócio         | Depoimento                                                                                                                             |
+| -------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Ana Ribeiro    | Livraria Aurora | Fechei o mês sem planilha pela primeira vez. O saldo não vem de um campo, vem das linhas, e eu aponto de onde saiu cada centavo.       |
+| Marcos Vieira  | Padaria Lua     | Um cliente trocou de plano no dia 14 e perguntou quanto ia pagar. Respondi em dez segundos, com a conta na tela.                       |
+| Júlia Nakamura | Studio Vega     | Adiantei três meses num clique e vi as renovações acontecendo. Aprovei o sistema antes de ter o primeiro cliente.                      |
+| Rafael Duarte  | Bike Norte      | O gateway repetiu o webhook duas vezes numa madrugada. A segunda cobrança não entrou, e eu só soube disso lendo o log no dia seguinte. |
+| Camila Torres  | Mercado Sul     | Meu cartão falhou e eu continuei com acesso. Descobri que era de propósito quando a cobrança passou dois dias depois.                  |
+| Diego Salles   | Café Meridiano  | Pedi o extrato de um cliente para o contador. Mandei o razão inteiro. Ele não pediu mais nada.                                         |
+
+Café Meridiano é o único que ainda não existe no seed. Ele entra junto com a
+página, para que a promessa do link valha para os seis.
+
+### Como o carrossel se comporta
+
+- **Gira sozinho**, um depoimento a cada sete segundos, e **para no hover, no
+  foco e no clique**. Carrossel que não para é armadilha para quem lê devagar.
+- **Setas e marcadores** navegáveis por teclado, com o marcador ativo anunciado.
+  Marcador que só existe como enfeite não serve.
+- **Sem `aria-live`.** A troca automática não deve interromper leitor de tela;
+  a região é marcada como grupo de carrossel e a navegação manual é que anuncia.
+- **`prefers-reduced-motion` desliga a rotação automática** e a transição. Fica
+  o primeiro depoimento com os controles.
+- **Sem JavaScript**, a seção vira uma lista de seis, empilhada. Nenhum
+  depoimento fica inacessível por causa de script que não carregou.
+- **Em 375px** o carrossel mostra um por vez, sempre, com o gesto de arrastar
+  funcionando junto com as setas.
+
+O visual pesa aqui de propósito, porque é a única seção da página que não é
+tabular: aspas em serifa grande para o texto, nome e negócio em monoespaçada
+pequena embaixo, e a régua fina do resto do painel separando os dois.
+
 ## Navegação
 
 Não há menu de topo com cinco itens. Há dois destinos, no fim da página:
@@ -101,6 +158,14 @@ Quem já tem sessão vai direto ao painel, como hoje.
 
 ## O que esta página não é
 
-Não tem preço, não tem depoimento, não tem logotipo de cliente, não tem
-comparativo com concorrente. O Paynow é um projeto de portfólio e fingir que é
-uma empresa seria a mesma mentira que a página se propõe a não contar.
+Não tem preço, não tem logotipo de cliente e não tem comparativo com
+concorrente.
+
+Depoimento tem, e a primeira versão deste documento dizia que não teria. A
+decisão mudou porque a seção acrescenta peso visual à página e porque dá para
+tê-la sem mentir: os depoimentos são declaradamente fictícios e apontam para
+negócios que existem na demonstração. O que continua valendo é a regra que
+motivava a proibição, e ela é mais forte do que a lista: **a página não afirma
+nada que quem lê não possa conferir**. Um depoimento assumidamente fictício
+cumpre a regra. Um passado por verdadeiro a quebraria, e quebraria junto a
+credibilidade de tudo que está acima dele nesta mesma página.
