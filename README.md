@@ -179,12 +179,21 @@ pnpm dev
 
 Depois disso:
 
-| Endereço                           | O que é                           |
-| ---------------------------------- | --------------------------------- |
-| http://localhost:3333/health/live  | Liveness probe                    |
-| http://localhost:3333/health/ready | Readiness, verifica banco e Redis |
-| http://localhost:3333/docs         | Documentação OpenAPI              |
-| http://localhost:8025              | Mailpit, caixa de entrada local   |
+| Endereço                                | O que é                           |
+| --------------------------------------- | --------------------------------- |
+| http://localhost:3333/health/live       | Liveness probe                    |
+| http://localhost:3333/health/ready      | Readiness, verifica banco e Redis |
+| http://localhost:3333/docs              | Documentação OpenAPI              |
+| http://localhost:3333/docs/openapi.json | Contrato OpenAPI em JSON          |
+| http://localhost:8025                   | Mailpit, caixa de entrada local   |
+
+O PostgreSQL do compose é publicado em **5433**, e não na 5432. A porta padrão
+costuma já estar ocupada por uma instalação nativa, e quando isso acontece a
+aplicação conecta silenciosamente no banco errado em vez de falhar. O Redis fica
+na 6379 normalmente.
+
+Todas as variáveis de ambiente vivem em um único `.env` na raiz do repositório,
+que serve a aplicação, o Prisma CLI e os testes.
 
 ### Codespaces
 

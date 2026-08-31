@@ -14,11 +14,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config jest.e2e.config.js",
+    "test:e2e": "dotenv -e ../../.env -- jest --config jest.e2e.config.js",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
+    "db:reset": "dotenv -e ../../.env -- prisma migrate reset --force"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.3",
@@ -28,6 +29,8 @@
     "@nestjs/swagger": "^11.4.7",
     "@paynow/money": "workspace:*",
     "@prisma/client": "^6.19.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
     "ioredis": "^6.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -40,6 +43,7 @@
     "@types/node": "^26.4.0",
     "@types/supertest": "^7.2.1",
     "concurrently": "^10.0.5",
+    "dotenv-cli": "^11.0.0",
     "jest": "^30.5.0",
     "prisma": "6.19.3",
     "source-map-support": "^0.5.21",

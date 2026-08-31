@@ -1,0 +1,70 @@
+# Servicos de apoio para desenvolvimento e testes.
+#
+# A aplicacao em si roda fora do compose, com `pnpm dev`, porque o ciclo de
+# recompilacao em container e mais lento sem nenhum ganho nesta fase. O
+# empacotamento da aplicacao para deploy entra na fase 09.
+
+name: paynow
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: paynow-postgres
+    environment:
+      POSTGRES_USER: paynow
+      POSTGRES_PASSWORD: paynow
+      POSTGRES_DB: paynow
+      # O ledger depende de ordenacao e comparacao estaveis. Fixar a collation
+      # evita que o banco local divirja do de producao em ordenacao de texto.
+      LANG: C
+      POSTGRES_INITDB_ARGS: '--locale=C --encoding=UTF8'
+    ports:
+      # Publicado em 5433 de proposito. A 5432 costuma ja estar ocupada por uma
+      # instalacao nativa do PostgreSQL, e quando isso acontece a aplicacao
+      # conecta silenciosamente no banco errado em vez de falhar.
+      - '5433:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U paynow -d paynow']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: paynow-redis
+    # Persistencia ligada: filas do BullMQ com jobs agendados nao podem sumir
+    # quando o container reinicia durante o desenvolvimento.
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # Servidor SMTP local com interface web. Nenhum email sai da maquina.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: paynow-mailpit
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # interface web
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres-data:
+  redis-data:

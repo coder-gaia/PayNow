@@ -24,7 +24,9 @@
     "db:migrate": "pnpm --filter @paynow/api db:migrate",
     "db:deploy": "pnpm --filter @paynow/api db:deploy",
     "db:studio": "pnpm --filter @paynow/api db:studio",
-    "commitlint": "commitlint"
+    "commitlint": "commitlint",
+    "db:reset": "pnpm --filter @paynow/api db:reset",
+    "test:e2e": "pnpm --filter @paynow/api test:e2e"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
