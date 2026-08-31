@@ -44,6 +44,15 @@ export const envSchema = z.object({
   ),
   REDIS_URL: urlWithProtocol(['redis', 'rediss'], 'redis://localhost:6379'),
 
+  /**
+   * Segredo de assinatura dos tokens de acesso. O minimo de 32 caracteres nao
+   * e cerimonia: uma chave HMAC menor que o tamanho do digest enfraquece a
+   * assinatura sem que nada no sistema reclame.
+   */
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET precisa de ao menos 32 caracteres.'),
+  JWT_ACCESS_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+  JWT_REFRESH_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+
   /** Ver ADR-0012: o worker roda no mesmo processo da API, ligado por flag. */
   WORKER_ENABLED: booleanFlag('false'),
 

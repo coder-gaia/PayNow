@@ -25,6 +25,7 @@ services:
       - '5433:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-shadow.sql:/docker-entrypoint-initdb.d/10-init-shadow.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U paynow -d paynow']
       interval: 5s

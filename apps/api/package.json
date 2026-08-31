@@ -16,8 +16,10 @@
     "test:cov": "jest --coverage",
     "test:e2e": "dotenv -e ../../.env -- jest --config jest.e2e.config.js",
     "db:generate": "prisma generate",
+    "db:diff": "dotenv -e ../../.env -- node ../../tools/create-migration.mjs",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "db:seed": "dotenv -e ../../.env -- node dist/seed.js",
     "db:studio": "dotenv -e ../../.env -- prisma studio",
     "db:reset": "dotenv -e ../../.env -- prisma migrate reset --force"
   },
@@ -25,10 +27,9 @@
     "@nestjs/common": "^11.2.3",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.2.3",
-    "@nestjs/jwt": "^12.0.1",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.2.3",
     "@nestjs/swagger": "^11.4.7",
-    "@nestjs/throttler": "^6.5.0",
     "@node-rs/argon2": "^2.2.0",
     "@paynow/money": "workspace:*",
     "@prisma/client": "^6.19.3",
@@ -52,5 +53,8 @@
     "source-map-support": "^0.5.21",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.12"
+  },
+  "prisma": {
+    "seed": "node dist/seed.js"
   }
 }

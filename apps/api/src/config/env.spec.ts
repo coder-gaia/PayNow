@@ -3,6 +3,7 @@ import { validateEnv } from './env';
 const valid = {
   DATABASE_URL: 'postgresql://paynow:paynow@localhost:5432/paynow',
   REDIS_URL: 'redis://localhost:6379',
+  JWT_SECRET: 'a'.repeat(48),
 };
 
 describe('validateEnv', () => {
@@ -32,6 +33,17 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ REDIS_URL: valid.REDIS_URL })).toThrow(/DATABASE_URL/);
   });
 
+  it('recusa segredo de JWT curto demais para a assinatura', () => {
+    expect(() => validateEnv({ ...valid, JWT_SECRET: 'curto' })).toThrow(/JWT_SECRET/);
+  });
+
+  it('aplica os padroes de expiracao de token', () => {
+    const env = validateEnv({ ...valid });
+
+    expect(env.JWT_ACCESS_TTL_MINUTES).toBe(15);
+    expect(env.JWT_REFRESH_TTL_DAYS).toBe(30);
+  });
+
   it('recusa DATABASE_URL com protocolo errado', () => {
     expect(() => validateEnv({ ...valid, DATABASE_URL: 'mysql://localhost:3306/paynow' })).toThrow(
       /DATABASE_URL/,
@@ -50,7 +62,12 @@ describe('validateEnv', () => {
   it('lista todos os problemas de uma vez, e nao apenas o primeiro', () => {
     let message = '';
     try {
-      validateEnv({ DATABASE_URL: 'nao-e-url', REDIS_URL: 'tambem-nao', PORT: '-1' });
+      validateEnv({
+        DATABASE_URL: 'nao-e-url',
+        REDIS_URL: 'tambem-nao',
+        PORT: '-1',
+        JWT_SECRET: valid.JWT_SECRET,
+      });
     } catch (error) {
       message = error instanceof Error ? error.message : '';
     }

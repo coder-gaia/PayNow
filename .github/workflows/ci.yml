@@ -96,6 +96,9 @@ jobs:
       DATABASE_URL: postgresql://paynow:paynow@localhost:5432/paynow?schema=public
       REDIS_URL: redis://localhost:6379
       WORKER_ENABLED: 'false'
+      # Segredo descartavel do runner. Nao e credencial: existe apenas para que
+      # a validacao de ambiente aceite subir a aplicacao durante os testes.
+      JWT_SECRET: chave-de-assinatura-descartavel-exclusiva-do-ci-do-paynow
 
     steps:
       - uses: actions/checkout@v4

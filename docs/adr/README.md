@@ -32,6 +32,7 @@ momento em que ela é tomada, com o contexto que existia na época.
 | [0003](0003-ledger-de-partidas-dobradas.md) | Ledger append-only de partidas dobradas como fonte da verdade | Aceita |
 | [0004](0004-nestjs-11-em-vez-de-12.md)      | NestJS 11 em vez de 12, com gatilho de migração               | Aceita |
 | [0009](0009-relogio-injetado.md)            | Relógio injetado em vez de acesso direto ao tempo             | Aceita |
+| [0010](0010-autenticacao-propria.md)        | Autenticação própria em vez de provedor externo               | Aceita |
 
 Os números abaixo estão reservados no plano do projeto. Cada ADR é escrita na
 fase em que a decisão passa a valer, que nem sempre é a fase prevista: a
@@ -44,7 +45,6 @@ expiração de token, e isso exigiu a porta de relógio antes do previsto.
 | 0006     | Outbox transacional em vez de publicação direta            | 05   |
 | 0007     | Idempotency-Key no modelo do Stripe                        | 05   |
 | 0008     | Advisory locks para mutação de assinatura                  | 03   |
-| 0010     | Autenticação própria em vez de provedor externo            | 01   |
 | 0011     | Porta de gateway com implementação falsa e Stripe em teste | 05   |
 | 0012     | Worker no mesmo processo, com flag e gatilho de extração   | 05   |
 | 0013     | OpenTelemetry com Datadog como backend                     | 09   |

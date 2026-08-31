@@ -42,6 +42,12 @@ A construcao continua sendo feita com `tsc` direto, e nao com `nest build`, o
 que ja resolvia o problema 2 e remove uma arvore grande de dependencias do
 caminho de build.
 
+A restricao vale para **todo pacote do ecossistema NestJS**, e nao apenas para
+o nucleo. Os pacotes satelite seguem a mesma numeracao maior e tambem passaram
+a ser ESM na 12: `@nestjs/jwt@12` derrubou a suite de testes da fase 01
+exatamente do mesmo jeito, e teve que ser fixado na linha 11. Ao adicionar
+qualquer `@nestjs/*` novo, fixe `^11` explicitamente.
+
 ## Consequencias
 
 ### Positivas

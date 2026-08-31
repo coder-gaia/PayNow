@@ -173,9 +173,41 @@ pnpm infra:up
 # aplica as migrations
 pnpm db:deploy
 
+# popula dados de demonstracao
+pnpm db:seed
+
 # sobe a API em modo desenvolvimento
 pnpm dev
 ```
+
+### Dados de demonstração
+
+`pnpm db:seed` cria uma organização com quatro contas, uma por papel, e uma
+chave de API de teste. É idempotente: rodar de novo não duplica nada.
+
+| Papel      | Email                        | Para que serve                                         |
+| ---------- | ---------------------------- | ------------------------------------------------------ |
+| `OWNER`    | `ana@livraria-aurora.test`   | Vê tudo, promove e remove qualquer pessoa              |
+| `ADMIN`    | `bruno@livraria-aurora.test` | Administra membros e chaves, não mexe em quem é OWNER  |
+| `MEMBER`   | `carla@livraria-aurora.test` | Opera o dia a dia, não administra                      |
+| `READONLY` | `davi@livraria-aurora.test`  | Só consulta, útil para conferir as restrições de papel |
+
+A senha é `paynow-demo-2026` para todas. A chave de API de teste é
+`sk_test_paynowdemo0000000000000000000000000000`.
+
+```bash
+# entra como a dona da conta
+curl -s localhost:3333/v1/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"ana@livraria-aurora.test","password":"paynow-demo-2026"}'
+
+# consulta o contexto da chave de API
+curl -s localhost:3333/v1/merchant/me \
+  -H 'authorization: Bearer sk_test_paynowdemo0000000000000000000000000000'
+```
+
+Esses dados só existem em banco local recriável e não valem nada fora dele. O
+seed recusa rodar com `NODE_ENV=production`.
 
 Depois disso:
 
@@ -254,7 +286,7 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
 
 - [x] **00 Fundação.** Monorepo, dev container, health checks, primeira
       migration, CI.
-- [ ] **01 Identidade.** Usuários, organizações, JWT com rotação de refresh e
+- [x] **01 Identidade.** Usuários, organizações, JWT com rotação de refresh e
       detecção de reuso, RBAC, chaves de API.
 - [ ] **02 Ledger.** Contas, lançamentos, invariantes no banco, saldo derivado,
       reconciliação, testes de propriedade.

@@ -1,0 +1,205 @@
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+
+import { createTestApp, DEFAULT_PASSWORD, httpServer, uniqueEmail } from './support/app';
+
+describe('Autenticacao (e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  const register = (email: string) =>
+    request(httpServer(app)).post('/v1/auth/register').send({
+      email,
+      password: DEFAULT_PASSWORD,
+      name: 'Pessoa de Teste',
+      organizationName: 'Organizacao de Teste',
+    });
+
+  describe('POST /v1/auth/register', () => {
+    it('cria conta, organizacao e sessao de uma vez', async () => {
+      const email = uniqueEmail();
+      const response = await register(email).expect(201);
+
+      expect(response.body.accessToken).toEqual(expect.any(String));
+      expect(response.body.refreshToken).toEqual(expect.any(String));
+      expect(response.body.expiresInSeconds).toBe(900);
+      expect(response.body.user.email).toBe(email);
+
+      const profile = await request(httpServer(app))
+        .get('/v1/auth/me')
+        .set('authorization', `Bearer ${response.body.accessToken}`)
+        .expect(200);
+
+      expect(profile.body.organizations).toHaveLength(1);
+      expect(profile.body.organizations[0].role).toBe('OWNER');
+    });
+
+    it('recusa email ja cadastrado', async () => {
+      const email = uniqueEmail();
+      await register(email).expect(201);
+      await register(email).expect(409);
+    });
+
+    it('recusa senha curta demais', async () => {
+      await request(httpServer(app))
+        .post('/v1/auth/register')
+        .send({
+          email: uniqueEmail(),
+          password: 'curta',
+          name: 'Pessoa',
+          organizationName: 'Org',
+        })
+        .expect(400);
+    });
+
+    it('normaliza o email para minusculas', async () => {
+      const email = uniqueEmail();
+      await register(email.toUpperCase()).expect(201);
+
+      await request(httpServer(app))
+        .post('/v1/auth/login')
+        .send({ email, password: DEFAULT_PASSWORD })
+        .expect(200);
+    });
+  });
+
+  describe('POST /v1/auth/login', () => {
+    it('nao distingue email inexistente de senha errada', async () => {
+      const email = uniqueEmail();
+      await register(email).expect(201);
+
+      const wrongPassword = await request(httpServer(app))
+        .post('/v1/auth/login')
+        .send({ email, password: 'senha errada mas longa' })
+        .expect(401);
+
+      const noSuchUser = await request(httpServer(app))
+        .post('/v1/auth/login')
+        .send({ email: uniqueEmail(), password: 'senha errada mas longa' })
+        .expect(401);
+
+      expect(wrongPassword.body.message).toBe(noSuchUser.body.message);
+    });
+  });
+
+  describe('POST /v1/auth/refresh', () => {
+    it('rotaciona e invalida o token apresentado', async () => {
+      const { body } = await register(uniqueEmail()).expect(201);
+
+      const rotated = await request(httpServer(app))
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: body.refreshToken })
+        .expect(200);
+
+      expect(rotated.body.refreshToken).not.toBe(body.refreshToken);
+      expect(rotated.body.accessToken).toEqual(expect.any(String));
+    });
+
+    /**
+     * Este e o criterio de pronto da fase 01.
+     *
+     * Um refresh token consumido que reaparece significa que alguem guardou uma
+     * copia. Nao ha como saber se quem apresenta e o dono ou o ladrao, entao a
+     * sessao inteira cai, inclusive o token valido emitido na rotacao.
+     */
+    it('reusar um token consumido derruba a familia inteira', async () => {
+      const { body } = await register(uniqueEmail()).expect(201);
+      const primeiro = body.refreshToken;
+
+      const rotacao = await request(httpServer(app))
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: primeiro })
+        .expect(200);
+
+      const segundo = rotacao.body.refreshToken;
+
+      // O token ja consumido reaparece: reuso.
+      const reuso = await request(httpServer(app))
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: primeiro })
+        .expect(401);
+
+      expect(reuso.body.message).toMatch(/ja tinha sido usado/);
+
+      // E o token valido, que ninguem chegou a usar, tambem morre junto.
+      const vitimaColateral = await request(httpServer(app))
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: segundo })
+        .expect(401);
+
+      expect(vitimaColateral.body.message).toMatch(/ja tinha sido usado/);
+    });
+
+    it('recusa token desconhecido', async () => {
+      await request(httpServer(app))
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: 'nao-existe-este-token-aqui-nenhum' })
+        .expect(401);
+    });
+  });
+
+  describe('POST /v1/auth/logout', () => {
+    it('encerra a sessao sem afetar outras', async () => {
+      const email = uniqueEmail();
+      await register(email).expect(201);
+
+      const primeiraSessao = await request(httpServer(app))
+        .post('/v1/auth/login')
+        .send({ email, password: DEFAULT_PASSWORD })
+        .expect(200);
+
+      const segundaSessao = await request(httpServer(app))
+        .post('/v1/auth/login')
+        .send({ email, password: DEFAULT_PASSWORD })
+        .expect(200);
+
+      await request(httpServer(app))
+        .post('/v1/auth/logout')
+        .send({ refreshToken: primeiraSessao.body.refreshToken })
+        .expect(204);
+
+      await request(httpServer(app))
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: primeiraSessao.body.refreshToken })
+        .expect(401);
+
+      // A outra sessao continua viva: logout nao e logout de tudo.
+      await request(httpServer(app))
+        .post('/v1/auth/refresh')
+        .send({ refreshToken: segundaSessao.body.refreshToken })
+        .expect(200);
+    });
+  });
+
+  describe('GET /v1/auth/me', () => {
+    it('exige credencial', async () => {
+      await request(httpServer(app)).get('/v1/auth/me').expect(401);
+    });
+
+    it('recusa token adulterado', async () => {
+      const { body } = await register(uniqueEmail()).expect(201);
+      const adulterado = `${body.accessToken.slice(0, -4)}xxxx`;
+
+      await request(httpServer(app))
+        .get('/v1/auth/me')
+        .set('authorization', `Bearer ${adulterado}`)
+        .expect(401);
+    });
+
+    it('recusa esquema diferente de Bearer', async () => {
+      const { body } = await register(uniqueEmail()).expect(201);
+
+      await request(httpServer(app))
+        .get('/v1/auth/me')
+        .set('authorization', `Basic ${body.accessToken}`)
+        .expect(401);
+    });
+  });
+});

@@ -26,7 +26,9 @@
     "db:studio": "pnpm --filter @paynow/api db:studio",
     "commitlint": "commitlint",
     "db:reset": "pnpm --filter @paynow/api db:reset",
-    "test:e2e": "pnpm --filter @paynow/api test:e2e"
+    "test:e2e": "pnpm --filter @paynow/api test:e2e",
+    "db:seed": "pnpm --filter @paynow/api build && pnpm --filter @paynow/api db:seed",
+    "db:diff": "pnpm --filter @paynow/api db:diff"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

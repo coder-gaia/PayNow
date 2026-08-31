@@ -6,15 +6,19 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { Public } from '../http/auth-context';
 import { LivenessReport, ReadinessReport } from './health.dto';
 import { HealthService } from './health.service';
 
+// Probes ficam publicos: um orquestrador nao carrega credencial, e um health
+// check que responde 401 e indistinguivel de um servico morto.
 @ApiTags('saude')
 @Controller('health')
 export class HealthController {
   constructor(private readonly health: HealthService) {}
 
   @Get('live')
+  @Public()
   @ApiOperation({
     summary: 'Liveness',
     description:
@@ -27,6 +31,7 @@ export class HealthController {
   }
 
   @Get('ready')
+  @Public()
   @ApiOperation({
     summary: 'Readiness',
     description:

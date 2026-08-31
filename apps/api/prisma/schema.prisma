@@ -1,8 +1,14 @@
 // Schema do Paynow.
 //
-// A fase 00 estabelece apenas a base do banco: as extensoes que o restante do
-// sistema assume existirem. Os modelos de dominio chegam a partir da fase 01,
-// e o ledger, que e o nucleo do projeto, na fase 02.
+// Convencoes:
+//
+//   - identificadores sao UUID v7, ordenaveis por tempo, o que da localidade de
+//     indice sem expor sequencia previsivel na API publica;
+//   - o banco usa snake_case e o cliente camelCase, via @map;
+//   - todo instante e timestamptz com precisao de milissegundo;
+//   - createdAt e updatedAt vem do relogio do banco de proposito: registram
+//     quando a linha foi escrita, que e fato de infraestrutura. Tempo de
+//     dominio vem do Clock injetado (ADR-0009).
 //
 // Ver docs/plano-de-contas.md para o contrato contabil que a fase 02 implementa.
 
@@ -13,4 +19,132 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identidade (fase 01)
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  email           String    @unique @db.Citext
+  passwordHash    String    @map("password_hash")
+  name            String
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  memberships   Membership[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  memberships Membership[]
+  apiKeys     ApiKey[]
+
+  @@map("organizations")
+}
+
+/// Papeis em ordem decrescente de poder. A comparacao e feita por hierarquia
+/// numerica no codigo, e nao por lista de permissoes, porque com quatro papeis
+/// estritamente ordenados uma matriz de permissoes so adicionaria cerimonia.
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  READONLY
+
+  @@map("organization_role")
+}
+
+model Membership {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  role           OrganizationRole
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+/// Motivo pelo qual um refresh token deixou de valer. Guardar o motivo, e nao
+/// apenas apagar a linha, e o que permite investigar um roubo de token depois.
+enum RefreshTokenRevocationReason {
+  ROTATED
+  REUSE_DETECTED
+  LOGOUT
+
+  @@map("refresh_token_revocation_reason")
+}
+
+/// Refresh token com rotacao e deteccao de reuso.
+///
+/// Cada login abre uma familia. Cada uso rotaciona o token e marca o anterior
+/// como consumido. Apresentar um token ja consumido significa que ele vazou,
+/// e a familia inteira e revogada.
+///
+/// O valor nao e armazenado, apenas o hash. Ver a nota sobre SHA-256 em
+/// token-hasher.ts: o segredo aqui tem entropia alta, entao o custo do argon2
+/// nao se justifica.
+model RefreshToken {
+  id            String                        @id @default(uuid(7)) @db.Uuid
+  userId        String                        @map("user_id") @db.Uuid
+  familyId      String                        @map("family_id") @db.Uuid
+  tokenHash     String                        @unique @map("token_hash")
+  expiresAt     DateTime                      @map("expires_at") @db.Timestamptz(3)
+  consumedAt    DateTime?                     @map("consumed_at") @db.Timestamptz(3)
+  revokedAt     DateTime?                     @map("revoked_at") @db.Timestamptz(3)
+  revokedReason RefreshTokenRevocationReason? @map("revoked_reason")
+  userAgent     String?                       @map("user_agent")
+  createdAt     DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+enum ApiKeyEnvironment {
+  TEST
+  LIVE
+
+  @@map("api_key_environment")
+}
+
+/// Chave de API do merchant.
+///
+/// O segredo completo e mostrado uma unica vez, na criacao. O que fica gravado
+/// e o prefixo, que serve para busca e para exibicao na interface, e o hash do
+/// segredo inteiro.
+model ApiKey {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
+  name           String
+  environment    ApiKeyEnvironment
+  prefix         String            @unique
+  tokenHash      String            @unique @map("token_hash")
+  lastUsedAt     DateTime?         @map("last_used_at") @db.Timestamptz(3)
+  revokedAt      DateTime?         @map("revoked_at") @db.Timestamptz(3)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
 }

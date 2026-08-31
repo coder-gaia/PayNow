@@ -158,11 +158,17 @@ export default tseslint.config(
     },
   },
 
+  // As respostas do supertest sao tipadas como `any`, e tipar cada corpo de
+  // resposta em teste so acrescentaria cerimonia: o que o teste afirma ja e a
+  // forma da resposta. As regras de `unsafe` sao desligadas apenas aqui.
   {
     files: ['**/*.spec.ts', '**/*.test.ts', '**/test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
