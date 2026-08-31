@@ -16,12 +16,12 @@ import {
 /**
  * Fluxo do painel com navegador de verdade.
  *
- * Cada teste monta a propria organizacao pela API antes de abrir a interface,
- * entao nao ha estado compartilhado entre eles e os dados de demonstracao
+ * Cada teste monta a própria organização pela API antes de abrir a interface,
+ * então não há estado compartilhado entre eles e os dados de demonstracao
  * ficam intactos. Ver o comentario em support.ts.
  */
 
-test.describe('autenticacao', () => {
+test.describe('autenticação', () => {
   test('entra e sai', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
 
@@ -40,9 +40,9 @@ test.describe('autenticacao', () => {
     await page.getByLabel('Senha', { exact: true }).fill('senha errada mas longa');
     await page.getByRole('button', { name: 'Entrar' }).click();
 
-    // A mensagem vem da API e e a mesma de email inexistente. Antes o painel
-    // mostrava um generico de sessao expirada, porque tratava todo 401 igual.
-    await expect(page.getByText('Email ou senha invalidos.')).toBeVisible();
+    // A mensagem vem da API e é a mesma de email inexistente. Antes o painel
+    // mostrava um genérico de sessão expirada, porque tratava todo 401 igual.
+    await expect(page.getByText('Email ou senha inválidos.')).toBeVisible();
   });
 
   test('o olho revela e esconde a senha', async ({ page }) => {
@@ -59,15 +59,15 @@ test.describe('autenticacao', () => {
     await expect(senha).toHaveAttribute('type', 'password');
   });
 
-  test('o campo de senha nao herda o nome do botao do olho', async ({ page }) => {
+  test('o campo de senha não herda o nome do botão do olho', async ({ page }) => {
     await page.goto('/entrar');
 
-    // Regressao de acessibilidade: com o botao dentro do rotulo, o nome
+    // Regressao de acessibilidade: com o botão dentro do rotulo, o nome
     // acessivel do campo virava "Senha Mostrar senha".
     await expect(page.getByRole('textbox', { name: 'Senha', exact: true })).toBeVisible();
   });
 
-  test('sem sessao, o painel manda para o login', async ({ page }) => {
+  test('sem sessão, o painel manda para o login', async ({ page }) => {
     await page.goto('/painel/chaves');
     await expect(page).toHaveURL(/\/entrar/);
   });
@@ -85,8 +85,8 @@ test.describe('membros', () => {
     );
     await expect(papel).toHaveValue('OWNER');
 
-    // Rebaixar o unico OWNER travaria a organizacao, e o servidor recusa. A
-    // tela nao pode continuar mostrando ADMIN depois disso.
+    // Rebaixar o único OWNER travaria a organização, e o servidor recusa. A
+    // tela não pode continuar mostrando ADMIN depois disso.
     await papel.selectOption('ADMIN');
 
     await expect(toast(page, 'ao menos um OWNER')).toBeVisible();
@@ -96,7 +96,7 @@ test.describe('membros', () => {
     await expect(memberRow(page, workspace.owner.name).getByLabel(/Papel de/)).toHaveValue('OWNER');
   });
 
-  test('mudanca aceita persiste e avisa', async ({ page, request }) => {
+  test('mudança aceita persiste e avisa', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
     const pessoa = await addPerson(request, workspace, 'MEMBER');
 
@@ -113,7 +113,7 @@ test.describe('membros', () => {
     await expect(memberRow(page, pessoa.name).getByLabel(/Papel de/)).toHaveValue('READONLY');
   });
 
-  test('remocao pede confirmacao e cancelar nao remove', async ({ page, request }) => {
+  test('remoção pede confirmação e cancelar não remove', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
     const pessoa = await addPerson(request, workspace, 'ADMIN');
 
@@ -131,7 +131,7 @@ test.describe('membros', () => {
     await expect(memberRow(page, pessoa.name)).toBeVisible();
   });
 
-  test('remocao confirmada tira a pessoa da lista', async ({ page, request }) => {
+  test('remoção confirmada tira a pessoa da lista', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
     const pessoa = await addPerson(request, workspace, 'MEMBER');
 
@@ -147,7 +147,7 @@ test.describe('membros', () => {
 });
 
 test.describe('chaves de api', () => {
-  test('cria a chave e revela o segredo uma unica vez', async ({ page, request }) => {
+  test('cria a chave e revela o segredo uma única vez', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
     const nome = 'Servidor de teste';
 
@@ -159,7 +159,7 @@ test.describe('chaves de api', () => {
 
     const aviso = notice(page, 'Chave criada');
     await expect(aviso).toBeVisible();
-    // O segredo e base64url, que inclui hifen: `\w` sozinho nao cobre.
+    // O segredo e base64url, que inclui hifen: `\w` sozinho não cobre.
     await expect(aviso.getByText(/^sk_test_[\w-]{30,}$/)).toBeVisible();
 
     // Depois de recarregar sobra o prefixo, porque o servidor guarda o hash.
@@ -169,13 +169,13 @@ test.describe('chaves de api', () => {
   });
 
   /**
-   * Regressao. A confirmacao era aguardada dentro de `startTransition`, o que
-   * prendia a transicao esperando um clique humano e deixava o botao travado
+   * Regressao. A confirmação era aguardada dentro de `startTransition`, o que
+   * prendia a transição esperando um clique humano e deixava o botão travado
    * em "Revogando..." para sempre, sem revogar nada.
    */
-  test('revoga a chave depois de confirmar no dialogo', async ({ page, request }) => {
+  test('revoga a chave depois de confirmar no diálogo', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
-    const nome = 'Chave descartavel';
+    const nome = 'Chave descartável';
     await createApiKey(request, workspace, nome);
 
     await login(page, workspace.owner.email);
@@ -199,7 +199,7 @@ test.describe('chaves de api', () => {
     ).toBeVisible();
   });
 
-  test('cancelar o dialogo nao revoga', async ({ page, request }) => {
+  test('cancelar o diálogo não revoga', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
     const nome = 'Chave preservada';
     await createApiKey(request, workspace, nome);
@@ -216,17 +216,17 @@ test.describe('chaves de api', () => {
   });
 });
 
-test.describe('organizacao ativa', () => {
-  test('sem escolha, nao ha seletor', async ({ page, request }) => {
+test.describe('organização ativa', () => {
+  test('sem escolha, não há seletor', async ({ page, request }) => {
     const workspace = await createWorkspace(request);
     await login(page, workspace.owner.email);
 
-    // Com uma organizacao so, um seletor de um item seria ruido.
-    await expect(page.getByLabel('Organizacao ativa')).toHaveCount(0);
+    // Com uma organização só, um seletor de um item seria ruído.
+    await expect(page.getByLabel('Organização ativa')).toHaveCount(0);
   });
 
   /**
-   * Regressao. `POST /auth/register` sempre cria uma organizacao, entao quem
+   * Regressao. `POST /auth/register` sempre cria uma organização, então quem
    * era convidado para outra participava de duas e o painel abria sempre a
    * primeira. Sem seletor, a segunda era inalcancavel pela interface.
    */
@@ -239,24 +239,24 @@ test.describe('organizacao ativa', () => {
 
     await login(page, convidada.email);
 
-    const seletor = page.getByLabel('Organizacao ativa');
+    const seletor = page.getByLabel('Organização ativa');
     await expect(seletor).toBeVisible();
 
-    // A propria organizacao e a primeira, entao e a que abre.
+    // A própria organização e a primeira, então é a que abre.
     await expect(seletor).not.toHaveValue(anfitria.organizationId);
 
     await seletor.selectOption(anfitria.organizationId);
     await expect(seletor).toHaveValue(anfitria.organizationId);
 
-    // A escolha sobrevive a navegacao e ao recarregamento.
+    // A escolha sobrevive a navegação e ao recarregamento.
     await navLink(page, 'Membros').click();
     await expect(memberRow(page, anfitria.owner.name)).toBeVisible();
 
     await page.reload();
-    await expect(page.getByLabel('Organizacao ativa')).toHaveValue(anfitria.organizationId);
+    await expect(page.getByLabel('Organização ativa')).toHaveValue(anfitria.organizationId);
   });
 
-  test('cookie apontando para organizacao alheia cai na primeira', async ({
+  test('cookie apontando para organização alheia cai na primeira', async ({
     page,
     request,
     context,
@@ -266,7 +266,7 @@ test.describe('organizacao ativa', () => {
 
     await login(page, propria.owner.email);
 
-    // Cookie forjado para uma organizacao da qual a pessoa nao participa.
+    // Cookie forjado para uma organização da qual a pessoa não participa.
     await context.addCookies([
       {
         name: 'paynow_org',
@@ -278,23 +278,23 @@ test.describe('organizacao ativa', () => {
 
     await page.goto('/painel/membros');
 
-    // Cai na organizacao real, e nao na do cookie.
+    // Cai na organização real, e não na do cookie.
     await expect(memberRow(page, propria.owner.name)).toBeVisible();
     await expect(memberRow(page, alheia.owner.name)).toHaveCount(0);
   });
 });
 
 /**
- * Estes dois usam as contas de demonstracao, e nao uma organizacao criada na
+ * Estes dois usam as contas de demonstracao, e não uma organização criada na
  * hora, por uma limitacao que o painel ainda tem: `/auth/register` sempre cria
- * uma organizacao para quem se cadastra, entao alguem convidado participa de
- * duas, e o painel abre sempre a primeira, que e a propria. Sem seletor de
- * organizacao nao ha como chegar na outra pela interface.
+ * uma organização para quem se cadastra, então alguém convidado participa de
+ * duas, e o painel abre sempre a primeira, que é a própria. Sem seletor de
+ * organização não há como chegar na outra pela interface.
  *
- * As contas do seed nascem sem organizacao propria, entao servem. Como os dois
- * testes apenas leem, nao sujam os dados de demonstracao.
+ * As contas do seed nascem sem organização própria, então servem. Como os dois
+ * testes apenas leem, não sujam os dados de demonstracao.
  */
-test.describe('restricoes por papel', () => {
+test.describe('restrições por papel', () => {
   const MEMBER_DEMO = 'carla@livraria-aurora.test';
   const SENHA_DEMO = 'paynow-demo-2026';
 
@@ -306,7 +306,7 @@ test.describe('restricoes por papel', () => {
     await expect(page).toHaveURL(/\/painel$/);
   };
 
-  test('MEMBER nao administra chaves', async ({ page }) => {
+  test('MEMBER não administra chaves', async ({ page }) => {
     await entrarComoMembroDemo(page);
 
     await page.goto('/painel/chaves');
@@ -322,29 +322,29 @@ test.describe('restricoes por papel', () => {
   });
 });
 
-test.describe('razao', () => {
+test.describe('razão', () => {
   test('mostra o balancete somando zero e afirma a integridade', async ({ page }) => {
-    // Usa a organizacao de demonstracao, que o seed carrega com os cinco
-    // lancamentos de referencia de docs/plano-de-contas.md. Criar um razao na
-    // hora exigiria uma rota de escrita, e o ledger nao tem uma de proposito:
-    // lancamento nasce de evento de dominio, nunca de chamada HTTP avulsa.
+    // Usa a organização de demonstracao, que o seed carrega com os cinco
+    // lançamentos de referência de docs/plano-de-contas.md. Criar um razão na
+    // hora exigiria uma rota de escrita, e o ledger não tem uma de proposito:
+    // lançamento nasce de evento de domínio, nunca de chamada HTTP avulsa.
     await page.goto('/entrar');
     await page.getByLabel('Email').fill('ana@livraria-aurora.test');
     await page.getByLabel('Senha', { exact: true }).fill('paynow-demo-2026');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page).toHaveURL(/\/painel$/);
 
-    await navLink(page, 'Razao').click();
+    await navLink(page, 'Razão').click();
     await expect(page).toHaveURL(/\/painel\/ledger$/);
 
-    await expect(notice(page, 'Razao integro')).toBeVisible();
+    await expect(notice(page, 'Razão íntegro')).toBeVisible();
 
-    // O balancete traz o plano de contas inteiro, e a soma tem de fechar.
+    // O balancete traz o plano de contas inteiro, é a soma tem de fechar.
     const balancete = page.getByRole('row').filter({ hasText: 'customer:receivable' });
     await expect(balancete).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: 'Soma' }).getByText('0,00')).toBeVisible();
 
-    // E os lancamentos carregam o evento de dominio que os originou.
+    // E os lançamentos carregam o evento de domínio que os originou.
     await expect(page.getByText('payment.succeeded').first()).toBeVisible();
   });
 });

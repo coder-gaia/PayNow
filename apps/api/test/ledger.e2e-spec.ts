@@ -12,9 +12,9 @@ import { createTestApp } from './support/app';
 /**
  * O ledger contra o banco de verdade.
  *
- * Verificar partidas dobradas com um dublê de banco nao afirmaria nada: o que
+ * Verificar partidas dobradas com um dublê de banco não afirmaria nada: o que
  * garante os invariantes e a constraint diferida, o trigger de append-only e o
- * indice unico sobre o evento de origem, e nenhum deles existe fora do
+ * índice único sobre o evento de origem, e nenhum deles existe fora do
  * PostgreSQL. Estes testes exercitam exatamente essas garantias.
  */
 describe('Ledger (e2e)', () => {
@@ -25,7 +25,7 @@ describe('Ledger (e2e)', () => {
 
   const brl = (decimal: string): Money => Money.fromDecimal(decimal, 'BRL');
 
-  /** Evento unico por chamada, para que cada lancamento seja de fato novo. */
+  /** Evento único por chamada, para que cada lançamento seja de fato novo. */
   const event = (type = 'teste') => ({ type, id: randomUUID() });
 
   beforeAll(async () => {
@@ -44,7 +44,7 @@ describe('Ledger (e2e)', () => {
   });
 
   describe('post', () => {
-    it('registra um lancamento balanceado e devolve as linhas', async () => {
+    it('registra um lançamento balanceado e devolve as linhas', async () => {
       const entry = await ledger.post({
         organizationId,
         event: event('invoice.issued'),
@@ -70,7 +70,7 @@ describe('Ledger (e2e)', () => {
       await ledger.post({
         organizationId: isolada.id,
         event: event(),
-        description: 'Primeiro lancamento',
+        description: 'Primeiro lançamento',
         lines: [
           { account: ACCOUNT.GATEWAY_CLEARING, amount: brl('10.00') },
           { account: ACCOUNT.MERCHANT_REVENUE, amount: brl('-10.00') },
@@ -80,7 +80,7 @@ describe('Ledger (e2e)', () => {
       expect(await prisma.account.count({ where: { organizationId: isolada.id } })).toBe(2);
     });
 
-    it('recusa lancamento desbalanceado antes de tocar no banco', async () => {
+    it('recusa lançamento desbalanceado antes de tocar no banco', async () => {
       await expect(
         ledger.post({
           organizationId,
@@ -108,8 +108,8 @@ describe('Ledger (e2e)', () => {
       ).rejects.toThrow(/valor zero/);
     });
 
-    /** Idempotencia contabil: o mesmo evento nao vira dois lancamentos. */
-    it('recusa o mesmo evento de dominio duas vezes', async () => {
+    /** Idempotência contábil: o mesmo evento não vira dois lançamentos. */
+    it('recusa o mesmo evento de domínio duas vezes', async () => {
       const mesmo = event('payment.succeeded');
       const lines = [
         { account: ACCOUNT.GATEWAY_CLEARING, amount: brl('50.00') },
@@ -120,10 +120,10 @@ describe('Ledger (e2e)', () => {
 
       await expect(
         ledger.post({ organizationId, event: mesmo, description: 'Repetida', lines }),
-      ).rejects.toThrow(/ja foi lancado/);
+      ).rejects.toThrow(/já foi lançado/);
     });
 
-    it('o mesmo evento em organizacoes diferentes e permitido', async () => {
+    it('o mesmo evento em organizações diferentes é permitido', async () => {
       const outra = await prisma.organization.create({
         data: { name: 'Outra', slug: `outra-${randomUUID().slice(0, 8)}` },
       });
@@ -143,11 +143,11 @@ describe('Ledger (e2e)', () => {
 
   describe('garantias do banco', () => {
     /**
-     * A validacao da aplicacao pode ser contornada. A do banco nao: estes dois
+     * A validação da aplicação pode ser contornada. A do banco não: estes dois
      * testes escrevem SQL cru para provar que o invariante vale mesmo quando
-     * alguem escreve por fora do servico.
+     * alguém escreve por fora do serviço.
      */
-    it('a constraint diferida recusa lancamento desbalanceado escrito em SQL cru', async () => {
+    it('a constraint diferida recusa lançamento desbalanceado escrito em SQL cru', async () => {
       const account = await prisma.account.findFirstOrThrow({
         where: { organizationId, code: ACCOUNT.CUSTOMER_RECEIVABLE },
       });
@@ -162,7 +162,7 @@ describe('Ledger (e2e)', () => {
               organizationId,
               eventType: 'sql-cru',
               eventId: randomUUID(),
-              description: 'Escrito por fora do servico',
+              description: 'Escrito por fora do serviço',
               occurredAt: new Date(),
             },
           });
@@ -174,10 +174,10 @@ describe('Ledger (e2e)', () => {
             ],
           });
         }),
-      ).rejects.toThrow(/nao soma zero/);
+      ).rejects.toThrow(/não soma zero/);
     });
 
-    it('o trigger recusa UPDATE em linha do razao', async () => {
+    it('o trigger recusa UPDATE em linha do razão', async () => {
       const entry = await ledger.post({
         organizationId,
         event: event(),
@@ -193,7 +193,7 @@ describe('Ledger (e2e)', () => {
       ).rejects.toThrow(/append-only/);
     });
 
-    it('o trigger recusa DELETE de lancamento', async () => {
+    it('o trigger recusa DELETE de lançamento', async () => {
       const entry = await ledger.post({
         organizationId,
         event: event(),
@@ -260,8 +260,8 @@ describe('Ledger (e2e)', () => {
     });
   });
 
-  describe('verificacao', () => {
-    it('afirma que o razao esta integro', async () => {
+  describe('verificação', () => {
+    it('afirma que o razão está íntegro', async () => {
       const report = await ledger.verify(organizationId);
 
       expect(report.balanced).toBe(true);
@@ -272,13 +272,13 @@ describe('Ledger (e2e)', () => {
     /**
      * Property test contra o banco real.
      *
-     * Gera sequencias aleatorias de lancamentos balanceados e afirma, depois de
-     * cada sequencia, que o razao continua integro e que a soma global e zero.
-     * O numero de execucoes e modesto de proposito: cada uma abre transacoes de
-     * verdade, e a suite precisa caber no tempo de um pull request. A fase 07
+     * Gera sequências aleatorias de lançamentos balanceados e afirma, depois de
+     * cada sequência, que o razão continua íntegro e que a soma global é zero.
+     * O número de execuções e modesto de proposito: cada uma abre transações de
+     * verdade, e a suíte precisa caber no tempo de um pull request. A fase 07
      * roda esta mesma ideia em escala, no harness adversarial.
      */
-    it('permanece integro sob sequencias aleatorias de lancamentos', async () => {
+    it('permanece íntegro sob sequências aleatorias de lançamentos', async () => {
       const isolada = await prisma.organization.create({
         data: { name: 'Propriedade', slug: `prop-${randomUUID().slice(0, 8)}` },
       });
@@ -328,7 +328,7 @@ describe('Ledger (e2e)', () => {
         { numRuns: 12 },
       );
 
-      // E o saldo derivado tambem tem de somar zero no fim de tudo.
+      // E o saldo derivado também tem de somar zero no fim de tudo.
       const balances = await ledger.balances(isolada.id);
       const total = balances.reduce((soma, conta) => soma.plus(conta.balance), Money.zero('BRL'));
 

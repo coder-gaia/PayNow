@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
 /**
- * Contrato de ambiente da aplicacao.
+ * Contrato de ambiente da aplicação.
  *
- * A validacao acontece no boot e derruba o processo se algo estiver errado.
- * Um sistema de cobranca que sobe com DATABASE_URL apontando para o lugar
- * errado e pior do que um sistema que nao sobe.
+ * A validação acontece no boot e derruba o processo se algo estiver errado.
+ * Um sistema de cobrança que sobe com DATABASE_URL apontando para o lugar
+ * errado é pior do que um sistema que não sobe.
  */
 
 const PORT_RANGE = { min: 1, max: 65_535 } as const;
 
-/** Aceita apenas URLs sintaticamente validas e com um dos protocolos esperados. */
+/** Aceita apenas URLs sintaticamente válidas e com um dos protocolos esperados. */
 const urlWithProtocol = (protocols: readonly string[], example: string) =>
   z.string().refine(
     (value) => {
@@ -20,13 +20,13 @@ const urlWithProtocol = (protocols: readonly string[], example: string) =>
         return false;
       }
     },
-    { message: `URL invalida. Esperado algo como "${example}".` },
+    { message: `URL inválida. Esperado algo como "${example}".` },
   );
 
 const port = (fallback: number) =>
   z.coerce.number().int().min(PORT_RANGE.min).max(PORT_RANGE.max).default(fallback);
 
-/** Flag booleana vinda de variavel de ambiente, que e sempre string. */
+/** Flag booleana vinda de variável de ambiente, que é sempre string. */
 const booleanFlag = (fallback: 'true' | 'false') =>
   z
     .enum(['true', 'false'])
@@ -40,13 +40,13 @@ export const envSchema = z.object({
 
   DATABASE_URL: urlWithProtocol(
     ['postgresql', 'postgres'],
-    'postgresql://usuario:senha@localhost:5432/paynow',
+    'postgresql://usuário:senha@localhost:5432/paynow',
   ),
   REDIS_URL: urlWithProtocol(['redis', 'rediss'], 'redis://localhost:6379'),
 
   /**
-   * Segredo de assinatura dos tokens de acesso. O minimo de 32 caracteres nao
-   * e cerimonia: uma chave HMAC menor que o tamanho do digest enfraquece a
+   * Segredo de assinatura dos tokens de acesso. O mínimo de 32 caracteres não
+   * e cerimônia: uma chave HMAC menor que o tamanho do digest enfraquece a
    * assinatura sem que nada no sistema reclame.
    */
   JWT_SECRET: z.string().min(32, 'JWT_SECRET precisa de ao menos 32 caracteres.'),
@@ -58,13 +58,13 @@ export const envSchema = z.object({
 
   SMTP_HOST: z.string().min(1).default('localhost'),
   SMTP_PORT: port(1025),
-  SMTP_FROM: z.string().min(3).default('nao-responda@paynow.local'),
+  SMTP_FROM: z.string().min(3).default('não-responda@paynow.local'),
 });
 
 export type Env = z.infer<typeof envSchema>;
 
 /**
- * Valida o ambiente e devolve o objeto tipado.
+ * Válida o ambiente e devolve o objeto tipado.
  *
  * Em caso de falha, lista todos os problemas de uma vez em vez de parar no
  * primeiro, e aponta para o .env.example.
@@ -78,8 +78,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
       .join('\n');
 
     throw new Error(
-      `Configuracao de ambiente invalida:\n${issues}\n\n` +
-        'Compare o seu .env com o .env.example na raiz do repositorio.',
+      `Configuração de ambiente inválida:\n${issues}\n\n` +
+        'Compare o seu .env com o .env.example na raiz do repositório.',
     );
   }
 

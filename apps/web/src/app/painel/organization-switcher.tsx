@@ -7,10 +7,10 @@ import { selectOrganization } from '@/lib/actions';
 import type { ActiveOrganization } from '@/lib/active-organization';
 
 /**
- * Troca da organizacao ativa.
+ * Troca da organização ativa.
  *
- * Com uma unica organizacao nao ha o que escolher, e um seletor de um item so
- * seria ruido: o nome aparece como texto. O controle so surge quando existe
+ * Com uma única organização não há o que escolher, e um seletor de um item só
+ * seria ruído: o nome aparece como texto. O controle só surge quando existe
  * escolha de verdade.
  */
 export function OrganizationSwitcher({
@@ -34,7 +34,7 @@ export function OrganizationSwitcher({
   return (
     <span className="flex items-center gap-2 border-l border-rule pl-4 text-sm">
       <select
-        aria-label="Organizacao ativa"
+        aria-label="Organização ativa"
         value={active.id}
         disabled={pending}
         onChange={(event) => {

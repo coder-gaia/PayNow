@@ -14,7 +14,7 @@ import { resolveUniqueSlug } from '../domain/slug';
 import { PasswordHasher } from '../infrastructure/password-hasher';
 import { RefreshTokenService } from './refresh-token.service';
 
-/** Conteudo assinado no token de acesso. Nada sensivel entra aqui. */
+/** Conteudo assinado no token de acesso. Nada sensível entra aqui. */
 export interface AccessTokenPayload {
   readonly sub: string;
   readonly email: string;
@@ -51,10 +51,10 @@ export class AuthService {
   }
 
   /**
-   * Cria a conta e a primeira organizacao em uma transacao.
+   * Cria a conta e a primeira organização em uma transação.
    *
-   * Um usuario sem organizacao nao consegue fazer nada no sistema, entao criar
-   * os dois separadamente abriria uma janela em que a conta existe e e inutil.
+   * Um usuário sem organização não consegue fazer nada no sistema, então criar
+   * os dois separadamente abriria uma janela em que a conta existe e e inútil.
    */
   async register(input: RegisterInput, userAgent?: string): Promise<AuthenticatedSession> {
     const email = normalizeEmail(input.email);
@@ -103,8 +103,8 @@ export class AuthService {
   ): Promise<AuthenticatedSession> {
     const user = await this.prisma.user.findUnique({ where: { email: normalizeEmail(rawEmail) } });
 
-    // A verificacao roda mesmo sem usuario, contra um hash descartavel, para
-    // que o tempo de resposta nao revele quais emails existem.
+    // A verificação roda mesmo sem usuário, contra um hash descartável, para
+    // que o tempo de resposta não revele quais emails existem.
     const valid =
       user === null
         ? await this.passwords.verifyAgainstDummy(password)
@@ -137,7 +137,7 @@ export class AuthService {
     await this.refreshTokens.revokeByToken(presentedToken);
   }
 
-  /** Perfil do usuario autenticado, com as organizacoes de que ele participa. */
+  /** Perfil do usuário autenticado, com as organizações de que ele participa. */
   async profile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

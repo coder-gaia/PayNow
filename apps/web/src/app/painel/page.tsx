@@ -16,7 +16,7 @@ export default async function OverviewPage() {
       <PageHeader
         eyebrow="Visao geral"
         title={organization.name}
-        description={`Organizacao criada em ${formatDate(organization.createdAt)}. O identificador abaixo e o que a API usa nas rotas.`}
+        description={`Organização criada em ${formatDate(organization.createdAt)}. O identificador abaixo é o que a API usa nas rotas.`}
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -39,8 +39,8 @@ export default async function OverviewPage() {
 
       {profile.organizations.length > 1 && (
         <Panel
-          title="Outras organizacoes"
-          description="Troque a organizacao ativa pelo seletor no cabecalho."
+          title="Outras organizações"
+          description="Troque a organização ativa pelo seletor no cabeçalho."
         >
           <ul className="divide-y divide-rule">
             {profile.organizations.map((organizacao) => (
@@ -59,20 +59,20 @@ export default async function OverviewPage() {
       <Panel title="O que vem a seguir">
         <div className="space-y-3 px-5 py-4 text-sm text-ink-muted">
           <p>
-            Ate aqui: identidade na fase 01 e o razao de partidas dobradas na fase 02. O painel
+            Até aqui: identidade na fase 01 e o razão de partidas dobradas na fase 02. O painel
             cresce junto com o backend a cada fase.
           </p>
           <ul className="ml-4 list-disc space-y-1">
-            <li>Fase 03: planos, precos e assinaturas</li>
+            <li>Fase 03: planos, preços e assinaturas</li>
             <li>Fase 04: linha do tempo arrastavel, para simular meses em segundos</li>
-            <li>Fase 05: cobrancas, tentativas e recuperacao</li>
+            <li>Fase 05: cobranças, tentativas e recuperação</li>
           </ul>
           <p>
             Enquanto isso, o{' '}
             <Link href="/painel/ledger" className="text-credit underline underline-offset-2">
-              razao
+              razão
             </Link>{' '}
-            ja mostra a decisao central do projeto: saldo nao e um campo, e a soma das linhas.
+            já mostra a decisão central do projeto: saldo não é um campo, é a soma das linhas.
           </p>
         </div>
       </Panel>

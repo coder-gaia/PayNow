@@ -11,19 +11,19 @@ import type { Member, OrganizationRole } from '@/lib/api';
 const ROLES: OrganizationRole[] = ['OWNER', 'ADMIN', 'MEMBER', 'READONLY'];
 
 /**
- * Acoes por membro.
+ * Ações por membro.
  *
- * A interface deixa tentar acoes que o servidor pode recusar, como rebaixar o
- * ultimo OWNER. Isso e deliberado: a regra vive no backend, e esconder o
+ * A interface deixa tentar ações que o servidor pode recusar, como rebaixar o
+ * último OWNER. Isso é deliberado: a regra vive no backend, e esconder o
  * controle aqui criaria uma segunda copia da regra que pode divergir da
  * primeira.
  *
  * O papel exibido usa `useOptimistic` justamente por causa disso. Um `<select>`
- * nao controlado guardaria o valor que a pessoa escolheu mesmo depois de o
- * servidor recusar a mudanca, e a tela passaria a mostrar um papel que nao
+ * não controlado guardaria o valor que a pessoa escolheu mesmo depois de o
+ * servidor recusar a mudança, e a tela passaria a mostrar um papel que não
  * existe no banco. Com estado otimista, o valor aparece na hora e volta
- * sozinho para o dado real quando a transicao termina, tenha ela dado certo
- * ou nao.
+ * sozinho para o dado real quando a transição termina, tenha ela dado certo
+ * ou não.
  */
 export function MemberActions({
   organizationId,
@@ -53,29 +53,29 @@ export function MemberActions({
         return;
       }
 
-      toast.success(`${member.name} agora e ${next}.`);
+      toast.success(`${member.name} agora é ${next}.`);
     });
   };
 
   /**
-   * A confirmacao fica fora da transicao. Esperar a resposta de uma pessoa
-   * dentro de `startTransition` prende a transicao por tempo indefinido e
-   * torna a abertura do dialogo uma atualizacao presa dentro da propria
-   * transicao que depende dela para terminar. Transicao cobre o trabalho no
-   * servidor, nao a espera por um clique.
+   * A confirmação fica fora da transição. Esperar a resposta de uma pessoa
+   * dentro de `startTransition` prende a transição por tempo indefinido e
+   * torna a abertura do diálogo uma atualização presa dentro da própria
+   * transição que depende dela para terminar. Transição cobre o trabalho no
+   * servidor, não a espera por um clique.
    */
   const handleRemove = async (): Promise<void> => {
     const confirmed = await confirm(
       isSelf
         ? {
-            title: 'Sair da organizacao',
+            title: 'Sair da organização',
             description:
-              'Voce perde o acesso a esta organizacao. Para voltar, alguem precisara te adicionar de novo.',
+              'Você perde o acesso a esta organização. Para voltar, alguém precisará te adicionar de novo.',
             confirmLabel: 'Sair',
           }
         : {
             title: `Remover ${member.name}`,
-            description: `${member.email} perde o acesso a esta organizacao imediatamente.`,
+            description: `${member.email} perde o acesso a esta organização imediatamente.`,
             confirmLabel: 'Remover',
           },
     );
@@ -92,7 +92,7 @@ export function MemberActions({
         return;
       }
 
-      toast.success(isSelf ? 'Voce saiu da organizacao.' : `${member.name} foi removida.`);
+      toast.success(isSelf ? 'Você saiu da organização.' : `${member.name} foi removida.`);
     });
   };
 

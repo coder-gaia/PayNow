@@ -34,12 +34,12 @@ export default async function ApiKeysPage() {
       <PageHeader
         eyebrow="Chaves de API"
         title="Credenciais de servidor"
-        description="Uma chave autentica o servidor do merchant, nunca uma pessoa. Ela nao abre nenhuma rota do painel, mesmo sendo valida."
+        description="Uma chave autentica o servidor do merchant, nunca uma pessoa. Ela não abre nenhuma rota do painel, mesmo sendo válida."
       />
 
       <Panel
         title="Criar chave"
-        description="O segredo completo aparece uma unica vez. Depois disso so o prefixo fica."
+        description="O segredo completo aparece uma única vez. Depois disso só o prefixo fica."
       >
         <CreateApiKeyForm organizationId={active.id} />
       </Panel>
@@ -57,7 +57,7 @@ export default async function ApiKeysPage() {
             Nenhuma chave ainda. Crie a primeira acima.
           </p>
         ) : (
-          <Table headers={['Nome', 'Chave', 'Ambiente', 'Ultimo uso', '']}>
+          <Table headers={['Nome', 'Chave', 'Ambiente', 'Último uso', '']}>
             {keys.map((key) => (
               <tr key={key.id} className={key.revokedAt === null ? '' : 'opacity-55'}>
                 <Cell>

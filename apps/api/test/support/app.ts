@@ -7,11 +7,11 @@ import { Test } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 
 /**
- * Sobe a aplicacao com a mesma configuracao do main.ts.
+ * Sobe a aplicação com a mesma configuração do main.ts.
  *
- * Se o teste subisse a aplicacao com outra configuracao, ele estaria
- * verificando um sistema que nao existe: o prefixo de rota e o pipe de
- * validacao fazem parte do comportamento observavel da API.
+ * Se o teste subisse a aplicação com outra configuração, ele estaria
+ * verificando um sistema que não existe: o prefixo de rota e o pipe de
+ * validação fazem parte do comportamento observavel da API.
  */
 export async function createTestApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -29,10 +29,10 @@ export async function createTestApp(): Promise<INestApplication> {
 export const httpServer = (app: INestApplication): Server => app.getHttpServer() as Server;
 
 /**
- * Email unico por execucao.
+ * Email único por execução.
  *
- * Os testes rodam contra um banco de verdade que nao e limpo entre execucoes,
- * entao isolar pelos dados e mais barato e mais rapido do que truncar tabelas,
+ * Os testes rodam contra um banco de verdade que não e limpo entre execuções,
+ * então isolar pelos dados e mais barato e mais rapido do que truncar tabelas,
  * e ainda deixa os testes seguros para rodar em paralelo.
  */
 export const uniqueEmail = (prefix = 'teste'): string =>

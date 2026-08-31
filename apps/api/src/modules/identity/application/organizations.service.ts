@@ -19,7 +19,7 @@ const UNIQUE_VIOLATION = 'P2002';
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Vinculo do usuario com a organizacao, ou null. Usado pelo guard de papel. */
+  /** Vínculo do usuário com a organização, ou null. Usado pelo guard de papel. */
   findMembership(userId: string, organizationId: string): Promise<Membership | null> {
     return this.prisma.membership.findUnique({
       where: { userId_organizationId: { userId, organizationId } },
@@ -78,7 +78,7 @@ export class OrganizationsService {
     }));
   }
 
-  /** Cria uma organizacao e coloca quem criou como OWNER. */
+  /** Cria uma organização e coloca quem criou como OWNER. */
   async create(userId: string, name: string) {
     const organization = await this.prisma.$transaction(async (tx) => {
       const created = await tx.organization.create({
@@ -102,10 +102,10 @@ export class OrganizationsService {
   }
 
   /**
-   * Adiciona alguem que ja tem conta.
+   * Adiciona alguém que já tem conta.
    *
-   * Convite por email para quem ainda nao tem conta e outro fluxo, com token de
-   * uso unico e expiracao, e nao entra na fase 01.
+   * Convite por email para quem ainda não tem conta e outro fluxo, com token de
+   * uso único e expiração, e não entra na fase 01.
    */
   async addMember(
     organizationId: string,
@@ -185,7 +185,7 @@ export class OrganizationsService {
   ): Promise<void> {
     const target = await this.requireMembership(organizationId, targetUserId);
 
-    // Sair da propria organizacao e permitido a qualquer papel. Remover outra
+    // Sair da própria organização é permitido a qualquer papel. Remover outra
     // pessoa exige poder estritamente maior.
     if (targetUserId !== actorUserId) {
       this.assertCanActOn(actorUserId, actorRole, target);
@@ -210,14 +210,14 @@ export class OrganizationsService {
     return membership;
   }
 
-  /** Ninguem concede um papel igual ou superior ao proprio. */
+  /** Ninguém concede um papel igual ou superior ao próprio. */
   private assertCanGrant(actorRole: OrganizationRole, granted: OrganizationRole): void {
     if (!outranks(actorRole, granted) && actorRole !== OrganizationRole.OWNER) {
       throw new InsufficientRoleError(`superior a ${granted}`, actorRole);
     }
   }
 
-  /** Ninguem altera alguem de papel igual ou superior ao proprio. */
+  /** Ninguém altera alguém de papel igual ou superior ao próprio. */
   private assertCanActOn(
     actorUserId: string,
     actorRole: OrganizationRole,
@@ -233,7 +233,7 @@ export class OrganizationsService {
   }
 
   /**
-   * Uma organizacao sem OWNER fica sem ninguem que possa promover alguem, e
+   * Uma organização sem OWNER fica sem ninguém que possa promover alguém, e
    * portanto travada para sempre.
    */
   private async assertNotLastOwner(organizationId: string): Promise<void> {

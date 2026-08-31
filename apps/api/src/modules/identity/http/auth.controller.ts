@@ -13,10 +13,10 @@ import { CurrentUser, Public } from '../../platform/http/auth-context';
 import type { AuthContext } from '../../platform/http/auth-context';
 import { LoginDto, RefreshDto, RegisterDto, SessionResponse } from './identity.dto';
 
-/** O user agent e guardado junto da sessao para ajudar a reconhecer o dispositivo. */
+/** O user agent é guardado junto da sessão para ajudar a reconhecer o dispositivo. */
 const userAgentOf = (request: Request): string | undefined => request.header('user-agent');
 
-@ApiTags('autenticacao')
+@ApiTags('autenticação')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
@@ -26,8 +26,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Cria conta e primeira organizacao',
     description:
-      'Conta e organizacao nascem na mesma transacao. Um usuario sem organizacao nao ' +
-      'consegue fazer nada no sistema, entao nao existe estado intermediario.',
+      'Conta e organização nascem na mesma transação. Um usuário sem organização não ' +
+      'consegue fazer nada no sistema, então não existe estado intermediário.',
   })
   @ApiCreatedResponse({ type: SessionResponse })
   register(@Body() dto: RegisterDto, @Req() request: Request): Promise<SessionResponse> {
@@ -38,10 +38,10 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Autentica e abre uma sessao',
+    summary: 'Autentica e abre uma sessão',
     description:
-      'A resposta de erro nao distingue email inexistente de senha errada, e o tempo de ' +
-      'resposta dos dois casos e equivalente por construcao.',
+      'A resposta de erro não distingue email inexistente de senha errada, e o tempo de ' +
+      'resposta dos dois casos e equivalente por construção.',
   })
   @ApiOkResponse({ type: SessionResponse })
   login(@Body() dto: LoginDto, @Req() request: Request): Promise<SessionResponse> {
@@ -54,8 +54,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Rotaciona o refresh token',
     description:
-      'Cada refresh consome o token apresentado e emite outro. Apresentar um token ja ' +
-      'consumido e tratado como vazamento e derruba a sessao inteira.',
+      'Cada refresh consome o token apresentado e emite outro. Apresentar um token já ' +
+      'consumido é tratado como vazamento e derruba a sessão inteira.',
   })
   @ApiOkResponse({ type: SessionResponse })
   refresh(@Body() dto: RefreshDto, @Req() request: Request): Promise<SessionResponse> {
@@ -66,7 +66,7 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Encerra a sessao',
+    summary: 'Encerra a sessão',
     description: 'Revoga a familia inteira do refresh token apresentado.',
   })
   async logout(@Body() dto: RefreshDto): Promise<void> {
@@ -74,8 +74,8 @@ export class AuthController {
   }
 
   @Get('me')
-  @ApiBearerAuth('usuario')
-  @ApiOperation({ summary: 'Perfil do usuario autenticado e suas organizacoes' })
+  @ApiBearerAuth('usuário')
+  @ApiOperation({ summary: 'Perfil do usuário autenticado e suas organizações' })
   me(@CurrentUser() user: AuthContext & { kind: 'user' }) {
     return this.auth.profile(user.userId);
   }

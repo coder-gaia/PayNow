@@ -3,9 +3,9 @@
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 
 /**
- * Avisos de acao concluida.
+ * Avisos de ação concluida.
  *
- * Substitui `window.alert`, que bloqueia a pagina inteira, nao e estilizavel e
+ * Substitui `window.alert`, que bloqueia a página inteira, não e estilizavel e
  * some sem deixar rastro do que aconteceu.
  *
  * A regra de quando usar toast e quando usar mensagem no formulario:
@@ -13,10 +13,10 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo, useSta
  *   - mensagem sobre o que a pessoa acabou de digitar fica ao lado do campo,
  *     porque e ali que ela vai corrigir;
  *   - mensagem sobre algo que mudou em outro ponto da tela vira toast, porque
- *     o olhar nao esta necessariamente onde a mudanca aconteceu.
+ *     o olhar não está necessariamente onde a mudança aconteceu.
  *
- * Erro nao some sozinho. Sucesso some em quatro segundos: quem provocou a acao
- * ja sabe o que pediu, e a confirmacao so precisa existir tempo suficiente para
+ * Erro não some sozinho. Sucesso some em quatro segundos: quem provocou a ação
+ * já sabe o que pediu, e a confirmação só precisa existir tempo suficiente para
  * ser notada.
  */
 

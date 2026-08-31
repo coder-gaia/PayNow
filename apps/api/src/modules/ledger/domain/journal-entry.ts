@@ -4,12 +4,12 @@ import type { AccountCode } from './chart-of-accounts';
 import { UnbalancedEntryError, EmptyEntryError } from './ledger.errors';
 
 /**
- * Uma perna do lancamento.
+ * Uma perna do lançamento.
  *
- * Convencao de sinal unico, conforme docs/plano-de-contas.md: valor positivo e
- * debito na conta, negativo e credito. Uma coluna em vez de duas, e o
- * invariante "debitos igualam creditos" vira a verificacao mais simples
- * possivel, que e somar e comparar com zero.
+ * Convenção de sinal único, conforme docs/plano-de-contas.md: valor positivo e
+ * débito na conta, negativo é crédito. Uma coluna em vez de duas, e o
+ * invariante "débitos igualam créditos" vira a verificação mais simples
+ * possível, que é somar e comparar com zero.
  */
 export interface EntryLine {
   readonly account: AccountCode;
@@ -21,14 +21,14 @@ export interface DraftEntry {
 }
 
 /**
- * Confere que o lancamento esta balanceado, por moeda.
+ * Confere que o lançamento esta balanceado, por moeda.
  *
- * O banco tambem verifica, e e ele quem garante: esta funcao existe para
+ * O banco também verifica, e e ele quem garante: esta função existe para
  * falhar cedo, com uma mensagem que diz qual moeda sobrou e quanto, em vez de
- * deixar o erro aparecer no commit como violacao de constraint.
+ * deixar o erro aparecer no commit como violação de constraint.
  *
- * Agrupar por moeda em vez de somar tudo mantem a regra correta se um
- * lancamento vier a envolver mais de uma moeda.
+ * Agrupar por moeda em vez de somar tudo mantém a regra correta se um
+ * lançamento vier a envolver mais de uma moeda.
  */
 export function assertBalanced(draft: DraftEntry): void {
   if (draft.lines.length < 2) {
@@ -50,12 +50,12 @@ export function assertBalanced(draft: DraftEntry): void {
   }
 }
 
-/** Soma dos debitos do lancamento, por moeda. Usado em relatorio e conferencia. */
+/** Soma dos débitos do lançamento, por moeda. Usado em relatório e conferência. */
 export function debitTotals(draft: DraftEntry): Map<string, Money> {
   return totalsWhere(draft, (line) => line.amount.isPositive());
 }
 
-/** Soma dos creditos, em valor absoluto. */
+/** Soma dos créditos, em valor absoluto. */
 export function creditTotals(draft: DraftEntry): Map<string, Money> {
   return totalsWhere(draft, (line) => line.amount.isNegative());
 }

@@ -2,7 +2,7 @@
  * Erros do pacote monetario.
  *
  * Todos herdam de MoneyError para que a borda da API consiga distinguir
- * "o valor enviado e invalido" (erro do cliente) de qualquer outra falha.
+ * "o valor enviado e inválido" (erro do cliente) de qualquer outra falha.
  */
 export class MoneyError extends Error {
   constructor(message: string) {
@@ -11,28 +11,28 @@ export class MoneyError extends Error {
   }
 }
 
-/** Operacao entre valores de moedas diferentes. Nunca ha conversao implicita. */
+/** Operação entre valores de moedas diferentes. Nunca há conversão implicita. */
 export class CurrencyMismatchError extends MoneyError {
   constructor(
     readonly left: string,
     readonly right: string,
   ) {
     super(
-      `Operacao entre moedas diferentes: ${left} e ${right}. ` +
+      `Operação entre moedas diferentes: ${left} e ${right}. ` +
         'Converta explicitamente antes de operar.',
     );
   }
 }
 
-/** Codigo de moeda fora da tabela suportada. */
+/** Código de moeda fora da tabela suportada. */
 export class UnknownCurrencyError extends MoneyError {
   constructor(readonly code: string) {
     super(`Moeda desconhecida: ${code}.`);
   }
 }
 
-/** Valor que nao pode ser representado como inteiro em unidade minima. */
+/** Valor que não pode ser representado como inteiro em unidade mínima. */
 export class InvalidAmountError extends MoneyError {}
 
-/** Pesos invalidos em uma distribuicao de valor. */
+/** Pesos inválidos em uma distribuição de valor. */
 export class AllocationError extends MoneyError {}

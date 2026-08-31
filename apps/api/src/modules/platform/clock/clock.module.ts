@@ -3,8 +3,8 @@ import { Global, Module } from '@nestjs/common';
 import { CLOCK, SystemClock } from './clock';
 
 /**
- * Ver ADR-0009. O relogio e global porque praticamente todo modulo precisa de
- * tempo, e obriga-los a importar um modulo so para isso criaria acoplamento
+ * Ver ADR-0009. O relógio e global porque praticamente todo módulo precisa de
+ * tempo, e obriga-los a importar um módulo só para isso criaria acoplamento
  * sem beneficio.
  */
 @Global()

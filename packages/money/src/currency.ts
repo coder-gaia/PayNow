@@ -3,9 +3,9 @@ import { UnknownCurrencyError } from './errors';
 /**
  * Tabela de moedas suportadas.
  *
- * O expoente vem da ISO 4217 e nao e assumido como 2: JPY nao tem casas
- * decimais, e tratar toda moeda como se tivesse centavos e um erro comum que
- * so aparece quando ja e tarde.
+ * O expoente vem da ISO 4217 e não e assumido como 2: JPY não tem casas
+ * decimais, e tratar toda moeda como se tivesse centavos é um erro comum que
+ * só aparece quando já e tarde.
  */
 export const CURRENCIES = {
   BRL: { code: 'BRL', exponent: 2, symbol: 'R$' },
@@ -15,7 +15,7 @@ export const CURRENCIES = {
 } as const satisfies Record<string, Currency>;
 
 export interface Currency {
-  /** Codigo ISO 4217 de tres letras. */
+  /** Código ISO 4217 de três letras. */
   readonly code: string;
   /** Quantidade de casas decimais da moeda. */
   readonly exponent: number;
@@ -29,7 +29,7 @@ export function isCurrencyCode(value: string): value is CurrencyCode {
   return Object.prototype.hasOwnProperty.call(CURRENCIES, value);
 }
 
-/** Resolve um codigo para a moeda correspondente, ou lanca UnknownCurrencyError. */
+/** Resolve um código para a moeda correspondente, ou lanca UnknownCurrencyError. */
 export function currencyOf(code: string): Currency {
   const normalized = code.toUpperCase();
   if (!isCurrencyCode(normalized)) {

@@ -40,9 +40,9 @@ export function CreateApiKeyForm({ organizationId }: { organizationId: string })
 /**
  * Exibicao do segredo recem criado.
  *
- * Aparece uma unica vez porque o servidor guarda apenas o hash: nem o painel
+ * Aparece uma única vez porque o servidor guarda apenas o hash: nem o painel
  * nem a API conseguem recuperar o valor depois. O aviso e explicito para que
- * ninguem feche a tela achando que da para voltar.
+ * ninguém feche a tela achando que da para voltar.
  */
 function SecretReveal({ secret }: { secret: string }) {
   const [copied, setCopied] = useState(false);
@@ -51,7 +51,7 @@ function SecretReveal({ secret }: { secret: string }) {
     <Alert tone="success">
       <p className="font-medium">Chave criada. Copie agora.</p>
       <p className="mt-1 text-[13px] text-ink-muted">
-        Este valor nao aparece de novo: o servidor guarda apenas o hash.
+        Este valor não aparece de novo: o servidor guarda apenas o hash.
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

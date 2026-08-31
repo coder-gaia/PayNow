@@ -3,7 +3,7 @@ import request from 'supertest';
 
 import { createTestApp, DEFAULT_PASSWORD, httpServer, uniqueEmail } from './support/app';
 
-describe('Autenticacao (e2e)', () => {
+describe('Autenticação (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -19,11 +19,11 @@ describe('Autenticacao (e2e)', () => {
       email,
       password: DEFAULT_PASSWORD,
       name: 'Pessoa de Teste',
-      organizationName: 'Organizacao de Teste',
+      organizationName: 'Organização de Teste',
     });
 
   describe('POST /v1/auth/register', () => {
-    it('cria conta, organizacao e sessao de uma vez', async () => {
+    it('cria conta, organização e sessão de uma vez', async () => {
       const email = uniqueEmail();
       const response = await register(email).expect(201);
 
@@ -41,7 +41,7 @@ describe('Autenticacao (e2e)', () => {
       expect(profile.body.organizations[0].role).toBe('OWNER');
     });
 
-    it('recusa email ja cadastrado', async () => {
+    it('recusa email já cadastrado', async () => {
       const email = uniqueEmail();
       await register(email).expect(201);
       await register(email).expect(409);
@@ -71,7 +71,7 @@ describe('Autenticacao (e2e)', () => {
   });
 
   describe('POST /v1/auth/login', () => {
-    it('nao distingue email inexistente de senha errada', async () => {
+    it('não distingue email inexistente de senha errada', async () => {
       const email = uniqueEmail();
       await register(email).expect(201);
 
@@ -90,7 +90,7 @@ describe('Autenticacao (e2e)', () => {
   });
 
   describe('POST /v1/auth/refresh', () => {
-    it('rotaciona e invalida o token apresentado', async () => {
+    it('rotaciona e inválida o token apresentado', async () => {
       const { body } = await register(uniqueEmail()).expect(201);
 
       const rotated = await request(httpServer(app))
@@ -103,11 +103,11 @@ describe('Autenticacao (e2e)', () => {
     });
 
     /**
-     * Este e o criterio de pronto da fase 01.
+     * Este e o critério de pronto da fase 01.
      *
-     * Um refresh token consumido que reaparece significa que alguem guardou uma
-     * copia. Nao ha como saber se quem apresenta e o dono ou o ladrao, entao a
-     * sessao inteira cai, inclusive o token valido emitido na rotacao.
+     * Um refresh token consumido que reaparece significa que alguém guardou uma
+     * copia. Não há como saber se quem apresenta e o dono ou o ladrao, então a
+     * sessão inteira cai, inclusive o token válido emitido na rotação.
      */
     it('reusar um token consumido derruba a familia inteira', async () => {
       const { body } = await register(uniqueEmail()).expect(201);
@@ -120,33 +120,33 @@ describe('Autenticacao (e2e)', () => {
 
       const segundo = rotacao.body.refreshToken;
 
-      // O token ja consumido reaparece: reuso.
+      // O token já consumido reaparece: reuso.
       const reuso = await request(httpServer(app))
         .post('/v1/auth/refresh')
         .send({ refreshToken: primeiro })
         .expect(401);
 
-      expect(reuso.body.message).toMatch(/ja tinha sido usado/);
+      expect(reuso.body.message).toMatch(/já tinha sido usado/);
 
-      // E o token valido, que ninguem chegou a usar, tambem morre junto.
+      // E o token válido, que ninguém chegou a usar, também morre junto.
       const vitimaColateral = await request(httpServer(app))
         .post('/v1/auth/refresh')
         .send({ refreshToken: segundo })
         .expect(401);
 
-      expect(vitimaColateral.body.message).toMatch(/ja tinha sido usado/);
+      expect(vitimaColateral.body.message).toMatch(/já tinha sido usado/);
     });
 
     it('recusa token desconhecido', async () => {
       await request(httpServer(app))
         .post('/v1/auth/refresh')
-        .send({ refreshToken: 'nao-existe-este-token-aqui-nenhum' })
+        .send({ refreshToken: 'não-existe-este-token-aqui-nenhum' })
         .expect(401);
     });
   });
 
   describe('POST /v1/auth/logout', () => {
-    it('encerra a sessao sem afetar outras', async () => {
+    it('encerra a sessão sem afetar outras', async () => {
       const email = uniqueEmail();
       await register(email).expect(201);
 
@@ -170,7 +170,7 @@ describe('Autenticacao (e2e)', () => {
         .send({ refreshToken: primeiraSessao.body.refreshToken })
         .expect(401);
 
-      // A outra sessao continua viva: logout nao e logout de tudo.
+      // A outra sessão continua viva: logout não e logout de tudo.
       await request(httpServer(app))
         .post('/v1/auth/refresh')
         .send({ refreshToken: segundaSessao.body.refreshToken })

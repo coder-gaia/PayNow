@@ -8,19 +8,19 @@ import { AccountBalanceResponse, JournalEntryResponse, VerificationResponse } fr
 const uuid = () => new ParseUUIDPipe({ version: '7' });
 
 /**
- * Leitura do razao.
+ * Leitura do razão.
  *
- * Nao existe rota de escrita: lancamento nasce de evento de dominio, dentro da
- * transacao que o produziu, e nunca de uma chamada HTTP avulsa. Expor um
+ * Não existe rota de escrita: lançamento nasce de evento de domínio, dentro da
+ * transação que o produziu, é nunca de uma chamada HTTP avulsa. Expor um
  * `POST /entries` daria a qualquer cliente autenticado o poder de inventar
- * fatos contabeis sem origem rastreavel.
+ * fatos contábeis sem origem rastreável.
  *
- * Valores viajam em unidade minima como string, e nao como numero. O JSON nao
+ * Valores viajam em unidade mínima como string, e não como número. O JSON não
  * tem inteiro de 64 bits, e `10000000000000001` vira `10000000000000000` no
- * parser do navegador sem avisar ninguem.
+ * parser do navegador sem avisar ninguém.
  */
 @ApiTags('ledger')
-@ApiBearerAuth('usuario')
+@ApiBearerAuth('usuário')
 @Controller('organizations/:organizationId/ledger')
 @UseGuards(OrganizationRoleGuard)
 export class LedgerController {
@@ -31,7 +31,7 @@ export class LedgerController {
     summary: 'Saldo de cada conta',
     description:
       'Derivado das linhas, sempre. Devolve o plano de contas inteiro, inclusive as contas ' +
-      'zeradas: zero e uma resposta, ausencia nao e.',
+      'zeradas: zero e uma resposta, ausência não e.',
   })
   @ApiQuery({ name: 'currency', required: false, example: 'BRL' })
   @ApiOkResponse({ type: [AccountBalanceResponse] })
@@ -55,8 +55,8 @@ export class LedgerController {
 
   @Get('entries')
   @ApiOperation({
-    summary: 'Ultimos lancamentos, com as linhas',
-    description: 'Cada lancamento carrega o evento de dominio que o originou.',
+    summary: 'Últimos lançamentos, com as linhas',
+    description: 'Cada lançamento carrega o evento de domínio que o originou.',
   })
   @ApiQuery({ name: 'limit', required: false, example: 50 })
   @ApiOkResponse({ type: [JournalEntryResponse] })
@@ -74,7 +74,7 @@ export class LedgerController {
   }
 
   @Get('entries/:entryId')
-  @ApiOperation({ summary: 'Um lancamento especifico' })
+  @ApiOperation({ summary: 'Um lançamento específico' })
   @ApiOkResponse({ type: JournalEntryResponse })
   async entry(
     @Param('organizationId', uuid()) organizationId: string,
@@ -85,10 +85,10 @@ export class LedgerController {
 
   @Get('verification')
   @ApiOperation({
-    summary: 'Auditoria dos invariantes contabeis',
+    summary: 'Auditoria dos invariantes contábeis',
     description:
       'Recalcula tudo a partir das linhas, sem confiar em valor derivado gravado. ' +
-      'E a mesma verificacao que `pnpm ledger:verify` roda no terminal.',
+      'E a mesma verificação que `pnpm ledger:verify` roda no terminal.',
   })
   @ApiOkResponse({ type: VerificationResponse })
   async verification(
@@ -101,8 +101,8 @@ export class LedgerController {
       entryCount: report.entryCount,
       lineCount: report.lineCount,
       balanced: report.balanced,
-      // O relatorio interno usa lista somente leitura; a resposta da API e
-      // serializada, entao a copia mutavel e o que o contrato declara.
+      // O relatório interno usa lista somente leitura; a resposta da API e
+      // serializada, então a copia mutavel é o que o contrato declara.
       violations: [...report.violations],
     };
   }

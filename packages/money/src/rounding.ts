@@ -3,12 +3,12 @@ import { InvalidAmountError } from './errors';
 /**
  * Modos de arredondamento suportados.
  *
- * O padrao do Paynow e `half-even` (arredondamento bancario), porque ele nao
+ * O padrão do Paynow e `half-even` (arredondamento bancario), porque ele não
  * enviesa somas grandes sempre na mesma direcao, como o `half-up` faz.
- * O modo e sempre explicito na assinatura das operacoes que arredondam.
+ * O modo é sempre explicito na assinatura das operações que arredondam.
  */
 export type RoundingMode =
-  /** Empate vai para o vizinho par. Padrao do sistema. */
+  /** Empate vai para o vizinho par. Padrão do sistema. */
   | 'half-even'
   /** Empate se afasta do zero. */
   | 'half-up'
@@ -27,8 +27,8 @@ export const DEFAULT_ROUNDING: RoundingMode = 'half-even';
  * Divide dois inteiros arbitrarios aplicando o modo de arredondamento pedido.
  *
  * Toda a aritmetica com fracao do sistema passa por aqui. Concentrar o
- * arredondamento em uma funcao unica e o que torna possivel testa-lo de forma
- * exaustiva, inclusive nos casos negativos, onde a maioria das implementacoes
+ * arredondamento em uma função única é o que torna possível testa-lo de forma
+ * exaustiva, inclusive nos casos negativos, onde a maioria das implementações
  * caseiras erra.
  */
 export function divideRounded(

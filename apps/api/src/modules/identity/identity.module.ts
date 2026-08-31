@@ -17,12 +17,12 @@ import { PasswordHasher } from './infrastructure/password-hasher';
 import { TokenHasher } from './infrastructure/token-hasher';
 
 /**
- * Identidade: usuarios, organizacoes, papeis e chaves de API.
+ * Identidade: usuários, organizações, papéis e chaves de API.
  *
- * O guard de autenticacao e registrado como APP_GUARD, ou seja, vale para toda
- * a aplicacao. Autenticacao passa a ser o padrao e a excecao precisa ser
- * declarada com `@Public()`, e nao o contrario: esquecer de proteger uma rota
- * e um erro silencioso, esquecer de liberar uma e um 401 obvio no primeiro
+ * O guard de autenticação e registrado como APP_GUARD, ou seja, vale para toda
+ * a aplicação. Autenticação passa a ser o padrão e a exceção precisa ser
+ * declarada com `@Public()`, e não o contrario: esquecer de proteger uma rota
+ * é um erro silencioso, esquecer de liberar uma e um 401 óbvio no primeiro
  * teste.
  */
 @Global()
@@ -53,8 +53,8 @@ import { TokenHasher } from './infrastructure/token-hasher';
     ApiKeysService,
     { provide: APP_GUARD, useClass: AuthenticationGuard },
     // O guard de papel vive em platform e depende desta porta. Ver ADR-0001:
-    // modulo de dominio nao importa modulo de dominio, entao platform declara
-    // o contrato e identity, que e quem sabe ler vinculo, o implementa.
+    // módulo de domínio não importa módulo de domínio, então platform declara
+    // o contrato e identity, que é quem sabe ler vínculo, o implementa.
     { provide: ORGANIZATION_MEMBERSHIP, useExisting: OrganizationsService },
   ],
   exports: [OrganizationsService, ORGANIZATION_MEMBERSHIP],

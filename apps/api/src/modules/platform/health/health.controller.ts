@@ -10,8 +10,8 @@ import { Public } from '../http/auth-context';
 import { LivenessReport, ReadinessReport } from './health.dto';
 import { HealthService } from './health.service';
 
-// Probes ficam publicos: um orquestrador nao carrega credencial, e um health
-// check que responde 401 e indistinguivel de um servico morto.
+// Probes ficam públicos: um orquestrador não carrega credencial, e um health
+// check que responde 401 e indistinguivel de um serviço morto.
 @ApiTags('saude')
 @Controller('health')
 export class HealthController {
@@ -22,8 +22,8 @@ export class HealthController {
   @ApiOperation({
     summary: 'Liveness',
     description:
-      'Responde 200 enquanto o processo estiver respondendo. Nao consulta dependencias: ' +
-      'banco fora do ar nao e motivo para reiniciar o container.',
+      'Responde 200 enquanto o processo estiver respondendo. Não consulta dependências: ' +
+      'banco fora do ar não e motivo para reiniciar o container.',
   })
   @ApiOkResponse({ type: LivenessReport })
   live(): LivenessReport {
@@ -35,8 +35,8 @@ export class HealthController {
   @ApiOperation({
     summary: 'Readiness',
     description:
-      'Verifica PostgreSQL e Redis em paralelo, com tempo limite por dependencia. ' +
-      'Responde 503 com o detalhe de cada verificacao se alguma falhar.',
+      'Verifica PostgreSQL e Redis em paralelo, com tempo limite por dependência. ' +
+      'Responde 503 com o detalhe de cada verificação se alguma falhar.',
   })
   @ApiOkResponse({ type: ReadinessReport })
   @ApiServiceUnavailableResponse({ type: ReadinessReport })

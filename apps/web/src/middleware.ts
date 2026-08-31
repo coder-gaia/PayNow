@@ -15,15 +15,15 @@ const LOGIN_PATH = '/entrar';
 const DASHBOARD_PATH = '/painel';
 
 /**
- * Ciclo de vida do token, resolvido antes de qualquer pagina renderizar.
+ * Ciclo de vida do token, resolvido antes de qualquer página renderizar.
  *
- * O middleware e o unico lugar do Next que consegue ler e escrever cookie no
- * mesmo request. Renovar aqui, e nao dentro das paginas, evita o padrao de
- * cada Server Component tentar renovar por conta propria e descobrir que nao
+ * O middleware é o único lugar do Next que consegue ler e escrever cookie no
+ * mesmo request. Renovar aqui, e não dentro das páginas, evita o padrão de
+ * cada Server Component tentar renovar por conta própria e descobrir que não
  * pode gravar o cookie novo.
  *
- * A renovacao e proativa: acontece quando falta menos de um minuto para o
- * token expirar, e nao depois de tomar 401. Assim uma pagina nunca renderiza
+ * A renovação e proativa: acontece quando falta menos de um minuto para o
+ * token expirar, e não depois de tomar 401. Assim uma página nunca renderiza
  * pela metade por causa de um token que venceu no meio do carregamento.
  */
 export async function middleware(request: NextRequest): Promise<NextResponse> {
@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.next();
   }
 
-  // Ja autenticado e indo para o login: manda para o painel.
+  // Já autenticado e indo para o login: manda para o painel.
   if (isAuthPage) {
     return NextResponse.redirect(new URL(DASHBOARD_PATH, request.url));
   }
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const renewed = await renew(refreshToken);
 
   if (renewed === null) {
-    // Refresh recusado: sessao encerrada, possivelmente por deteccao de reuso.
+    // Refresh recusado: sessão encerrada, possivelmente por detecção de reuso.
     const response = isProtected
       ? NextResponse.redirect(new URL(`${LOGIN_PATH}?sessao=expirada`, request.url))
       : NextResponse.next();
@@ -95,13 +95,13 @@ async function renew(refreshToken: string): Promise<RenewedSession | null> {
 
     return (await response.json()) as RenewedSession;
   } catch {
-    // API fora do ar nao deve derrubar a sessao de quem esta navegando.
+    // API fora do ar não deve derrubar a sessão de quem está navegando.
     return null;
   }
 }
 
 export const config = {
-  // Fora da lista: arquivos estaticos e as rotas internas do Next, que nunca
-  // precisam de sessao e so somariam latencia se passassem por aqui.
+  // Fora da lista: arquivos estáticos e as rotas internas do Next, que nunca
+  // precisam de sessão e só somariam latência se passassem por aqui.
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };

@@ -2,11 +2,11 @@ import { currencyOf, type Currency } from './currency';
 import { AllocationError, CurrencyMismatchError, InvalidAmountError } from './errors';
 import { DEFAULT_ROUNDING, divideRounded, type RoundingMode } from './rounding';
 
-/** Formato de serializacao. O valor viaja como string porque bigint nao e JSON. */
+/** Formato de serialização. O valor viaja como string porque bigint não e JSON. */
 export interface MoneyJSON {
-  /** Valor em unidade minima, como string decimal. */
+  /** Valor em unidade mínima, como string decimal. */
   readonly amount: string;
-  /** Codigo ISO 4217. */
+  /** Código ISO 4217. */
   readonly currency: string;
 }
 
@@ -19,7 +19,7 @@ function toBigInt(value: bigint | number, label: string): bigint {
   if (!Number.isInteger(value)) {
     throw new InvalidAmountError(
       `${label} precisa ser inteiro, recebeu ${String(value)}. ` +
-        'Valores fracionarios nao existem em unidade minima (ADR-0002).',
+        'Valores fracionarios não existem em unidade mínima (ADR-0002).',
     );
   }
   if (!Number.isSafeInteger(value)) {
@@ -29,21 +29,21 @@ function toBigInt(value: bigint | number, label: string): bigint {
 }
 
 /**
- * Valor monetario imutavel, representado como inteiro em unidade minima.
+ * Valor monetario imutavel, representado como inteiro em unidade mínima.
  *
  * Implementa a ADR-0002. Duas propriedades sustentam o resto do sistema:
  *
- * 1. Nao existe ponto flutuante em lugar nenhum do caminho.
- * 2. Nenhuma operacao aceita moedas diferentes. Nao ha conversao implicita.
+ * 1. Não existe ponto flutuante em lugar nenhum do caminho.
+ * 2. Nenhuma operação aceita moedas diferentes. Não há conversão implicita.
  *
  * @example
- * const preco = Money.fromDecimal('100.00', 'BRL');
- * const taxa = preco.percentage(300);          // 3% = R$ 3,00
- * const [a, b, c] = preco.split(3);            // 33,34 + 33,33 + 33,33
+ * const preço = Money.fromDecimal('100.00', 'BRL');
+ * const taxa = preço.percentage(300);          // 3% = R$ 3,00
+ * const [a, b, c] = preço.split(3);            // 33,34 + 33,33 + 33,33
  */
 export class Money {
   private constructor(
-    /** Valor em unidade minima da moeda. Positivo, negativo ou zero. */
+    /** Valor em unidade mínima da moeda. Positivo, negativo ou zero. */
     readonly minor: bigint,
     readonly currency: Currency,
   ) {
@@ -51,19 +51,19 @@ export class Money {
   }
 
   // ------------------------------------------------------------------
-  // construcao
+  // construção
   // ------------------------------------------------------------------
 
-  /** Cria a partir do valor ja em unidade minima. Ex.: 10000 centavos = R$ 100,00. */
+  /** Cria a partir do valor já em unidade mínima. Ex.: 10000 centavos = R$ 100,00. */
   static fromMinor(minor: bigint | number, currency: string): Money {
-    return new Money(toBigInt(minor, 'Valor em unidade minima'), currencyOf(currency));
+    return new Money(toBigInt(minor, 'Valor em unidade mínima'), currencyOf(currency));
   }
 
   /**
    * Cria a partir de uma string decimal, sem passar por ponto flutuante.
    *
    * Recusa mais casas decimais do que a moeda permite, em vez de arredondar em
-   * silencio: perder centavo na borda de entrada e o pior lugar para perder.
+   * silêncio: perder centavo na borda de entrada e o pior lugar para perder.
    */
   static fromDecimal(value: string, currency: string): Money {
     const resolved = currencyOf(currency);
@@ -71,7 +71,7 @@ export class Money {
 
     if (match === null) {
       throw new InvalidAmountError(
-        `Valor decimal invalido: "${value}". Formato esperado: "100", "100.00" ou "-4.50".`,
+        `Valor decimal inválido: "${value}". Formato esperado: "100", "100.00" ou "-4.50".`,
       );
     }
 
@@ -82,7 +82,7 @@ export class Money {
     if (fraction.length > resolved.exponent) {
       throw new InvalidAmountError(
         `"${value}" tem ${fraction.length} casas decimais, mas ${resolved.code} ` +
-          `admite no maximo ${resolved.exponent}.`,
+          `admite no máximo ${resolved.exponent}.`,
       );
     }
 
@@ -131,13 +131,13 @@ export class Money {
     return this.minor < 0n ? this.negated() : this;
   }
 
-  /** Multiplica por um inteiro. Exato, sem arredondamento possivel. */
+  /** Multiplica por um inteiro. Exato, sem arredondamento possível. */
   times(factor: bigint | number): Money {
     return new Money(this.minor * toBigInt(factor, 'Fator'), this.currency);
   }
 
   /**
-   * Multiplica por uma fracao exata, arredondando uma unica vez no fim.
+   * Multiplica por uma fracao exata, arredondando uma única vez no fim.
    *
    * Usado por rateio proporcional: `valor.multiplyRatio(diasUsados, diasDoCiclo)`.
    */
@@ -160,7 +160,7 @@ export class Money {
   }
 
   // ------------------------------------------------------------------
-  // distribuicao
+  // distribuição
   // ------------------------------------------------------------------
 
   /**
@@ -169,17 +169,17 @@ export class Money {
    *
    * Esta e a resposta do Paynow ao arredondamento em rateio: em vez de escolher
    * um modo e aceitar a sobra, o resto e distribuido unidade a unidade. A
-   * conservacao do total e propriedade de construcao, e nao consequencia de
+   * conservacao do total é propriedade de construção, e não consequência de
    * sorte no arredondamento.
    *
-   * O resto vai para as partes com maior fracao pendente, e nao para as
+   * O resto vai para as partes com maior fracao pendente, e não para as
    * primeiras da lista. Isso e o metodo do maior resto, e ele garante uma
-   * propriedade que a distribuicao por ordem de indice nao garante: **nenhuma
-   * parte se afasta uma unidade minima inteira da sua fracao exata**. Uma parte
-   * cuja fracao exata ja e inteira nunca recebe sobra.
+   * propriedade que a distribuição por ordem de índice não garante: **nenhuma
+   * parte se afasta uma unidade mínima inteira da sua fracao exata**. Uma parte
+   * cuja fracao exata já e inteira nunca recebe sobra.
    *
-   * O empate e resolvido pelo menor indice, entao o resultado e deterministico
-   * e reproduzivel.
+   * O empate é resolvido pelo menor índice, então o resultado é determinístico
+   * e reproduzível.
    *
    * @example
    * Money.fromDecimal('100.00', 'BRL').allocate([1, 1, 1]);
@@ -191,9 +191,9 @@ export class Money {
     }
 
     const parsed = weights.map((weight, index) => {
-      const value = toBigInt(weight, `Peso na posicao ${index}`);
+      const value = toBigInt(weight, `Peso na posição ${index}`);
       if (value < 0n) {
-        throw new AllocationError(`Peso negativo na posicao ${index}: ${value.toString()}.`);
+        throw new AllocationError(`Peso negativo na posição ${index}: ${value.toString()}.`);
       }
       return value;
     });
@@ -222,8 +222,8 @@ export class Money {
     });
 
     // Segunda passada: as sobras vao para as maiores fracoes pendentes, com
-    // empate resolvido pelo menor indice. Parte sem fracao pendente tem gap
-    // zero e fica no fim, entao nunca recebe sobra.
+    // empate resolvido pelo menor índice. Parte sem fracao pendente tem gap
+    // zero e fica no fim, então nunca recebe sobra.
     const queue = pending
       .filter((entry) => entry.gap > 0n)
       .sort((left, right) => {
@@ -244,13 +244,13 @@ export class Money {
   /** Divide em partes iguais, distribuindo a sobra entre as primeiras. */
   split(parts: number): Money[] {
     if (!Number.isInteger(parts) || parts <= 0) {
-      throw new AllocationError(`Numero de partes precisa ser inteiro positivo, recebeu ${parts}.`);
+      throw new AllocationError(`Número de partes precisa ser inteiro positivo, recebeu ${parts}.`);
     }
     return this.allocate(Array.from({ length: parts }, () => 1));
   }
 
   // ------------------------------------------------------------------
-  // comparacao
+  // comparação
   // ------------------------------------------------------------------
 
   compare(other: Money): -1 | 0 | 1 {
@@ -312,7 +312,7 @@ export class Money {
     return `${negative ? '-' : ''}${whole}${fraction}`;
   }
 
-  /** Ex.: "R$ 1234.50". Para exibicao ao usuario final, use Intl na camada de UI. */
+  /** Ex.: "R$ 1234.50". Para exibicao ao usuário final, use Intl na camada de UI. */
   toString(): string {
     return `${this.currency.symbol} ${this.toDecimalString()}`;
   }

@@ -10,7 +10,7 @@ interface Account {
   readonly organizationId: string;
 }
 
-describe('Organizacoes, papeis e chaves (e2e)', () => {
+describe('Organizações, papéis e chaves (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -21,7 +21,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
     await app.close();
   });
 
-  /** Cria uma conta com organizacao propria e devolve o necessario para agir por ela. */
+  /** Cria uma conta com organização própria e devolve o necessário para agir por ela. */
   async function createAccount(prefix: string): Promise<Account> {
     const email = uniqueEmail(prefix);
 
@@ -31,7 +31,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
         email,
         password: DEFAULT_PASSWORD,
         name: `Pessoa ${prefix}`,
-        organizationName: `Organizacao ${prefix}`,
+        organizationName: `Organização ${prefix}`,
       })
       .expect(201);
 
@@ -56,8 +56,8 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
       .set(as(owner))
       .send({ email: member.email, role });
 
-  describe('associacao', () => {
-    it('lista apenas as organizacoes de que a pessoa participa', async () => {
+  describe('associação', () => {
+    it('lista apenas as organizações de que a pessoa participa', async () => {
       const ana = await createAccount('ana');
       await createAccount('bruno');
 
@@ -70,7 +70,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
       expect(body[0].id).toBe(ana.organizationId);
     });
 
-    it('nega acesso a organizacao de outra pessoa', async () => {
+    it('nega acesso a organização de outra pessoa', async () => {
       const ana = await createAccount('ana');
       const bruno = await createAccount('bruno');
 
@@ -80,7 +80,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
         .expect(403);
     });
 
-    it('recusa adicionar quem ainda nao tem conta', async () => {
+    it('recusa adicionar quem ainda não tem conta', async () => {
       const ana = await createAccount('ana');
 
       await request(httpServer(app))
@@ -99,8 +99,8 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
     });
   });
 
-  describe('hierarquia de papeis', () => {
-    it('MEMBER nao administra membros', async () => {
+  describe('hierarquia de papéis', () => {
+    it('MEMBER não administra membros', async () => {
       const ana = await createAccount('ana');
       const carla = await createAccount('carla');
       const davi = await createAccount('davi');
@@ -114,7 +114,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
         .expect(403);
     });
 
-    it('READONLY enxerga a organizacao mas nao mexe nela', async () => {
+    it('READONLY enxerga a organização mas não mexe nela', async () => {
       const ana = await createAccount('ana');
       const davi = await createAccount('davi');
 
@@ -131,7 +131,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
         .expect(403);
     });
 
-    it('ADMIN nao promove alguem a um papel igual ao proprio', async () => {
+    it('ADMIN não promove alguém a um papel igual ao próprio', async () => {
       const ana = await createAccount('ana');
       const bruno = await createAccount('bruno');
       const carla = await createAccount('carla');
@@ -146,7 +146,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
         .expect(403);
     });
 
-    it('ADMIN nao mexe em quem e OWNER', async () => {
+    it('ADMIN não mexe em quem é OWNER', async () => {
       const ana = await createAccount('ana');
       const bruno = await createAccount('bruno');
 
@@ -175,8 +175,8 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
     });
   });
 
-  describe('protecao do ultimo OWNER', () => {
-    it('recusa rebaixar o unico OWNER', async () => {
+  describe('proteção do último OWNER', () => {
+    it('recusa rebaixar o único OWNER', async () => {
       const ana = await createAccount('ana');
 
       const response = await request(httpServer(app))
@@ -212,7 +212,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
   });
 
   describe('chaves de API', () => {
-    it('devolve o segredo uma unica vez e so o prefixo depois', async () => {
+    it('devolve o segredo uma única vez e só o prefixo depois', async () => {
       const ana = await createAccount('ana');
 
       const criada = await request(httpServer(app))
@@ -233,7 +233,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
       expect(listadas.body[0].prefix).toBe(criada.body.prefix);
     });
 
-    /** Criterio de pronto da fase 01: chave de API chega a uma rota protegida. */
+    /** Critério de pronto da fase 01: chave de API chega a uma rota protegida. */
     it('autentica uma rota de merchant', async () => {
       const ana = await createAccount('ana');
 
@@ -258,7 +258,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
       const { body } = await request(httpServer(app))
         .post(`/v1/organizations/${ana.organizationId}/api-keys`)
         .set(as(ana))
-        .send({ name: 'Descartavel', environment: 'TEST' })
+        .send({ name: 'Descartável', environment: 'TEST' })
         .expect(201);
 
       await request(httpServer(app))
@@ -277,7 +277,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
         .expect(401);
     });
 
-    it('chave de API nao abre rota de painel', async () => {
+    it('chave de API não abre rota de painel', async () => {
       const ana = await createAccount('ana');
 
       const { body } = await request(httpServer(app))
@@ -292,7 +292,7 @@ describe('Organizacoes, papeis e chaves (e2e)', () => {
         .expect(401);
     });
 
-    it('MEMBER nao administra chaves', async () => {
+    it('MEMBER não administra chaves', async () => {
       const ana = await createAccount('ana');
       const carla = await createAccount('carla');
 

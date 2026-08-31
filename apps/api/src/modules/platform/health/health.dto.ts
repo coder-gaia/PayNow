@@ -15,13 +15,13 @@ export class DependencyCheck {
   @ApiProperty({ enum: ['up', 'down'], example: 'up' })
   status!: CheckStatus;
 
-  @ApiProperty({ example: 3, description: 'Tempo de resposta da verificacao, em milissegundos.' })
+  @ApiProperty({ example: 3, description: 'Tempo de resposta da verificação, em milissegundos.' })
   latencyMs!: number;
 
   @ApiProperty({
     required: false,
-    example: 'Tempo esgotado apos 2000ms',
-    description: 'Presente apenas quando a dependencia esta indisponivel.',
+    example: 'Tempo esgotado após 2000ms',
+    description: 'Presente apenas quando a dependência esta indisponível.',
   })
   error?: string;
 }
@@ -30,7 +30,7 @@ export class ReadinessReport {
   @ApiProperty({
     enum: ['ok', 'error'],
     example: 'ok',
-    description: 'Vale "ok" apenas se todas as dependencias responderem.',
+    description: 'Vale "ok" apenas se todas as dependências responderem.',
   })
   status!: ReportStatus;
 
@@ -41,7 +41,7 @@ export class ReadinessReport {
     type: DependencyCheck,
     isArray: false,
     additionalProperties: { $ref: '#/components/schemas/DependencyCheck' },
-    description: 'Uma entrada por dependencia verificada.',
+    description: 'Uma entrada por dependência verificada.',
   })
   checks!: Record<string, DependencyCheck>;
 }

@@ -9,8 +9,8 @@ import { Money, type MoneyJSON } from './money';
 const brl = (decimal: string): Money => Money.fromDecimal(decimal, 'BRL');
 
 describe('Money', () => {
-  describe('construcao', () => {
-    it('cria a partir de unidade minima', () => {
+  describe('construção', () => {
+    it('cria a partir de unidade mínima', () => {
       expect(Money.fromMinor(10_000, 'BRL').toDecimalString()).toBe('100.00');
       expect(Money.fromMinor(10_000n, 'BRL').minor).toBe(10_000n);
     });
@@ -34,13 +34,13 @@ describe('Money', () => {
       expect(() => Money.fromDecimal('1.5', 'JPY')).toThrow(InvalidAmountError);
     });
 
-    it('recusa formato invalido', () => {
+    it('recusa formato inválido', () => {
       for (const invalid of ['', 'abc', '1,50', '1.2.3', '--1', '1e3', 'R$ 10']) {
         expect(() => brl(invalid)).toThrow(InvalidAmountError);
       }
     });
 
-    it('recusa valor fracionario em unidade minima', () => {
+    it('recusa valor fracionario em unidade mínima', () => {
       expect(() => Money.fromMinor(10.5, 'BRL')).toThrow(InvalidAmountError);
     });
 
@@ -48,7 +48,7 @@ describe('Money', () => {
       expect(() => Money.zero('XYZ')).toThrow(UnknownCurrencyError);
     });
 
-    it('normaliza o codigo da moeda', () => {
+    it('normaliza o código da moeda', () => {
       expect(Money.zero('brl').currencyCode).toBe('BRL');
     });
   });
@@ -91,22 +91,22 @@ describe('Money', () => {
     });
   });
 
-  describe('percentual e razao', () => {
+  describe('percentual e razão', () => {
     it('aplica pontos base', () => {
       // taxa de plataforma de 3% sobre R$ 100,00, conforme docs/plano-de-contas.md
       expect(brl('100.00').percentage(300).toDecimalString()).toBe('3.00');
       expect(brl('100.00').percentage(25).toDecimalString()).toBe('0.25');
     });
 
-    it('arredonda uma unica vez, no fim', () => {
+    it('arredonda uma única vez, no fim', () => {
       // 1/3 de R$ 0,10 arredondado por half-even
       expect(brl('0.10').multiplyRatio(1, 3).minor).toBe(3n);
       expect(brl('0.10').multiplyRatio(2, 3).minor).toBe(7n);
     });
 
-    // Estes sao os casos de referencia de rateio do plano do projeto.
+    // Estes são os casos de referência de rateio do plano do projeto.
     // Ciclo de 30 dias, Pro R$ 100,00, Enterprise R$ 300,00.
-    describe('casos de referencia de rateio proporcional', () => {
+    describe('casos de referência de rateio proporcional', () => {
       const pro = brl('100.00');
       const enterprise = brl('300.00');
 
@@ -136,7 +136,7 @@ describe('Money', () => {
     });
   });
 
-  describe('distribuicao', () => {
+  describe('distribuição', () => {
     it('divide preservando o total', () => {
       const parts = brl('100.00').split(3);
 
@@ -159,18 +159,18 @@ describe('Money', () => {
       expect(Money.sum(parts).toDecimalString()).toBe('0.11');
     });
 
-    // Contraexemplo encontrado por teste de propriedade. A distribuicao por
-    // ordem de indice dava [0.03, 0.01, 0, 0]: a primeira parte, cuja fracao
-    // exata ja era exatamente 0.02, recebia sobra enquanto outras com fracao
+    // Contraexemplo encontrado por teste de propriedade. A distribuição por
+    // ordem de índice dava [0.03, 0.01, 0, 0]: a primeira parte, cuja fracao
+    // exata já era exatamente 0.02, recebia sobra enquanto outras com fracao
     // pendente ficavam a menos. O metodo do maior resto corrige isso.
-    it('nao entrega sobra a uma parte cuja fracao exata ja e inteira', () => {
+    it('não entrega sobra a uma parte cuja fracao exata já e inteira', () => {
       const parts = brl('0.04').allocate([3, 1, 1, 1]);
 
       expect(parts.map((part) => part.toDecimalString())).toEqual(['0.02', '0.01', '0.01', '0.00']);
       expect(Money.sum(parts).toDecimalString()).toBe('0.04');
     });
 
-    it('resolve empate de fracao pelo menor indice, de forma reproduzivel', () => {
+    it('resolve empate de fracao pelo menor índice, de forma reproduzível', () => {
       const primeira = brl('1.00').allocate([1, 1, 1]);
       const segunda = brl('1.00').allocate([1, 1, 1]);
 
@@ -178,14 +178,14 @@ describe('Money', () => {
       expect(segunda.map((part) => part.minor)).toEqual(primeira.map((part) => part.minor));
     });
 
-    it('preserva o total tambem com valor negativo', () => {
+    it('preserva o total também com valor negativo', () => {
       const parts = brl('-100.00').split(3);
 
       expect(parts.map((part) => part.toDecimalString())).toEqual(['-33.34', '-33.33', '-33.33']);
       expect(Money.sum(parts).toDecimalString()).toBe('-100.00');
     });
 
-    it('recusa entradas invalidas', () => {
+    it('recusa entradas inválidas', () => {
       expect(() => brl('10.00').allocate([])).toThrow(AllocationError);
       expect(() => brl('10.00').allocate([0, 0])).toThrow(AllocationError);
       expect(() => brl('10.00').allocate([-1, 2])).toThrow(AllocationError);
@@ -194,7 +194,7 @@ describe('Money', () => {
     });
   });
 
-  describe('comparacao', () => {
+  describe('comparação', () => {
     it('ordena', () => {
       expect(brl('10.00').greaterThan(brl('9.99'))).toBe(true);
       expect(brl('10.00').lessThan(brl('10.01'))).toBe(true);
@@ -227,7 +227,7 @@ describe('Money', () => {
     });
   });
 
-  it('e imutavel', () => {
+  it('é imutável', () => {
     const original = brl('10.00');
     original.plus(brl('5.00'));
 

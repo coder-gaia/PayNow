@@ -5,11 +5,11 @@ import Redis from 'ioredis';
 import type { Env } from '../../../config/env';
 
 /**
- * Conexao unica com o Redis, compartilhada pelas filas e pelo cache.
+ * Conexão única com o Redis, compartilhada pelas filas e pelo cache.
  *
- * `maxRetriesPerRequest: null` e exigencia do BullMQ, que precisa que comandos
+ * `maxRetriesPerRequest: null` e exigência do BullMQ, que precisa que comandos
  * bloqueantes fiquem pendurados em vez de falharem por limite de tentativas.
- * Deixar o padrao aqui quebra o worker de um jeito dificil de diagnosticar.
+ * Deixar o padrão aqui quebra o worker de um jeito difícil de diagnosticar.
  */
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -33,7 +33,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.quit();
   }
 
-  /** Comando minimo usado pelo probe de prontidao. */
+  /** Comando mínimo usado pelo probe de prontidao. */
   async ping(): Promise<void> {
     const reply: string = await this.client.ping();
     if (reply !== 'PONG') {

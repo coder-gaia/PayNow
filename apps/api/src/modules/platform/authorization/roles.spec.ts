@@ -3,7 +3,7 @@ import { OrganizationRole, outranks, roleSatisfies } from './roles';
 const { OWNER, ADMIN, MEMBER, READONLY } = OrganizationRole;
 
 describe('roleSatisfies', () => {
-  it('aceita o proprio papel como suficiente', () => {
+  it('aceita o próprio papel como suficiente', () => {
     for (const role of [OWNER, ADMIN, MEMBER, READONLY]) {
       expect(roleSatisfies(role, role)).toBe(true);
     }
@@ -30,7 +30,7 @@ describe('outranks', () => {
     expect(outranks(MEMBER, ADMIN)).toBe(false);
   });
 
-  it('e a base da regra de que ninguem mexe em um igual', () => {
+  it('e a base da regra de que ninguém mexe em um igual', () => {
     for (const role of [OWNER, ADMIN, MEMBER, READONLY]) {
       expect(outranks(role, role)).toBe(false);
     }

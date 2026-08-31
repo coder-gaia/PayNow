@@ -6,13 +6,13 @@ import { divideRounded, type RoundingMode } from './rounding';
 /**
  * Testes de propriedade do nucleo monetario.
  *
- * Enquanto os testes de exemplo confirmam casos escolhidos a mao, estes
+ * Enquanto os testes de exemplo confirmam casos escolhidos a mão, estes
  * afirmam invariantes sobre entradas geradas. E o mesmo raciocinio que a fase
- * 02 aplica ao ledger inteiro: nao verificar que um caso funciona, e sim que
+ * 02 aplica ao ledger inteiro: não verificar que um caso funciona, e sim que
  * uma propriedade nunca deixa de valer.
  */
 
-/** Ate um trilhao de unidades minimas, positivo ou negativo. */
+/** Até um trilhao de unidades minimas, positivo ou negativo. */
 const anyMinor = fc.bigInt({ min: -1_000_000_000_000n, max: 1_000_000_000_000n });
 
 /** Pesos de rateio com ao menos um positivo. */
@@ -35,7 +35,7 @@ const money = (minor: bigint): Money => Money.fromMinor(minor, 'BRL');
 
 describe('propriedades de Money', () => {
   describe('allocate', () => {
-    it('a soma das partes e sempre igual ao valor original', () => {
+    it('a soma das partes é sempre igual ao valor original', () => {
       fc.assert(
         fc.property(anyMinor, anyWeights, (minor, weights) => {
           const original = money(minor);
@@ -54,7 +54,7 @@ describe('propriedades de Money', () => {
       );
     });
 
-    it('cada parte fica a menos de uma unidade minima da fracao exata', () => {
+    it('cada parte fica a menos de uma unidade mínima da fracao exata', () => {
       fc.assert(
         fc.property(anyMinor, anyWeights, (minor, weights) => {
           const parts = money(minor).allocate(weights);
@@ -101,7 +101,7 @@ describe('propriedades de Money', () => {
       );
     });
 
-    it('split preserva o total para qualquer numero de partes', () => {
+    it('split preserva o total para qualquer número de partes', () => {
       fc.assert(
         fc.property(anyMinor, fc.integer({ min: 1, max: 50 }), (minor, parts) => {
           const original = money(minor);
@@ -152,7 +152,7 @@ describe('propriedades de Money', () => {
       );
     });
 
-    it('multiplicar por uma razao de termos iguais e identidade', () => {
+    it('multiplicar por uma razão de termos iguais e identidade', () => {
       fc.assert(
         fc.property(anyMinor, fc.integer({ min: 1, max: 10_000 }), anyRounding, (a, n, mode) => {
           expect(money(a).multiplyRatio(n, n, mode).equals(money(a))).toBe(true);
@@ -173,7 +173,7 @@ describe('propriedades de Money', () => {
       );
     });
 
-    it('a serializacao JSON sempre volta ao mesmo valor', () => {
+    it('a serialização JSON sempre volta ao mesmo valor', () => {
       fc.assert(
         fc.property(anyMinor, (minor) => {
           const original = money(minor);
@@ -225,7 +225,7 @@ describe('propriedades de Money', () => {
       );
     });
 
-    it('trocar o sinal do numerador e do denominador nao muda o resultado', () => {
+    it('trocar o sinal do numerador e do denominador não muda o resultado', () => {
       fc.assert(
         fc.property(
           fc.bigInt({ min: -1_000_000n, max: 1_000_000n }),

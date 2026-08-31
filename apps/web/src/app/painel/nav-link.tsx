@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-/** Link de navegacao que se marca como ativo pela rota atual. */
+/** Link de navegação que se marca como ativo pela rota atual. */
 export function NavLink({ href, children }: { href: string; children: ReactNode }) {
   const pathname = usePathname();
   const active = href === '/painel' ? pathname === href : pathname.startsWith(href);

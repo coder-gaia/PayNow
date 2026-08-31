@@ -18,7 +18,7 @@ describe('toSlugBase', () => {
     expect(toSlugBase('a'.repeat(100))).toHaveLength(40);
   });
 
-  it('devolve um padrao quando nao sobra nada aproveitavel', () => {
+  it('devolve um padrão quando não sobra nada aproveitável', () => {
     expect(toSlugBase('!!!')).toBe('organizacao');
     expect(toSlugBase('   ')).toBe('organizacao');
   });

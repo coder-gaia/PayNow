@@ -30,7 +30,7 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: 'Paynow',
-  description: 'Motor de cobranca recorrente com ledger de partidas dobradas.',
+  description: 'Motor de cobrança recorrente com ledger de partidas dobradas.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -24,22 +24,22 @@ export interface RotationResult {
 }
 
 /**
- * Refresh token com rotacao e deteccao de reuso.
+ * Refresh token com rotação e detecção de reuso.
  *
  * O modelo e o de familias. Cada login abre uma familia. Cada uso do refresh
- * consome o token apresentado e emite um novo na mesma familia. Um token so
+ * consome o token apresentado e emite um novo na mesma familia. Um token só
  * pode ser consumido uma vez.
  *
- * Se alguem apresentar um token ja consumido, existem duas explicacoes: o
+ * Se alguém apresentar um token já consumido, existem duas explicacoes: o
  * cliente legitimo repetiu a chamada, ou o token vazou e o atacante esta
- * usando. Nao ha como distinguir, entao o sistema assume o pior e revoga a
- * familia inteira. O usuario legitimo faz login de novo; o atacante perde o
+ * usando. Não há como distinguir, então o sistema assume o pior e revoga a
+ * familia inteira. O usuário legitimo faz login de novo; o atacante perde o
  * acesso junto.
  *
- * A deteccao depende de consumir o token de forma atomica. Dois refreshes
- * simultaneos com o mesmo token nao podem ambos ler `consumedAt` nulo e ambos
- * prosseguir, entao o consumo e um UPDATE condicional e quem nao afetar linha
- * nenhuma perdeu a corrida, o que e tratado como reuso.
+ * A detecção depende de consumir o token de forma atômica. Dois refreshes
+ * simultaneos com o mesmo token não podem ambos ler `consumedAt` nulo e ambos
+ * prosseguir, então o consumo e um UPDATE condicional é quem não afetar linha
+ * nenhuma perdeu a corrida, o que é tratado como reuso.
  */
 @Injectable()
 export class RefreshTokenService {
@@ -55,7 +55,7 @@ export class RefreshTokenService {
     this.ttlDays = this.config.get('JWT_REFRESH_TTL_DAYS', { infer: true });
   }
 
-  /** Emite um token novo. Sem `familyId`, abre uma familia, ou seja, uma sessao. */
+  /** Emite um token novo. Sem `familyId`, abre uma familia, ou seja, uma sessão. */
   async issue(
     userId: string,
     options: { familyId?: string; userAgent?: string } = {},
@@ -78,7 +78,7 @@ export class RefreshTokenService {
   }
 
   /**
-   * Troca um refresh token por outro, ou derruba a sessao inteira se detectar
+   * Troca um refresh token por outro, ou derruba a sessão inteira se detectar
    * reuso.
    */
   async rotate(presentedToken: string, userAgent?: string): Promise<RotationResult> {
@@ -90,11 +90,11 @@ export class RefreshTokenService {
       throw new InvalidRefreshTokenError();
     }
 
-    // A ordem destas duas checagens e a diferenca entre detectar um vazamento e
-    // deixar passar. A rotacao marca o token como consumido e revogado ao mesmo
-    // tempo, entao testar `revokedAt` primeiro faria todo token rotacionado
-    // reapresentado cair no ramo generico, e a familia nunca seria revogada.
-    // Consumo e a hipotese mais grave e vem antes.
+    // A ordem destas duas checagens e a diferença entre detectar um vazamento e
+    // deixar passar. A rotação marca o token como consumido é revogado ao mesmo
+    // tempo, então testar `revokedAt` primeiro faria todo token rotacionado
+    // reapresentado cair no ramo genérico, e a familia nunca seria revogada.
+    // Consumo e a hipótese mais grave e vem antes.
     if (existing.consumedAt !== null) {
       await this.handleReuse(existing.familyId, existing.userId);
       throw new RefreshTokenReuseError();
@@ -105,15 +105,15 @@ export class RefreshTokenService {
       // reuso de um irmao.
       throw existing.revokedReason === RefreshTokenRevocationReason.REUSE_DETECTED
         ? new RefreshTokenReuseError()
-        : new InvalidRefreshTokenError('Sessao encerrada. Faca login novamente.');
+        : new InvalidRefreshTokenError('Sessão encerrada. Faça login novamente.');
     }
 
     if (isBefore(existing.expiresAt, this.clock.now())) {
       throw new InvalidRefreshTokenError();
     }
 
-    // Consumo atomico: quem nao afetar linha perdeu a corrida para outro
-    // request que apresentou o mesmo token, o que e reuso por definicao.
+    // Consumo atômico: quem não afetar linha perdeu a corrida para outro
+    // request que apresentou o mesmo token, o que é reuso por definicao.
     const consumed = await this.prisma.refreshToken.updateMany({
       where: { id: existing.id, consumedAt: null, revokedAt: null },
       data: {
@@ -136,7 +136,7 @@ export class RefreshTokenService {
     return { userId: existing.userId, issued };
   }
 
-  /** Encerra uma sessao especifica, identificada pelo token apresentado. */
+  /** Encerra uma sessão específica, identificada pelo token apresentado. */
   async revokeByToken(presentedToken: string): Promise<void> {
     const existing = await this.prisma.refreshToken.findUnique({
       where: { tokenHash: this.hasher.hash(presentedToken) },
@@ -148,7 +148,7 @@ export class RefreshTokenService {
     }
   }
 
-  /** Revoga todos os tokens vivos de uma familia, ou seja, de uma sessao. */
+  /** Revoga todos os tokens vivos de uma familia, ou seja, de uma sessão. */
   async revokeFamily(familyId: string, reason: RefreshTokenRevocationReason): Promise<number> {
     const result = await this.prisma.refreshToken.updateMany({
       where: { familyId, revokedAt: null },
@@ -158,7 +158,7 @@ export class RefreshTokenService {
     return result.count;
   }
 
-  /** Encerra todas as sessoes de um usuario. */
+  /** Encerra todas as sessões de um usuário. */
   async revokeAllForUser(userId: string, reason: RefreshTokenRevocationReason): Promise<number> {
     const result = await this.prisma.refreshToken.updateMany({
       where: { userId, revokedAt: null },
@@ -174,7 +174,7 @@ export class RefreshTokenService {
     // Registrado como warn de proposito: e o sinal mais forte de credencial
     // vazada que o sistema consegue emitir sozinho.
     this.logger.warn(
-      `Reuso de refresh token detectado. Familia ${familyId} do usuario ${userId} revogada, ` +
+      `Reuso de refresh token detectado. Familia ${familyId} do usuário ${userId} revogada, ` +
         `${revoked} token(s) atingido(s).`,
     );
   }

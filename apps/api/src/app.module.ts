@@ -11,8 +11,8 @@ import { PlatformModule } from './modules/platform/platform.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      // O ambiente e validado no boot. Configuracao invalida derruba o
-      // processo em vez de virar erro obscuro na primeira cobranca.
+      // O ambiente e validado no boot. Configuração inválida derruba o
+      // processo em vez de virar erro obscuro na primeira cobrança.
       validate: validateEnv,
       envFilePath: ['.env', '../../.env'],
     }),

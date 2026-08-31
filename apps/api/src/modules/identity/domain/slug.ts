@@ -2,13 +2,13 @@ import { randomBytes } from 'node:crypto';
 
 import type { Prisma } from '@prisma/client';
 
-/** Faixa Unicode das marcas de acentuacao separadas pela normalizacao NFD. */
+/** Faixa Unicode das marcas de acentuação separadas pela normalização NFD. */
 const COMBINING_MARKS = /[̀-ͯ]/g;
 
 const MAX_BASE_LENGTH = 40;
 const MAX_ATTEMPTS = 100;
 
-/** Reduz um nome livre a um identificador legivel e seguro para URL. */
+/** Reduz um nome livre a um identificador legível e seguro para URL. */
 export function toSlugBase(name: string): string {
   const base = name
     .normalize('NFD')
@@ -22,11 +22,11 @@ export function toSlugBase(name: string): string {
 }
 
 /**
- * Slug unico para uma organizacao.
+ * Slug único para uma organização.
  *
- * Roda dentro da transacao de criacao, o que reduz a janela de corrida mas nao
- * a fecha: duas transacoes concorrentes podem escolher o mesmo candidato. O
- * indice unico do banco e quem garante a unicidade de verdade, e esta funcao
+ * Roda dentro da transação de criação, o que reduz a janela de corrida mas não
+ * a fecha: duas transações concorrentes podem escolher o mesmo candidato. O
+ * índice único do banco é quem garante a unicidade de verdade, e esta função
  * apenas evita que o caso comum chegue la e falhe.
  */
 export async function resolveUniqueSlug(
@@ -44,7 +44,7 @@ export async function resolveUniqueSlug(
     }
   }
 
-  // Cem colisoes seguidas nao acontecem por acaso. Um sufixo aleatorio e
-  // melhor do que recusar a criacao.
+  // Cem colisoes seguidas não acontecem por acaso. Um sufixo aleatorio e
+  // melhor do que recusar a criação.
   return `${base}-${randomBytes(3).toString('hex')}`;
 }

@@ -6,14 +6,14 @@ describe('divideRounded', () => {
     expect(() => divideRounded(10n, 0n)).toThrow(InvalidAmountError);
   });
 
-  it('devolve o quociente exato quando nao ha resto', () => {
+  it('devolve o quociente exato quando não há resto', () => {
     expect(divideRounded(100n, 4n)).toBe(25n);
     expect(divideRounded(-100n, 4n)).toBe(-25n);
     expect(divideRounded(100n, -4n)).toBe(-25n);
   });
 
   // A tabela abaixo e o contrato do arredondamento. Os casos negativos existem
-  // porque sao exatamente onde implementacoes caseiras costumam divergir.
+  // porque são exatamente onde implementações caseiras costumam divergir.
   const cases: ReadonlyArray<[bigint, bigint, RoundingMode, bigint]> = [
     // empate exato em 2.5
     [5n, 2n, 'half-even', 2n],
@@ -55,7 +55,7 @@ describe('divideRounded', () => {
     expect(divideRounded(num, den, mode)).toBe(expected);
   });
 
-  it('usa half-even como padrao', () => {
+  it('usa half-even como padrão', () => {
     expect(divideRounded(5n, 2n)).toBe(divideRounded(5n, 2n, 'half-even'));
   });
 

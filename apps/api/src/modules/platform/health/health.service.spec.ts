@@ -13,7 +13,7 @@ const buildService = (database: () => Promise<void>, redis: () => Promise<void>)
 
 describe('HealthService', () => {
   describe('liveness', () => {
-    it('responde ok sem consultar dependencia alguma', () => {
+    it('responde ok sem consultar dependência alguma', () => {
       const nunca = (): Promise<void> => new Promise(() => {});
       const report = buildService(nunca, nunca).liveness();
 
@@ -23,7 +23,7 @@ describe('HealthService', () => {
   });
 
   describe('readiness', () => {
-    it('responde ok quando todas as dependencias respondem', async () => {
+    it('responde ok quando todas as dependências respondem', async () => {
       const report = await buildService(ok, ok).readiness();
 
       expect(report.status).toBe('ok');
@@ -32,30 +32,30 @@ describe('HealthService', () => {
       expect(report.checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
-    it('responde erro se qualquer dependencia falhar', async () => {
-      const report = await buildService(ok, fail('conexao recusada')).readiness();
+    it('responde erro se qualquer dependência falhar', async () => {
+      const report = await buildService(ok, fail('conexão recusada')).readiness();
 
       expect(report.status).toBe('error');
       expect(report.checks.database?.status).toBe('up');
       expect(report.checks.redis?.status).toBe('down');
-      expect(report.checks.redis?.error).toBe('conexao recusada');
+      expect(report.checks.redis?.error).toBe('conexão recusada');
     });
 
-    it('reporta cada dependencia separadamente, sem uma mascarar a outra', async () => {
+    it('reporta cada dependência separadamente, sem uma mascarar a outra', async () => {
       const report = await buildService(fail('banco caiu'), fail('redis caiu')).readiness();
 
       expect(report.checks.database?.error).toBe('banco caiu');
       expect(report.checks.redis?.error).toBe('redis caiu');
     });
 
-    it('mede a latencia de cada verificacao', async () => {
+    it('mede a latência de cada verificação', async () => {
       const report = await buildService(ok, ok).readiness();
 
       expect(report.checks.database?.latencyMs).toBeGreaterThanOrEqual(0);
       expect(report.checks.redis?.latencyMs).toBeGreaterThanOrEqual(0);
     });
 
-    it('trata dependencia pendurada como falha, e nao como espera infinita', async () => {
+    it('trata dependência pendurada como falha, e não como espera infinita', async () => {
       jest.useFakeTimers();
 
       const pendurada = (): Promise<void> => new Promise(() => {});

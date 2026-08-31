@@ -1,13 +1,13 @@
 import 'server-only';
 
 /**
- * Ciclo de vida da sessao no painel.
+ * Ciclo de vida da sessão no painel.
  *
- * Os tokens vivem em cookie `httpOnly`, e nao em `localStorage`. A diferenca
- * importa: qualquer script injetado na pagina le `localStorage`, e um token de
+ * Os tokens vivem em cookie `httpOnly`, e não em `localStorage`. A diferença
+ * importa: qualquer script injetado na página le `localStorage`, e um token de
  * acesso roubado por XSS vale por quinze minutos, enquanto um refresh token
- * roubado vale por trinta dias. Cookie `httpOnly` nao e legivel por JavaScript,
- * entao o navegador guarda o segredo e o servidor do Next e o unico que o usa.
+ * roubado vale por trinta dias. Cookie `httpOnly` não e legível por JavaScript,
+ * então o navegador guarda o segredo e o servidor do Next é o único que o usa.
  *
  * Isso torna o painel um BFF: o navegador nunca fala direto com a API do
  * Paynow, e nenhum token aparece em resposta que chegue ao cliente.
@@ -29,7 +29,7 @@ export interface CookieOptions {
 
 const baseOptions = (maxAge: number): CookieOptions => ({
   httpOnly: true,
-  // `lax` deixa o cookie viajar em navegacao vinda de fora, que e o que um
+  // `lax` deixa o cookie viajar em navegação vinda de fora, que é o que um
   // link para o painel precisa, e barra envio em request de outro site.
   sameSite: 'lax',
   secure: process.env.NODE_ENV === 'production',
@@ -42,15 +42,15 @@ export const accessCookieOptions = (expiresInSeconds: number): CookieOptions =>
 
 export const refreshCookieOptions = (): CookieOptions => baseOptions(REFRESH_MAX_AGE_SECONDS);
 
-/** Opcoes para apagar um cookie. */
+/** Opções para apagar um cookie. */
 export const clearedCookieOptions = (): CookieOptions => baseOptions(0);
 
 /**
- * Momento de expiracao do token de acesso, em milissegundos.
+ * Momento de expiração do token de acesso, em milissegundos.
  *
  * Le a claim `exp` sem verificar a assinatura, o que basta e e seguro para o
- * uso que se faz dela: decidir quando renovar. Quem valida o token de verdade
- * e a API, que tem o segredo. O painel so precisa saber se vale a pena tentar.
+ * uso que se faz dela: decidir quando renovar. Quem válida o token de verdade
+ * e a API, que tem o segredo. O painel só precisa saber se vale a pena tentar.
  */
 export function accessTokenExpiresAt(token: string): number | null {
   const payload = token.split('.')[1];
@@ -71,13 +71,13 @@ export function accessTokenExpiresAt(token: string): number | null {
       return decoded.exp * 1000;
     }
   } catch {
-    // Token ilegivel e tratado como expirado: o proximo passo e renovar.
+    // Token ilegivel é tratado como expirado: o próximo passo e renovar.
   }
 
   return null;
 }
 
-/** Margem para renovar antes de expirar, evitando corrida com o relogio. */
+/** Margem para renovar antes de expirar, evitando corrida com o relógio. */
 export const RENEWAL_MARGIN_MS = 60_000;
 
 export function needsRenewal(token: string | undefined, now: number): boolean {

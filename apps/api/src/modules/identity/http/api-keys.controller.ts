@@ -29,7 +29,7 @@ import { OrganizationRoleGuard } from '../../platform/http/organization-role.gua
 const uuid = () => new ParseUUIDPipe({ version: '7' });
 
 @ApiTags('chaves de api')
-@ApiBearerAuth('usuario')
+@ApiBearerAuth('usuário')
 @Controller('organizations/:organizationId/api-keys')
 @UseGuards(OrganizationRoleGuard)
 @RequireRole(OrganizationRole.ADMIN)
@@ -39,7 +39,7 @@ export class ApiKeysController {
   @Get()
   @ApiOperation({
     summary: 'Lista as chaves da organizacao',
-    description: 'Apenas o prefixo e devolvido. O segredo nao e recuperavel depois da criacao.',
+    description: 'Apenas o prefixo é devolvido. O segredo não e recuperável depois da criação.',
   })
   @ApiOkResponse({ type: [ApiKeyResponse] })
   list(@Param('organizationId', uuid()) organizationId: string) {
@@ -50,7 +50,7 @@ export class ApiKeysController {
   @ApiOperation({
     summary: 'Cria uma chave',
     description:
-      'O segredo completo aparece uma unica vez, nesta resposta. Guarde antes de fechar.',
+      'O segredo completo aparece uma única vez, nesta resposta. Guarde antes de fechar.',
   })
   @ApiCreatedResponse({ type: CreatedApiKeyResponse })
   create(@Param('organizationId', uuid()) organizationId: string, @Body() dto: CreateApiKeyDto) {
@@ -61,7 +61,7 @@ export class ApiKeysController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Revoga uma chave',
-    description: 'A linha e mantida com a data de revogacao, para preservar a trilha de uso.',
+    description: 'A linha e mantida com a data de revogação, para preservar a trilha de uso.',
   })
   async revoke(
     @Param('organizationId', uuid()) organizationId: string,
@@ -74,9 +74,9 @@ export class ApiKeysController {
 /**
  * Ponta autenticada por chave de API.
  *
- * Existe para que o servidor do merchant confirme qual organizacao a chave
- * representa, e para exercitar o caminho de autenticacao por chave de ponta a
- * ponta. As rotas de cobranca da fase 05 entram por aqui.
+ * Existe para que o servidor do merchant confirme qual organização a chave
+ * representa, e para exercitar o caminho de autenticação por chave de ponta a
+ * ponta. As rotas de cobrança da fase 05 entram por aqui.
  */
 @ApiTags('merchant')
 @ApiBearerAuth('merchant')
@@ -86,7 +86,7 @@ export class MerchantContextController {
 
   @Get('me')
   @AllowApiKey()
-  @ApiOperation({ summary: 'Organizacao e ambiente da chave apresentada' })
+  @ApiOperation({ summary: 'Organização e ambiente da chave apresentada' })
   async me(@CurrentApiKey() key: AuthContext & { kind: 'apiKey' }) {
     const organization = await this.organizations.findById(key.organizationId);
 

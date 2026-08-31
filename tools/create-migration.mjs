@@ -1,10 +1,10 @@
 /**
- * Cria uma migration a partir da diferenca entre o historico aplicado e o
+ * Cria uma migration a partir da diferença entre o histórico aplicado e o
  * schema atual, sem depender de terminal interativo.
  *
  * `prisma migrate dev` faz o mesmo, mas pergunta antes de agir e trava quando
  * roda em CI, em script ou em qualquer contexto sem TTY. Este script usa
- * `prisma migrate diff`, que e puramente calculo, e escreve o arquivo no lugar
+ * `prisma migrate diff`, que é puramente calculo, e escreve o arquivo no lugar
  * certo. Aplicar continua sendo trabalho do `pnpm db:deploy`.
  *
  * Uso: pnpm db:diff nome_da_migration
@@ -17,13 +17,13 @@ const name = process.argv[2];
 
 if (!name || !/^[a-z0-9_]+$/.test(name)) {
   console.error('Uso: pnpm db:diff nome_da_migration');
-  console.error('O nome aceita apenas letras minusculas, numeros e sublinhado.');
+  console.error('O nome aceita apenas letras minusculas, números e sublinhado.');
   process.exit(1);
 }
 
 const shadowUrl = process.env.SHADOW_DATABASE_URL;
 if (!shadowUrl) {
-  console.error('SHADOW_DATABASE_URL nao definida. Veja o .env.example.');
+  console.error('SHADOW_DATABASE_URL não definida. Veja o .env.example.');
   process.exit(1);
 }
 
@@ -49,7 +49,7 @@ const sql = execFileSync(
 );
 
 if (sql.includes('This is an empty migration')) {
-  console.error('Nenhuma diferenca entre o schema e as migrations aplicadas.');
+  console.error('Nenhuma diferença entre o schema e as migrations aplicadas.');
   process.exit(0);
 }
 

@@ -9,9 +9,9 @@ import { AppModule } from '../src/app.module';
 /**
  * Exige PostgreSQL e Redis de pe. Rode `pnpm infra:up` antes.
  *
- * O teste sobe a aplicacao inteira, sem substituir nenhuma dependencia por
- * dublê: o objetivo do probe de prontidao e justamente afirmar que as conexoes
- * reais funcionam, e verificar isso contra um mock nao afirmaria nada.
+ * O teste sobe a aplicação inteira, sem substituir nenhuma dependência por
+ * dublê: o objetivo do probe de prontidao é justamente afirmar que as conexões
+ * reais funcionam, e verificar isso contra um mock não afirmaria nada.
  */
 describe('Health (e2e)', () => {
   let app: INestApplication;
@@ -50,7 +50,7 @@ describe('Health (e2e)', () => {
       expect(response.body.checks.redis.status).toBe('up');
     });
 
-    it('reporta a latencia de cada dependencia', async () => {
+    it('reporta a latência de cada dependência', async () => {
       const response = await request(http()).get('/health/ready').expect(200);
 
       expect(response.body.checks.database.latencyMs).toBeGreaterThanOrEqual(0);
@@ -58,8 +58,8 @@ describe('Health (e2e)', () => {
     });
   });
 
-  describe('prefixo de versao', () => {
-    it('mantem as rotas de saude fora do prefixo /v1', async () => {
+  describe('prefixo de versão', () => {
+    it('mantém as rotas de saude fora do prefixo /v1', async () => {
       await request(http()).get('/v1/health/live').expect(404);
     });
   });

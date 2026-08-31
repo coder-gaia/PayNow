@@ -15,17 +15,17 @@ import {
 } from './session';
 
 /**
- * Acoes do painel.
+ * Ações do painel.
  *
- * Toda mutacao passa por aqui, no servidor, e nenhuma resposta com token chega
- * ao navegador: os tokens sao gravados em cookie httpOnly e ficam do lado de
+ * Toda mutação passa por aqui, no servidor, e nenhuma resposta com token chega
+ * ao navegador: os tokens são gravados em cookie httpOnly e ficam do lado de
  * ca. Ver o comentario em session.ts para o motivo.
  */
 
 export interface FormState {
   readonly error?: string;
   readonly ok?: boolean;
-  /** Segredo recem criado, exibido uma unica vez. */
+  /** Segredo recem criado, exibido uma única vez. */
   readonly secret?: string;
 }
 
@@ -33,8 +33,8 @@ export interface FormState {
  * Le um campo de texto do formulario.
  *
  * `FormData.get` devolve string ou File. Passar um File por `String()` produz
- * "[object Object]" em silencio, entao o tipo e verificado e um envio
- * inesperado cai no padrao em vez de virar dado corrompido.
+ * "[object Object]" em silêncio, então o tipo é verificado e um envio
+ * inesperado cai no padrão em vez de virar dado corrompido.
  */
 function text(formData: FormData, field: string, fallback = ''): string {
   const value = formData.get(field);
@@ -53,7 +53,7 @@ function toFormState(error: unknown): FormState {
     return { error: error.message };
   }
 
-  return { error: 'Nao foi possivel falar com a API. Ela esta no ar?' };
+  return { error: 'Não foi possível falar com a API. Ela está no ar?' };
 }
 
 export async function login(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -99,11 +99,11 @@ export async function register(_previous: FormState, formData: FormData): Promis
 }
 
 /**
- * Troca a organizacao ativa.
+ * Troca a organização ativa.
  *
- * Nao verifica se a pessoa participa da organizacao: quem faz isso e
+ * Não verifica se a pessoa participa da organização: quem faz isso é
  * `resolveActiveOrganization`, que confere o cookie contra a lista real vinda
- * da API a cada renderizacao. Validar aqui tambem seria uma segunda copia da
+ * da API a cada renderizacao. Validar aqui também seria uma segunda copia da
  * mesma regra, que pode divergir.
  */
 export async function selectOrganization(organizationId: string): Promise<void> {
@@ -132,7 +132,7 @@ export async function logout(): Promise<void> {
       });
     } catch {
       // Se a API recusar, o cookie sai do navegador do mesmo jeito: do ponto de
-      // vista de quem clicou em sair, a sessao acabou.
+      // vista de quem clicou em sair, a sessão acabou.
     }
   }
 

@@ -7,7 +7,7 @@ import { MemberActions } from './member-actions';
 
 export const metadata = { title: 'Membros · Paynow' };
 
-/** Papeis que administram membros. Quem esta abaixo disso so enxerga a lista. */
+/** Papéis que administram membros. Quem esta abaixo disso só enxerga a lista. */
 const CAN_MANAGE = new Set(['OWNER', 'ADMIN']);
 
 export default async function MembersPage() {
@@ -22,15 +22,15 @@ export default async function MembersPage() {
       <PageHeader
         eyebrow="Membros"
         title="Quem tem acesso"
-        description="Os papeis sao estritamente ordenados. Ninguem concede um papel igual ou superior ao proprio, e a organizacao nunca fica sem OWNER."
+        description="Os papéis são estritamente ordenados. Ninguém concede um papel igual ou superior ao próprio, e a organização nunca fica sem OWNER."
       />
 
       <Panel
         title={`${members.length} ${members.length === 1 ? 'pessoa' : 'pessoas'}`}
         description={
           canManage
-            ? 'Voce pode administrar quem esta abaixo do seu papel.'
-            : `Seu papel e ${active.role}, entao a lista e somente leitura.`
+            ? 'Você pode administrar quem está abaixo do seu papel.'
+            : `Seu papel é ${active.role}, então a lista é somente leitura.`
         }
       >
         <Table headers={['Pessoa', 'Papel', 'Entrou em', '']}>
@@ -63,7 +63,7 @@ export default async function MembersPage() {
       {canManage && (
         <Panel
           title="Adicionar membro"
-          description="A pessoa precisa ja ter conta no Paynow. Convite por email entra em uma fase futura."
+          description="A pessoa precisa já ter conta no Paynow. Convite por email entra em uma fase futura."
         >
           <AddMemberForm organizationId={active.id} actorRole={active.role} />
         </Panel>

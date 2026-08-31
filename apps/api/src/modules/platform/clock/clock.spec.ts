@@ -21,7 +21,7 @@ describe('FixedClock', () => {
     expect(clock.now().toISOString()).toBe('2026-03-15T12:00:00.000Z');
   });
 
-  it('nao devolve a mesma referencia, para que quem chama nao consiga mutar', () => {
+  it('não devolve a mesma referência, para que quem chama não consiga mutar', () => {
     const clock = new FixedClock(instant);
     const first = clock.now();
     first.setFullYear(1999);
@@ -29,14 +29,14 @@ describe('FixedClock', () => {
     expect(clock.now().getFullYear()).toBe(2026);
   });
 
-  it('avanca em milissegundos', () => {
+  it('avança em milissegundos', () => {
     const clock = new FixedClock(instant);
     clock.advanceBy(90_000);
 
     expect(clock.now().toISOString()).toBe('2026-03-15T12:01:30.000Z');
   });
 
-  it('move para um instante especifico', () => {
+  it('move para um instante específico', () => {
     const clock = new FixedClock(instant);
     clock.set(new Date('2027-01-01T00:00:00.000Z'));
 

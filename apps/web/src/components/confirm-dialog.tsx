@@ -13,21 +13,21 @@ import {
 import { Button } from './ui';
 
 /**
- * Confirmacao de acao destrutiva.
+ * Confirmação de ação destrutiva.
  *
- * Substitui `window.confirm`, que trava a aba inteira, nao aceita estilo e nao
- * deixa distinguir uma remocao de uma revogacao definitiva.
+ * Substitui `window.confirm`, que trava a aba inteira, não aceita estilo e não
+ * deixa distinguir uma remoção de uma revogação definitiva.
  *
- * Usa o elemento `<dialog>` nativo com `showModal()`, que ja traz de graca o
- * que uma implementacao caseira erra: prender o foco dentro do modal, devolver
- * o foco ao elemento de origem ao fechar, tornar o resto da pagina inerte para
+ * Usa o elemento `<dialog>` nativo com `showModal()`, que já traz de graca o
+ * que uma implementação caseira erra: prender o foco dentro do modal, devolver
+ * o foco ao elemento de origem ao fechar, tornar o resto da página inerte para
  * leitores de tela, e fechar no Escape.
  */
 
 export interface ConfirmOptions {
   readonly title: string;
   readonly description: string;
-  /** Texto do botao que confirma. Deve dizer o que vai acontecer. */
+  /** Texto do botão que confirma. Deve dizer o que vai acontecer. */
   readonly confirmLabel: string;
   readonly tone?: 'danger' | 'neutral';
 }
@@ -59,8 +59,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     (options) =>
       new Promise<boolean>((resolve) => {
         setPending((previous) => {
-          // Uma segunda confirmacao pedida antes de a primeira ser respondida
-          // deixaria a promessa anterior pendurada para sempre, e quem a
+          // Uma segunda confirmação pedida antes de a primeira ser respondida
+          // deixaria a promessa anterior pendurada para sempre, é quem a
           // aguardava nunca sairia do estado de carregamento. Resolver como
           // recusa encerra o pedido antigo antes de abrir o novo.
           previous?.resolve(false);
@@ -100,7 +100,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         aria-labelledby="confirm-title"
         aria-describedby="confirm-description"
         onCancel={(event) => {
-          // O Escape dispara `cancel`. Sem interceptar, o dialogo fecharia e a
+          // O Escape dispara `cancel`. Sem interceptar, o diálogo fecharia e a
           // promessa ficaria pendurada para sempre.
           event.preventDefault();
           settle(false);

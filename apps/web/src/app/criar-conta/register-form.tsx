@@ -22,7 +22,7 @@ export function RegisterForm() {
         <Input name="email" type="email" autoComplete="email" required />
       </Field>
 
-      <Field label="Senha" hint="Ao menos 10 caracteres. Nao ha regra de composicao.">
+      <Field label="Senha" hint="Ao menos 10 caracteres. Não há regra de composição.">
         <PasswordInput name="password" autoComplete="new-password" required minLength={10} />
       </Field>
 

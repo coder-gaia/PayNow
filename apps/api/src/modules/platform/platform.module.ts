@@ -9,13 +9,13 @@ import { RedisModule } from './redis/redis.module';
 /**
  * Primitivas transversais do sistema.
  *
- * Este e o unico modulo que os modulos de dominio podem importar livremente
+ * Este é o único módulo que os módulos de domínio podem importar livremente
  * (ver ADR-0001 e a regra boundaries/element-types no eslint.config.mjs).
- * Ele existe justamente para que nenhum modulo de dominio precise conhecer
+ * Ele existe justamente para que nenhum módulo de domínio precise conhecer
  * outro para funcionar.
  *
- * O relogio injetado (ADR-0009) ja vive aqui. Ao longo das fases seguintes o
- * modulo recebe tambem o outbox transacional e a camada de idempotencia.
+ * O relógio injetado (ADR-0009) já vive aqui. Ao longo das fases seguintes o
+ * módulo recebe também o outbox transacional e a camada de idempotência.
  */
 @Module({
   imports: [ClockModule, PrismaModule, RedisModule, HealthModule],

@@ -3,18 +3,18 @@ import { type APIRequestContext, expect, type Page } from '@playwright/test';
 /**
  * Preparo dos testes de interface.
  *
- * Cada teste monta a propria organizacao chamando a API direto, e so depois
- * exercita a interface. Duas razoes:
+ * Cada teste monta a própria organização chamando a API direto, e só depois
+ * exercita a interface. Duas razões:
  *
- * 1. Os dados de demonstracao pertencem a quem esta usando o projeto. Uma
- *    suite que muda o papel da Carla e enche a lista de chaves deixa o painel
- *    pior a cada execucao.
- * 2. Estado compartilhado entre testes produz falha intermitente, que e o pior
- *    tipo: some quando se olha e volta quando nao se olha.
+ * 1. Os dados de demonstracao pertencem a quem está usando o projeto. Uma
+ *    suíte que muda o papel da Carla e enche a lista de chaves deixa o painel
+ *    pior a cada execução.
+ * 2. Estado compartilhado entre testes produz falha intermitente, que é o pior
+ *    tipo: some quando se olha e volta quando não se olha.
  *
- * Montar por API e nao pela interface e proposital: preparo nao e o que esta
- * sendo verificado, e passar por telas so tornaria o teste mais lento e mais
- * fragil.
+ * Montar por API e não pela interface é proposital: preparo não é o que está
+ * sendo verificado, e passar por telas só tornaria o teste mais lento e mais
+ * frágil.
  */
 
 const API_URL = process.env['PAYNOW_API_URL'] ?? 'http://localhost:3333/v1';
@@ -57,7 +57,12 @@ async function json<T>(
   return (await response.json()) as T;
 }
 
-/** Cria uma conta com organizacao propria e devolve o contexto para agir nela. */
+/**
+ * Cria uma conta com organização própria e devolve o contexto para agir nela.
+ *
+ * O rótulo entra no endereço de email, então precisa ser ASCII: email com
+ * acento na parte local é recusado pela validação da API.
+ */
 export async function createWorkspace(
   request: APIRequestContext,
   label = 'org',
@@ -83,7 +88,7 @@ export async function createWorkspace(
   };
 }
 
-/** Cria uma conta nova e a coloca na organizacao com o papel pedido. */
+/** Cria uma conta nova e a coloca na organização com o papel pedido. */
 export async function addPerson(
   request: APIRequestContext,
   workspace: Workspace,
@@ -106,7 +111,7 @@ export async function addPerson(
   return { email, name, userId: membership.userId };
 }
 
-/** Cria uma chave de API pela API, quando o teste precisa de uma ja existente. */
+/** Cria uma chave de API pela API, quando o teste precisa de uma já existente. */
 export async function createApiKey(
   request: APIRequestContext,
   workspace: Workspace,
@@ -129,8 +134,8 @@ export async function login(page: Page, email: string): Promise<void> {
 /**
  * Toast pelo texto.
  *
- * O Next mantem um anunciador de rota com `role="alert"` fixo na pagina, entao
- * procurar so pelo papel encontra dois elementos.
+ * O Next mantém um anunciador de rota com `role="alert"` fixo na página, então
+ * procurar só pelo papel encontra dois elementos.
  */
 export const toast = (page: Page, text: string) =>
   page.getByRole('alert').filter({ hasText: text });

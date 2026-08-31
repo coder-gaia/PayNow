@@ -20,22 +20,22 @@ export function RevokeApiKeyButton({
   const confirm = useConfirm();
 
   /**
-   * A confirmacao acontece fora da transicao, e a transicao comeca so depois.
+   * A confirmação acontece fora da transição, e a transição começa só depois.
    *
-   * Esperar a resposta de uma pessoa dentro de `startTransition` mantem a
-   * transicao pendente por tempo indefinido e, pior, transforma a abertura do
-   * dialogo em uma atualizacao de baixa prioridade presa dentro da propria
-   * transicao que depende dela para terminar. O resultado e um botao travado
+   * Esperar a resposta de uma pessoa dentro de `startTransition` mantém a
+   * transição pendente por tempo indefinido e, pior, transforma a abertura do
+   * diálogo em uma atualização de baixa prioridade presa dentro da própria
+   * transição que depende dela para terminar. O resultado é um botão travado
    * em "Revogando..." para sempre.
    *
-   * Transicao serve para cobrir o trabalho no servidor, e nao a espera por um
+   * Transição serve para cobrir o trabalho no servidor, e não a espera por um
    * clique.
    */
   const handleClick = async (): Promise<void> => {
     const confirmed = await confirm({
       title: `Revogar "${name}"`,
       description:
-        'Qualquer servidor que use esta chave perde o acesso na hora, e nao ha como reativa-la. A linha continua na lista para preservar a trilha de uso.',
+        'Qualquer servidor que use esta chave perde o acesso na hora, e não há como reativá-la. A linha continua na lista para preservar a trilha de uso.',
       confirmLabel: 'Revogar',
     });
 

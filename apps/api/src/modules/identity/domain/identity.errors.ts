@@ -7,89 +7,89 @@ import {
 } from '@nestjs/common';
 
 /**
- * Erros do modulo de identidade.
+ * Erros do módulo de identidade.
  *
  * Duas regras guiam as mensagens:
  *
- * 1. Erro de autenticacao nunca diz se o problema foi o email ou a senha. A
+ * 1. Erro de autenticação nunca diz se o problema foi o email ou a senha. A
  *    distincao transforma o formulario de login em um verificador de quais
  *    emails existem no sistema.
- * 2. Erro de autorizacao diz o que faltou, porque quem ja esta autenticado tem
+ * 2. Erro de autorização diz o que faltou, porque quem já está autenticado tem
  *    direito de entender por que foi barrado.
  */
 
 export class InvalidCredentialsError extends UnauthorizedException {
   constructor() {
-    super('Email ou senha invalidos.');
+    super('Email ou senha inválidos.');
   }
 }
 
 export class EmailAlreadyRegisteredError extends ConflictException {
   constructor() {
-    super('Ja existe uma conta com este email.');
+    super('Já existe uma conta com este email.');
   }
 }
 
 export class InvalidRefreshTokenError extends UnauthorizedException {
-  constructor(detail = 'Refresh token invalido ou expirado.') {
+  constructor(detail = 'Refresh token inválido ou expirado.') {
     super(detail);
   }
 }
 
 /**
- * Reuso de refresh token ja consumido. Trata-se de vazamento ate prova em
- * contrario, entao a familia inteira e revogada antes deste erro subir.
+ * Reuso de refresh token já consumido. Trata-se de vazamento até prova em
+ * contrario, então a familia inteira é revogada antes deste erro subir.
  */
 export class RefreshTokenReuseError extends UnauthorizedException {
   constructor() {
-    super('Sessao encerrada por seguranca: este refresh token ja tinha sido usado.');
+    super('Sessão encerrada por segurança: este refresh token já tinha sido usado.');
   }
 }
 
 export class OrganizationNotFoundError extends NotFoundException {
   constructor() {
-    super('Organizacao nao encontrada.');
+    super('Organização não encontrada.');
   }
 }
 
 export class NotAMemberError extends ForbiddenException {
   constructor() {
-    super('Voce nao pertence a esta organizacao.');
+    super('Você não pertence a esta organização.');
   }
 }
 
 export class InsufficientRoleError extends ForbiddenException {
   constructor(required: string, actual: string) {
-    super(`Esta acao exige o papel ${required} ou superior. O seu papel e ${actual}.`);
+    super(`Esta ação exige o papel ${required} ou superior. O seu papel é ${actual}.`);
   }
 }
 
 export class CannotDemoteLastOwnerError extends BadRequestException {
   constructor() {
-    super('A organizacao precisa de ao menos um OWNER. Promova outra pessoa antes.');
+    super('A organização precisa de ao menos um OWNER. Promova outra pessoa antes.');
   }
 }
 
 export class MemberAlreadyExistsError extends ConflictException {
   constructor() {
-    super('Esta pessoa ja pertence a organizacao.');
+    super('Esta pessoa já pertence à organização.');
   }
 }
 
 export class MemberNotFoundError extends NotFoundException {
   constructor() {
-    super('Membro nao encontrado nesta organizacao.');
+    super('Membro não encontrado nesta organização.');
   }
 }
 
 export class UserNotFoundError extends NotFoundException {
   constructor() {
-    super('Usuario nao encontrado.');
+    super('Usuário não encontrado.');
   }
 }
 
 export class ApiKeyNotFoundError extends NotFoundException {
   constructor() {
-    super('Chave de API nao encontrada.');
+    super('Chave de API não encontrada.');
   }
 }

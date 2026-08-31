@@ -30,21 +30,21 @@ type UserContext = AuthContext & { kind: 'user' };
 
 const uuid = () => new ParseUUIDPipe({ version: '7' });
 
-@ApiTags('organizacoes')
-@ApiBearerAuth('usuario')
+@ApiTags('organizações')
+@ApiBearerAuth('usuário')
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizations: OrganizationsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Organizacoes das quais o usuario participa' })
+  @ApiOperation({ summary: 'Organizações das quais o usuário participa' })
   @ApiOkResponse({ type: [OrganizationSummary] })
   list(@CurrentUser() user: UserContext) {
     return this.organizations.listForUser(user.userId);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Cria uma organizacao, com quem criou como OWNER' })
+  @ApiOperation({ summary: 'Cria uma organização, com quem criou como OWNER' })
   create(@CurrentUser() user: UserContext, @Body() dto: CreateOrganizationDto) {
     return this.organizations.create(user.userId, dto.name);
   }
@@ -70,7 +70,7 @@ export class OrganizationsController {
   @ApiOperation({
     summary: 'Adiciona um membro',
     description:
-      'A pessoa precisa ja ter conta. Ninguem concede um papel igual ou superior ao proprio.',
+      'A pessoa precisa já ter conta. Ninguém concede um papel igual ou superior ao próprio.',
   })
   addMember(
     @Param('organizationId', uuid()) organizationId: string,
@@ -85,7 +85,7 @@ export class OrganizationsController {
   @RequireRole(OrganizationRole.ADMIN)
   @ApiOperation({
     summary: 'Muda o papel de um membro',
-    description: 'A organizacao nunca fica sem OWNER: rebaixar o ultimo e recusado.',
+    description: 'A organização nunca fica sem OWNER: rebaixar o último é recusado.',
   })
   updateMemberRole(
     @Param('organizationId', uuid()) organizationId: string,
@@ -109,7 +109,7 @@ export class OrganizationsController {
   @ApiOperation({
     summary: 'Remove um membro',
     description:
-      'Sair da propria organizacao e permitido a qualquer papel. Remover outra pessoa ' +
+      'Sair da própria organização é permitido a qualquer papel. Remover outra pessoa ' +
       'exige poder estritamente maior que o dela.',
   })
   async removeMember(

@@ -5,14 +5,14 @@ import { type ComponentProps, createContext, type ReactNode, useContext, useId }
 /**
  * Campos de formulario.
  *
- * O rotulo se liga ao controle por `htmlFor`, e nao envolvendo-o. A diferenca
- * parece cosmetica e nao e: quando um campo tem adorno interno, como o botao
+ * O rotulo se liga ao controle por `htmlFor`, e não envolvendo-o. A diferença
+ * parece cosmetica e não e: quando um campo tem adorno interno, como o botão
  * de revelar senha, envolver faz o nome acessivel do input virar a soma de
- * tudo que esta dentro do rotulo. O campo de senha era anunciado como
+ * tudo que está dentro do rotulo. O campo de senha era anunciado como
  * "Senha Mostrar senha".
  *
- * O identificador e gerado uma vez pelo `Field` e distribuido por contexto,
- * para que nenhum ponto de uso precise inventar e casar ids na mao.
+ * O identificador é gerado uma vez pelo `Field` e distribuido por contexto,
+ * para que nenhum ponto de uso precise inventar e casar ids na mão.
  */
 
 interface FieldContextValue {
@@ -23,10 +23,10 @@ interface FieldContextValue {
 const FieldContext = createContext<FieldContextValue | null>(null);
 
 /**
- * Propriedades de acessibilidade que o controle herda do `Field` que o contem.
+ * Propriedades de acessibilidade que o controle herda do `Field` que o contém.
  *
  * Fora de um `Field`, devolve nada: um controle solto, como o seletor de papel
- * dentro da tabela de membros, carrega o proprio `aria-label`.
+ * dentro da tabela de membros, carrega o próprio `aria-label`.
  */
 export function useFieldControlProps(): { id?: string; 'aria-describedby'?: string } {
   const field = useContext(FieldContext);

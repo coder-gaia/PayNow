@@ -3,10 +3,10 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Testes de interface.
  *
- * Existem porque a fase 01 do painel entregou dois bugs que so aparecem com o
- * navegador de verdade: um `<select>` nao controlado que mantinha na tela um
- * papel recusado pelo servidor, e um botao preso em "Revogando..." porque a
- * confirmacao esperava um clique dentro de uma transicao do React. Nenhum dos
+ * Existem porque a fase 01 do painel entregou dois bugs que só aparecem com o
+ * navegador de verdade: um `<select>` não controlado que mantinha na tela um
+ * papel recusado pelo servidor, e um botão preso em "Revogando..." porque a
+ * confirmação esperava um clique dentro de uma transição do React. Nenhum dos
  * dois seria pego por teste de unidade ou por teste de API.
  *
  * Exigem a pilha inteira de pe: PostgreSQL, Redis, a API e os dados de
@@ -17,7 +17,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: process.env['CI'] === 'true',
   retries: process.env['CI'] === 'true' ? 1 : 0,
-  // Serial de proposito: os testes compartilham a organizacao de demonstracao,
+  // Serial de proposito: os testes compartilham a organização de demonstracao,
   // e rodar em paralelo faria um mexer no papel que o outro esta conferindo.
   workers: 1,
   reporter: process.env['CI'] === 'true' ? 'list' : [['list'], ['html', { open: 'never' }]],

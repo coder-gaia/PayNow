@@ -8,9 +8,9 @@ import { ACCESS_COOKIE } from './session';
  * Cliente da API do Paynow, usado apenas no servidor.
  *
  * A fase 08 troca este arquivo por um cliente gerado a partir do contrato
- * OpenAPI, que a API ja publica em /docs/openapi.json. Ate la os tipos sao
- * escritos a mao, e a duplicacao e consciente: gerar cliente antes de o
- * contrato estabilizar produz ruido a cada mudanca de rota.
+ * OpenAPI, que a API já pública em /docs/openapi.json. Até la os tipos são
+ * escritos a mão, e a duplicação e consciente: gerar cliente antes de o
+ * contrato estabilizar produz ruído a cada mudança de rota.
  */
 
 const API_URL = process.env['PAYNOW_API_URL'] ?? 'http://localhost:3333/v1';
@@ -25,10 +25,10 @@ export class ApiError extends Error {
   }
 }
 
-/** Sessao invalida ou expirada. Quem chama redireciona para o login. */
+/** Sessão inválida ou expirada. Quem chama redireciona para o login. */
 export class UnauthenticatedError extends ApiError {
   constructor() {
-    super(401, 'Sessao expirada.');
+    super(401, 'Sessão expirada.');
     this.name = 'UnauthenticatedError';
   }
 }
@@ -43,8 +43,8 @@ interface RequestOptions {
 /**
  * Chama a API repassando o token de acesso guardado no cookie.
  *
- * A renovacao do token acontece no middleware, antes do request chegar aqui.
- * Um 401 neste ponto significa que a sessao acabou de verdade.
+ * A renovação do token acontece no middleware, antes do request chegar aqui.
+ * Um 401 neste ponto significa que a sessão acabou de verdade.
  */
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -66,11 +66,11 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     cache: 'no-store',
   });
 
-  // Um 401 em chamada autenticada significa que a sessao acabou, e quem chamou
+  // Um 401 em chamada autenticada significa que a sessão acabou, é quem chamou
   // redireciona para o login. Em chamada anonima significa outra coisa
   // completamente: a credencial que a pessoa acabou de digitar esta errada, e
   // a mensagem da API e que precisa chegar ao formulario. Tratar os dois casos
-  // igual fazia o login com senha errada dizer "Sessao expirada".
+  // igual fazia o login com senha errada dizer "Sessão expirada".
   if (response.status === 401 && options.anonymous !== true) {
     throw new UnauthenticatedError();
   }
@@ -91,8 +91,8 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 /**
  * Extrai a mensagem de erro da API.
  *
- * O Nest devolve `message` como string ou como lista, quando a validacao
- * reprova varios campos. As duas formas viram texto legivel para a interface.
+ * O Nest devolve `message` como string ou como lista, quando a validação
+ * reprova vários campos. As duas formas viram texto legível para a interface.
  */
 function extractMessage(payload: unknown, status: number): string {
   if (typeof payload === 'object' && payload !== null && 'message' in payload) {

@@ -3,24 +3,24 @@ import { AccountKind } from '@prisma/client';
 /**
  * Plano de contas do Paynow.
  *
- * Espelha docs/plano-de-contas.md, que e o documento que manda: o codigo aqui
- * so torna a lista executavel. Uma conta nova entra por ADR, com os lancamentos
- * de referencia e os testes correspondentes escritos antes da implementacao.
+ * Espelha docs/plano-de-contas.md, que é o documento que manda: o código aqui
+ * só torna a lista executavel. Uma conta nova entra por ADR, com os lançamentos
+ * de referência e os testes correspondentes escritos antes da implementação.
  *
- * Seis contas cobrem a primeira versao inteira. A restricao e deliberada: cada
+ * Seis contas cobrem a primeira versão inteira. A restrição é deliberada: cada
  * conta multiplica os casos de teste do ledger.
  */
 
 export const ACCOUNT = {
-  /** O que o cliente deve ao merchant por faturas ja emitidas. */
+  /** O que o cliente deve ao merchant por faturas já emitidas. */
   CUSTOMER_RECEIVABLE: 'customer:receivable',
-  /** Dinheiro capturado pelo gateway e ainda nao liquidado ao merchant. */
+  /** Dinheiro capturado pelo gateway e ainda não liquidado ao merchant. */
   GATEWAY_CLEARING: 'gateway:clearing',
   /** Receita reconhecida do merchant. */
   MERCHANT_REVENUE: 'merchant:revenue',
-  /** Taxa da plataforma sobre a transacao. */
+  /** Taxa da plataforma sobre a transação. */
   PLATFORM_FEE: 'platform:fee',
-  /** Credito do cliente vindo de downgrade ou estorno parcial. */
+  /** Crédito do cliente vindo de downgrade ou estorno parcial. */
   CUSTOMER_CREDIT: 'customer:credit',
   /** Estornos concedidos, deduzidos da receita. */
   MERCHANT_REFUNDS: 'merchant:refunds',
@@ -43,14 +43,14 @@ export const CHART_OF_ACCOUNTS: readonly AccountDefinition[] = [
     kind: AccountKind.ASSET,
     normalBalance: 'debit',
     label: 'Contas a receber',
-    description: 'O que o cliente deve ao merchant por faturas ja emitidas.',
+    description: 'O que o cliente deve ao merchant por faturas já emitidas.',
   },
   {
     code: ACCOUNT.GATEWAY_CLEARING,
     kind: AccountKind.ASSET,
     normalBalance: 'debit',
-    label: 'Em liquidacao no gateway',
-    description: 'Dinheiro capturado pelo gateway e ainda nao liquidado ao merchant.',
+    label: 'Em liquidação no gateway',
+    description: 'Dinheiro capturado pelo gateway e ainda não liquidado ao merchant.',
   },
   {
     code: ACCOUNT.MERCHANT_REVENUE,
@@ -64,14 +64,14 @@ export const CHART_OF_ACCOUNTS: readonly AccountDefinition[] = [
     kind: AccountKind.REVENUE,
     normalBalance: 'credit',
     label: 'Taxa da plataforma',
-    description: 'Taxa da plataforma sobre a transacao.',
+    description: 'Taxa da plataforma sobre a transação.',
   },
   {
     code: ACCOUNT.CUSTOMER_CREDIT,
     kind: AccountKind.LIABILITY,
     normalBalance: 'credit',
-    label: 'Credito do cliente',
-    description: 'Credito do cliente vindo de downgrade ou estorno parcial.',
+    label: 'Crédito do cliente',
+    description: 'Crédito do cliente vindo de downgrade ou estorno parcial.',
   },
   {
     code: ACCOUNT.MERCHANT_REFUNDS,
@@ -94,7 +94,7 @@ export function accountDefinition(code: AccountCode): AccountDefinition {
   const definition = BY_CODE.get(code);
 
   if (definition === undefined) {
-    throw new Error(`Conta ${code} nao existe no plano de contas.`);
+    throw new Error(`Conta ${code} não existe no plano de contas.`);
   }
 
   return definition;

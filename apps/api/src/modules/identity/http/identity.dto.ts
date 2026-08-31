@@ -3,24 +3,24 @@ import { ApiKeyEnvironment, OrganizationRole } from '@prisma/client';
 import { IsEmail, IsEnum, IsString, Length, MaxLength, MinLength } from 'class-validator';
 
 /**
- * Politica de senha: comprimento minimo e nada de regra de composicao.
+ * Política de senha: comprimento mínimo e nada de regra de composição.
  *
- * Exigir maiuscula, numero e simbolo empurra as pessoas para variacoes
+ * Exigir maiuscula, número é simbolo empurra as pessoas para variacoes
  * previsiveis de senhas curtas. O NIST recomenda desde 2017 privilegiar
- * comprimento e abandonar as regras de composicao, e e o que fazemos.
+ * comprimento e abandonar as regras de composição, e é o que fazemos.
  */
 const PASSWORD_MIN_LENGTH = 10;
 const PASSWORD_MAX_LENGTH = 200;
 
 export class RegisterDto {
   @ApiProperty({ example: 'ana@exemplo.com' })
-  @IsEmail({}, { message: 'Informe um email valido.' })
+  @IsEmail({}, { message: 'Informe um email válido.' })
   email!: string;
 
   @ApiProperty({
-    example: 'uma senha longa e facil de lembrar',
+    example: 'uma senha longa e fácil de lembrar',
     minLength: PASSWORD_MIN_LENGTH,
-    description: 'Comprimento minimo de 10 caracteres. Nao ha regra de composicao.',
+    description: 'Comprimento mínimo de 10 caracteres. Não há regra de composição.',
   })
   @IsString()
   @Length(PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, {
@@ -33,7 +33,7 @@ export class RegisterDto {
   @Length(2, 120)
   name!: string;
 
-  @ApiProperty({ example: 'Livraria Aurora', description: 'Nome da primeira organizacao.' })
+  @ApiProperty({ example: 'Livraria Aurora', description: 'Nome da primeira organização.' })
   @IsString()
   @Length(2, 120)
   organizationName!: string;
@@ -41,17 +41,17 @@ export class RegisterDto {
 
 export class LoginDto {
   @ApiProperty({ example: 'ana@exemplo.com' })
-  @IsEmail({}, { message: 'Informe um email valido.' })
+  @IsEmail({}, { message: 'Informe um email válido.' })
   email!: string;
 
-  @ApiProperty({ example: 'uma senha longa e facil de lembrar' })
+  @ApiProperty({ example: 'uma senha longa e fácil de lembrar' })
   @IsString()
   @MaxLength(PASSWORD_MAX_LENGTH)
   password!: string;
 }
 
 export class RefreshDto {
-  @ApiProperty({ description: 'Refresh token recebido no login ou na rotacao anterior.' })
+  @ApiProperty({ description: 'Refresh token recebido no login ou na rotação anterior.' })
   @IsString()
   @MinLength(20)
   refreshToken!: string;
@@ -65,8 +65,8 @@ export class CreateOrganizationDto {
 }
 
 export class AddMemberDto {
-  @ApiProperty({ example: 'bruno@exemplo.com', description: 'A pessoa precisa ja ter conta.' })
-  @IsEmail({}, { message: 'Informe um email valido.' })
+  @ApiProperty({ example: 'bruno@exemplo.com', description: 'A pessoa precisa já ter conta.' })
+  @IsEmail({}, { message: 'Informe um email válido.' })
   email!: string;
 
   @ApiProperty({ enum: OrganizationRole, example: OrganizationRole.MEMBER })
@@ -89,14 +89,14 @@ export class CreateApiKeyDto {
   @ApiPropertyOptional({
     enum: ApiKeyEnvironment,
     default: ApiKeyEnvironment.TEST,
-    description: 'Chaves TEST nao movimentam dinheiro real.',
+    description: 'Chaves TEST não movimentam dinheiro real.',
   })
   @IsEnum(ApiKeyEnvironment)
   environment: ApiKeyEnvironment = ApiKeyEnvironment.TEST;
 }
 
 // ---------------------------------------------------------------------------
-// Respostas, declaradas para que o contrato OpenAPI seja util de verdade
+// Respostas, declaradas para que o contrato OpenAPI seja útil de verdade
 // ---------------------------------------------------------------------------
 
 export class SessionResponse {
@@ -137,7 +137,7 @@ export class ApiKeyResponse {
 
 export class CreatedApiKeyResponse extends ApiKeyResponse {
   @ApiProperty({
-    description: 'Chave completa. Mostrada uma unica vez: nao ha como recupera-la depois.',
+    description: 'Chave completa. Mostrada uma única vez: não há como recuperá-la depois.',
     example: 'sk_test_a1b2c3d4e5f6...',
   })
   secret!: string;

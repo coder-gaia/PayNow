@@ -23,10 +23,10 @@ const UNIQUE_VIOLATION = 'P2002';
 
 export interface PostEntryInput {
   readonly organizationId: string;
-  /** Evento de dominio que originou o lancamento. Torna o lancamento idempotente. */
+  /** Evento de domínio que originou o lançamento. Torna o lançamento idempotente. */
   readonly event: { readonly type: string; readonly id: string };
   readonly description: string;
-  /** Quando o fato aconteceu. Omitido, usa o relogio injetado. */
+  /** Quando o fato aconteceu. Omitido, usa o relógio injetado. */
   readonly occurredAt?: Date;
   readonly lines: readonly EntryLine[];
 }
@@ -58,16 +58,16 @@ export interface VerificationReport {
 }
 
 /**
- * O razao.
+ * O razão.
  *
  * Toda movimentacao financeira do sistema passa por aqui, e nenhuma outra parte
- * do codigo escreve nas tabelas do ledger. Saldo nunca e gravado: e sempre uma
+ * do código escreve nas tabelas do ledger. Saldo nunca e gravado: é sempre uma
  * soma sobre linhas imutaveis (ADR-0003).
  *
- * O servico valida o lancamento antes de enviar ao banco, mas quem garante e o
+ * O serviço válida o lançamento antes de enviar ao banco, mas quem garante e o
  * banco: constraint diferida para soma zero, trigger que recusa UPDATE e
- * DELETE, e indice unico sobre o evento de origem. A validacao aqui existe
- * para produzir mensagem util, e nao para ser a unica barreira.
+ * DELETE, e índice único sobre o evento de origem. A validação aqui existe
+ * para produzir mensagem útil, e não para ser a única barreira.
  */
 @Injectable()
 export class LedgerService {
@@ -79,11 +79,11 @@ export class LedgerService {
   ) {}
 
   /**
-   * Registra um lancamento.
+   * Registra um lançamento.
    *
-   * As contas envolvidas sao criadas sob demanda, na mesma transacao. Isso
-   * evita que o modulo de identidade precise conhecer o ledger para provisionar
-   * o plano de contas ao criar a organizacao, o que a ADR-0001 proibe.
+   * As contas envolvidas são criadas sob demanda, na mesma transação. Isso
+   * evita que o módulo de identidade precise conhecer o ledger para provisionar
+   * o plano de contas ao criar a organização, o que a ADR-0001 proíbe.
    */
   async post(input: PostEntryInput): Promise<PostedEntry> {
     assertBalanced({ lines: input.lines });
@@ -164,9 +164,9 @@ export class LedgerService {
   /**
    * Saldo de cada conta, derivado das linhas.
    *
-   * Devolve o plano de contas inteiro, e nao apenas as contas que ja existem no
-   * banco: uma organizacao que ainda nao movimentou nada tem seis contas
-   * zeradas, e nao uma lista vazia. Zero e uma resposta, ausencia nao e.
+   * Devolve o plano de contas inteiro, e não apenas as contas que já existem no
+   * banco: uma organização que ainda não movimentou nada tem seis contas
+   * zeradas, e não uma lista vazia. Zero e uma resposta, ausência não e.
    */
   async balances(organizationId: string, currency = 'BRL'): Promise<AccountBalance[]> {
     const rows = await this.prisma.$queryRaw<
@@ -198,7 +198,7 @@ export class LedgerService {
     });
   }
 
-  /** Ultimos lancamentos, com as linhas, para o explorador do painel. */
+  /** Últimos lançamentos, com as linhas, para o explorador do painel. */
   async entries(organizationId: string, limit = 50) {
     const entries = await this.prisma.journalEntry.findMany({
       where: { organizationId },
@@ -224,11 +224,11 @@ export class LedgerService {
   }
 
   /**
-   * Auditoria completa do razao.
+   * Auditoria completa do razão.
    *
    * Recalcula os invariantes a partir das linhas, sem confiar em nenhum valor
-   * derivado que ja esteja gravado. E o que `pnpm ledger:verify` roda, e o que
-   * a rotina de reconciliacao vai chamar quando o worker entrar na fase 05.
+   * derivado que já esteja gravado. E o que `pnpm ledger:verify` roda, é o que
+   * a rotina de reconciliação vai chamar quando o worker entrar na fase 05.
    */
   async verify(organizationId?: string): Promise<VerificationReport> {
     const scope = organizationId ?? null;
@@ -242,7 +242,7 @@ export class LedgerService {
                WHERE ${scope}::uuid IS NULL OR e.organization_id = ${scope}::uuid) AS lines
     `;
 
-    // 1. Cada lancamento soma zero, por moeda.
+    // 1. Cada lançamento soma zero, por moeda.
     const unbalanced = await this.prisma.$queryRaw<
       { entry_id: string; currency: string; residual: bigint }[]
     >`
@@ -257,11 +257,11 @@ export class LedgerService {
 
     for (const row of unbalanced) {
       violations.push(
-        `Lancamento ${row.entry_id} nao soma zero em ${row.currency}: sobrou ${row.residual.toString()}.`,
+        `Lançamento ${row.entry_id} não soma zero em ${row.currency}: sobrou ${row.residual.toString()}.`,
       );
     }
 
-    // 2. Nenhum lancamento com menos de duas linhas.
+    // 2. Nenhum lançamento com menos de duas linhas.
     const thin = await this.prisma.$queryRaw<{ entry_id: string; line_count: bigint }[]>`
       SELECT e.id AS entry_id, COUNT(l.id)::bigint AS line_count
         FROM journal_entries e
@@ -274,13 +274,13 @@ export class LedgerService {
 
     for (const row of thin) {
       violations.push(
-        `Lancamento ${row.entry_id} tem ${row.line_count.toString()} linha(s), e partida dobrada exige duas.`,
+        `Lançamento ${row.entry_id} tem ${row.line_count.toString()} linha(s), e partida dobrada exige duas.`,
       );
     }
 
-    // 3. A soma global de cada moeda e zero. Se cada lancamento fecha, o total
-    //    fecha por consequencia, mas verificar os dois pega corrupcao que
-    //    tenha passado por fora da aplicacao.
+    // 3. A soma global de cada moeda é zero. Se cada lançamento fecha, o total
+    //    fecha por consequência, mas verificar os dois pega corrupcao que
+    //    tenha passado por fora da aplicação.
     const global = await this.prisma.$queryRaw<{ currency: string; residual: bigint }[]>`
       SELECT l.currency, SUM(l.amount_minor)::bigint AS residual
         FROM journal_lines l
@@ -291,7 +291,7 @@ export class LedgerService {
     `;
 
     for (const row of global) {
-      violations.push(`Soma global em ${row.currency} nao e zero: ${row.residual.toString()}.`);
+      violations.push(`Soma global em ${row.currency} não é zero: ${row.residual.toString()}.`);
     }
 
     // 4. A moeda da linha bate com a da conta.
@@ -319,7 +319,7 @@ export class LedgerService {
 
     if (!report.balanced) {
       this.logger.error(
-        `Ledger inconsistente: ${violations.length} violacao(oes) em ${report.entryCount} lancamento(s).`,
+        `Ledger inconsistente: ${violations.length} violação(oes) em ${report.entryCount} lançamento(s).`,
       );
     }
 

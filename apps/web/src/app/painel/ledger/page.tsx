@@ -2,14 +2,14 @@ import { Alert, Cell, PageHeader, Panel, Table } from '@/components/ui';
 import { resolveActiveOrganization } from '@/lib/active-organization';
 import { api, type JournalEntry } from '@/lib/api';
 
-export const metadata = { title: 'Razao · Paynow' };
+export const metadata = { title: 'Razão · Paynow' };
 
 /**
- * Explorador do razao.
+ * Explorador do razão.
  *
- * A tela existe para tornar visivel a decisao central do projeto: saldo nao e
- * um campo, e a soma das linhas. Por isso ela mostra as duas coisas lado a
- * lado, e nao apenas o saldo: a coluna de linhas diz de quantos lancamentos
+ * A tela existe para tornar visivel a decisão central do projeto: saldo não e
+ * um campo, é a soma das linhas. Por isso ela mostra as duas coisas lado a
+ * lado, e não apenas o saldo: a coluna de linhas diz de quantos lançamentos
  * cada saldo veio, e o total confere que tudo se anula.
  */
 export default async function LedgerPage() {
@@ -27,15 +27,15 @@ export default async function LedgerPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        eyebrow="Razao"
+        eyebrow="Razão"
         title="Livro de partidas dobradas"
-        description="Nenhum saldo e armazenado. Cada valor abaixo e a soma das linhas da conta, recalculada a cada carregamento desta pagina."
+        description="Nenhum saldo é armazenado. Cada valor abaixo é a soma das linhas da conta, recalculada a cada carregamento desta página."
       />
 
       {verification.balanced ? (
         <Alert tone="success">
-          <span className="font-medium">Razao integro.</span> {verification.entryCount}{' '}
-          lancamento(s) e {verification.lineCount} linha(s) conferidos. Todo lancamento soma zero e
+          <span className="font-medium">Razão íntegro.</span> {verification.entryCount}{' '}
+          lançamento(s) e {verification.lineCount} linha(s) conferidos. Todo lançamento soma zero e
           nenhuma linha foi alterada desde que foi escrita.
         </Alert>
       ) : (
@@ -53,7 +53,7 @@ export default async function LedgerPage() {
 
       <Panel
         title="Balancete"
-        description="Positivo e saldo devedor, negativo e credor. A soma de tudo precisa ser zero."
+        description="Positivo é saldo devedor, negativo é credor. A soma de tudo precisa ser zero."
       >
         <Table headers={['Conta', 'Natureza', 'Linhas', 'Saldo']}>
           {balances.map((conta) => (
@@ -92,13 +92,13 @@ export default async function LedgerPage() {
       </Panel>
 
       <Panel
-        title="Lancamentos"
-        description="Cada um carrega o evento de dominio que o originou, e cada linha diz de onde o valor saiu e para onde foi."
+        title="Lançamentos"
+        description="Cada um carrega o evento de domínio que o originou, e cada linha diz de onde o valor saiu e para onde foi."
       >
         {entries.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-ink-muted">
-            Nenhum lancamento ainda. Rode <span className="font-mono">pnpm db:seed</span> para
-            carregar os cenarios de referencia do plano de contas.
+            Nenhum lançamento ainda. Rode <span className="font-mono">pnpm db:seed</span> para
+            carregar os cenários de referência do plano de contas.
           </p>
         ) : (
           <ul className="divide-y divide-rule">
@@ -145,8 +145,8 @@ function EntryRow({ entry }: { entry: JournalEntry }) {
 /**
  * Valor com cor por natureza.
  *
- * Verde para debito e vermelho para credito nao e escolha estetica: e a mesma
- * convencao do razao em papel, e a paleta do painel foi construida em volta
+ * Verde para débito e vermelho para crédito não e escolha estetica: é a mesma
+ * convenção do razão em papel, e a paleta do painel foi construida em volta
  * dela desde a fase 01.
  */
 function Amount({ value, currency }: { value: string; currency: string }) {

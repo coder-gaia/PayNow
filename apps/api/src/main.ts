@@ -9,7 +9,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import type { Env } from './config/env';
 
-/** Rotas de infraestrutura ficam fora do versionamento da API publica. */
+/** Rotas de infraestrutura ficam fora do versionamento da API pública. */
 const UNVERSIONED_ROUTES = ['health/live', 'health/ready'];
 
 async function bootstrap(): Promise<void> {
@@ -27,8 +27,8 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // Encerramento gracioso: o Nest chama onModuleDestroy nos servicos, que
-  // fecham as conexoes com PostgreSQL e Redis antes do processo morrer.
+  // Encerramento gracioso: o Nest chama onModuleDestroy nos serviços, que
+  // fecham as conexões com PostgreSQL e Redis antes do processo morrer.
   app.enableShutdownHooks();
 
   SwaggerModule.setup(
@@ -39,11 +39,11 @@ async function bootstrap(): Promise<void> {
       new DocumentBuilder()
         .setTitle('Paynow')
         .setDescription(
-          'Motor de cobranca recorrente com ledger de partidas dobradas. ' +
-            'O saldo nao e armazenado: e derivado do livro contabil.',
+          'Motor de cobrança recorrente com ledger de partidas dobradas. ' +
+            'O saldo não é armazenado: é derivado do livro contábil.',
         )
         .setVersion('0.1.0')
-        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'usuario')
+        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'usuário')
         .addApiKey({ type: 'apiKey', name: 'Authorization', in: 'header' }, 'merchant')
         .build(),
     ),

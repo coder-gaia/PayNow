@@ -19,7 +19,7 @@ export interface CreatedApiKey {
   readonly name: string;
   readonly environment: ApiKeyEnvironment;
   readonly prefix: string;
-  /** Segredo completo. Devolvido uma unica vez, nunca recuperavel depois. */
+  /** Segredo completo. Devolvido uma única vez, nunca recuperável depois. */
   readonly secret: string;
   readonly createdAt: Date;
 }
@@ -34,10 +34,10 @@ export interface AuthenticatedApiKey {
  * Chaves de API do merchant.
  *
  * Formato: `sk_test_<segredo>` ou `sk_live_<segredo>`, com o segredo em
- * base64url de 32 bytes. O banco guarda o prefixo, que e `sk_test_` mais os
+ * base64url de 32 bytes. O banco guarda o prefixo, que é `sk_test_` mais os
  * oito primeiros caracteres do segredo, e o hash do valor inteiro.
  *
- * O prefixo tem duas funcoes: permite achar a linha por indice sem varrer a
+ * O prefixo tem duas funções: permite achar a linha por índice sem varrer a
  * tabela comparando hashes, e da a interface algo para exibir depois que o
  * segredo some, do jeito que qualquer painel de pagamentos faz.
  */
@@ -111,7 +111,7 @@ export class ApiKeysService {
    * Resolve uma chave apresentada em um request.
    *
    * Devolve null para qualquer falha, sem distinguir chave inexistente de
-   * chave revogada: quem apresenta uma chave invalida nao tem direito a saber
+   * chave revogada: quem apresenta uma chave inválida não tem direito a saber
    * qual dos dois casos ocorreu.
    */
   async authenticate(presented: string): Promise<AuthenticatedApiKey | null> {
@@ -132,7 +132,7 @@ export class ApiKeysService {
     }
 
     // Registro de uso sem bloquear a resposta: saber que a chave esta viva vale
-    // muito na operacao, mas nao vale somar uma escrita a latencia de cada
+    // muito na operação, mas não vale somar uma escrita a latência de cada
     // request autenticado.
     void this.touch(key.id);
 
@@ -150,13 +150,13 @@ export class ApiKeysService {
         data: { lastUsedAt: this.clock.now() },
       });
     } catch {
-      // Carimbo de ultimo uso e informacao operacional. Falhar aqui nao pode
-      // derrubar um request que ja foi autenticado com sucesso.
+      // Carimbo de último uso e informação operacional. Falhar aqui não pode
+      // derrubar um request que já foi autenticado com sucesso.
     }
   }
 }
 
-/** Extrai o prefixo indexado de uma chave apresentada, ou null se o formato nao bate. */
+/** Extrai o prefixo indexado de uma chave apresentada, ou null se o formato não bate. */
 function extractPrefix(presented: string): string | null {
   const match = /^(sk_(?:test|live)_)([A-Za-z0-9_-]{8,})$/.exec(presented.trim());
 

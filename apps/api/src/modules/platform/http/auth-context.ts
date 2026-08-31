@@ -5,15 +5,15 @@ import type { Request } from 'express';
 /**
  * Quem esta chamando.
  *
- * Vive em `platform`, e nao em `identity`, por causa da ADR-0001: modulo de
- * dominio nao importa modulo de dominio. O controller de saude ja precisa do
- * `@Public()`, e a partir da fase 05 os modulos de pagamento vao precisar do
- * `@AllowApiKey()` e do `@CurrentApiKey()`. Quem implementa a verificacao
- * continua sendo o `identity`; o que esta aqui e apenas o contrato.
+ * Vive em `platform`, e não em `identity`, por causa da ADR-0001: módulo de
+ * domínio não importa módulo de domínio. O controller de saude já precisa do
+ * `@Public()`, e a partir da fase 05 os módulos de pagamento vao precisar do
+ * `@AllowApiKey()` e do `@CurrentApiKey()`. Quem implementa a verificação
+ * continua sendo o `identity`; o que está aqui é apenas o contrato.
  *
- * O sistema tem dois tipos de chamador, e eles nao se misturam: uma pessoa no
+ * O sistema tem dois tipos de chamador, e eles não se misturam: uma pessoa no
  * painel, autenticada por JWT, e o servidor de um merchant, autenticado por
- * chave de API. Modelar isso como uniao discriminada, e nao como um objeto
+ * chave de API. Modelar isso como uniao discriminada, e não como um objeto
  * `user` com campos opcionais, faz o compilador cobrar o tratamento dos dois
  * casos em todo lugar que importa.
  */
@@ -39,32 +39,32 @@ export const IS_PUBLIC = 'paynow:isPublic';
 export const ALLOWS_API_KEY = 'paynow:allowsApiKey';
 export const REQUIRED_ROLE = 'paynow:requiredRole';
 
-/** Dispensa autenticacao. Usar com parcimonia e sempre com motivo obvio. */
+/** Dispensa autenticação. Usar com parcimonia é sempre com motivo óbvio. */
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
 /**
- * Aceita chave de API alem de JWT.
+ * Aceita chave de API além de JWT.
  *
  * Sem isto, apresentar uma chave `sk_` em uma rota do painel e rejeitado. A
- * separacao e deliberada: uma chave de servidor nunca deveria conseguir mexer
+ * separacao é deliberada: uma chave de servidor nunca deveria conseguir mexer
  * na conta de uma pessoa.
  */
 export const AllowApiKey = () => SetMetadata(ALLOWS_API_KEY, true);
 
-/** Exige papel minimo na organizacao indicada pelo parametro de rota. */
+/** Exige papel mínimo na organização indicada pelo parâmetro de rota. */
 export const RequireRole = (role: OrganizationRole) => SetMetadata(REQUIRED_ROLE, role);
 
 // ---------------------------------------------------------------------------
-// Decorators de parametro
+// Decorators de parâmetro
 // ---------------------------------------------------------------------------
 
-/** Usuario autenticado. Lanca se a rota nao passou pelo guard de JWT. */
+/** Usuário autenticado. Lanca se a rota não passou pelo guard de JWT. */
 export const CurrentUser = createParamDecorator((_data: unknown, context: ExecutionContext) => {
   const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
   if (request.auth?.kind !== 'user') {
     throw new Error(
-      'CurrentUser usado em rota que nao exige autenticacao de usuario. ' +
+      'CurrentUser usado em rota que não exige autenticação de usuário. ' +
         'Remova o @Public() ou troque por @CurrentApiKey().',
     );
   }
@@ -77,13 +77,13 @@ export const CurrentApiKey = createParamDecorator((_data: unknown, context: Exec
   const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
   if (request.auth?.kind !== 'apiKey') {
-    throw new Error('CurrentApiKey usado em rota que nao aceita chave de API.');
+    throw new Error('CurrentApiKey usado em rota que não aceita chave de API.');
   }
 
   return request.auth;
 });
 
-/** Vinculo do usuario com a organizacao da rota, resolvido pelo guard de papel. */
+/** Vínculo do usuário com a organização da rota, resolvido pelo guard de papel. */
 export const CurrentMembership = createParamDecorator(
   (_data: unknown, context: ExecutionContext) => {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();

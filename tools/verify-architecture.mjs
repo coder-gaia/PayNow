@@ -1,14 +1,14 @@
 /**
  * Verifica que as regras arquiteturais do ESLint realmente disparam.
  *
- * Uma regra de lint que existe no arquivo de configuracao mas nao dispara e
+ * Uma regra de lint que existe no arquivo de configuração mas não dispara e
  * pior do que nenhuma regra: ela cria a impressao de que a fronteira esta
- * protegida enquanto o codigo pode atravessa-la a vontade. Isso aconteceu de
- * fato durante a fase 00, quando os padroes do plugin estavam ancorados na
- * raiz do repositorio e o lint rodava de dentro do pacote.
+ * protegida enquanto o código pode atravessa-la a vontade. Isso aconteceu de
+ * fato durante a fase 00, quando os padrões do plugin estavam ancorados na
+ * raiz do repositório e o lint rodava de dentro do pacote.
  *
- * Este script escreve modulos de sonda temporarios, roda o ESLint de verdade
- * sobre eles e exige que cada violacao esperada apareca. Depois apaga tudo.
+ * Este script escreve módulos de sonda temporarios, roda o ESLint de verdade
+ * sobre eles e exige que cada violação esperada apareca. Depois apaga tudo.
  *
  * Uso: pnpm verify:architecture
  */
@@ -24,7 +24,7 @@ const modulesDir = join(repoRoot, 'apps', 'api', 'src', 'modules');
 /** Cada caso descreve um arquivo de sonda e a regra que ele deve violar. */
 const cases = [
   {
-    name: 'modulo de dominio importando outro modulo de dominio',
+    name: 'módulo de domínio importando outro módulo de domínio',
     file: join(modulesDir, '__probe_beta', 'beta.ts'),
     code: [
       "import { alpha } from '../__probe_alpha/alpha';",
@@ -35,13 +35,13 @@ const cases = [
     expectRule: 'boundaries/dependencies',
   },
   {
-    name: 'modulo de dominio lendo o relogio do sistema',
-    file: join(modulesDir, '__probe_beta', 'relogio.ts'),
+    name: 'módulo de domínio lendo o relógio do sistema',
+    file: join(modulesDir, '__probe_beta', 'relógio.ts'),
     code: ['export const agora = (): number => Date.now();', ''].join('\n'),
     expectRule: 'no-restricted-syntax',
   },
   {
-    name: 'modulo de plataforma importando um modulo de dominio',
+    name: 'módulo de plataforma importando um módulo de domínio',
     file: join(modulesDir, 'platform', '__probe_invasao.ts'),
     code: [
       "import { alpha } from '../__probe_alpha/alpha';",
@@ -53,7 +53,7 @@ const cases = [
   },
 ];
 
-/** Arquivo de apoio que as sondas importam. Nao deve violar nada sozinho. */
+/** Arquivo de apoio que as sondas importam. Não deve violar nada sozinho. */
 const support = {
   file: join(modulesDir, '__probe_alpha', 'alpha.ts'),
   code: 'export const alpha = 1;\n',
@@ -102,7 +102,7 @@ async function main() {
     const found = rulesByFile.get(file) ?? [];
     if (!found.includes(expectRule)) {
       failures.push(
-        `  ${name}\n    esperava ${expectRule}, encontrou ${found.length ? found.join(', ') : 'nenhuma violacao'}`,
+        `  ${name}\n    esperava ${expectRule}, encontrou ${found.length ? found.join(', ') : 'nenhuma violação'}`,
       );
     }
   }
@@ -115,7 +115,7 @@ async function main() {
   }
 
   if (failures.length > 0) {
-    console.error('As regras arquiteturais nao estao sendo aplicadas:\n');
+    console.error('As regras arquiteturais não estao sendo aplicadas:\n');
     console.error(failures.join('\n\n'));
     console.error('\nVeja a ADR-0001 e a secao boundaries do eslint.config.mjs.');
     process.exit(1);

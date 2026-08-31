@@ -5,21 +5,21 @@ import { type ComponentProps, useState } from 'react';
 import { useFieldControlProps } from './form';
 
 /**
- * Campo de senha com alternancia de visibilidade.
+ * Campo de senha com alternância de visibilidade.
  *
  * Poder conferir o que foi digitado reduz erro de digitacao, e em senha longa,
- * que e o que a politica do Paynow incentiva, isso pesa mais do que o risco de
- * alguem ler a tela por cima do ombro. Comeca sempre oculto, e o estado nunca
+ * que é o que a política do Paynow incentiva, isso pesa mais do que o risco de
+ * alguém ler a tela por cima do ombro. Começa sempre oculto, e o estado nunca
  * persiste entre carregamentos.
  *
- * O botao fica dentro do campo, mas fora do fluxo de digitacao: `tabIndex={-1}`
+ * O botão fica dentro do campo, mas fora do fluxo de digitacao: `tabIndex={-1}`
  * evita que o Tab pare nele no meio do preenchimento do formulario. Ainda e
- * alcancavel por clique e por navegacao de leitor de tela.
+ * alcançável por clique e por navegação de leitor de tela.
  *
- * O estado visivel e anunciado pelo `aria-pressed` do proprio botao. Uma
- * primeira versao tinha um texto de status ao lado, mas ele ficava dentro do
- * `<label>` do campo e passava a fazer parte do nome acessivel do input, que
- * virava "Senha A senha esta oculta". O teste de interface pegou.
+ * O estado visivel e anunciado pelo `aria-pressed` do próprio botão. Uma
+ * primeira versão tinha um texto de status ao lado, mas ele ficava dentro do
+ * `<label>` do campo é passava a fazer parte do nome acessivel do input, que
+ * virava "Senha A senha está oculta". O teste de interface pegou.
  */
 export function PasswordInput({ className = '', ...props }: ComponentProps<'input'>) {
   const [visible, setVisible] = useState(false);

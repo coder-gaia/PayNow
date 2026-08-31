@@ -11,8 +11,8 @@ export default function RegisterPage() {
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-credit">Paynow</p>
         <h1 className="mt-2 font-display text-3xl font-semibold">Criar conta</h1>
         <p className="mt-2 text-sm text-ink-muted">
-          A conta e a primeira organizacao nascem na mesma transacao: nao existe conta sem
-          organizacao.
+          A conta e a primeira organização nascem na mesma transação: não existe conta sem
+          organização.
         </p>
       </div>
 

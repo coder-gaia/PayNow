@@ -20,7 +20,7 @@ import {
   IS_PUBLIC,
 } from '../../platform/http/auth-context';
 
-/** Chaves de API sao reconhecidas pelo prefixo, do mesmo jeito que no Stripe. */
+/** Chaves de API são reconhecidas pelo prefixo, do mesmo jeito que no Stripe. */
 const API_KEY_PREFIX = 'sk_';
 
 /** Janela e teto do limite por chave. Cota por plano entra junto com os planos. */
@@ -28,12 +28,12 @@ const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_MAX_REQUESTS = 300;
 
 /**
- * Guard global de autenticacao.
+ * Guard global de autenticação.
  *
  * Os dois tipos de credencial chegam no mesmo header `Authorization: Bearer`,
- * e sao distinguidos pelo formato do valor. Uma chave de API so e aceita em
+ * e são distinguidos pelo formato do valor. Uma chave de API só e aceita em
  * rota marcada com `@AllowApiKey()`: sem isso, um servidor de merchant com
- * chave valida conseguiria mexer no perfil e nas sessoes de uma pessoa.
+ * chave válida conseguiria mexer no perfil e nas sessões de uma pessoa.
  */
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
@@ -63,7 +63,7 @@ export class AuthenticationGuard implements CanActivate {
       const allowed = this.reflector.getAllAndOverride<boolean>(ALLOWS_API_KEY, targets) === true;
 
       if (!allowed) {
-        throw new UnauthorizedException('Esta rota nao aceita chave de API.');
+        throw new UnauthorizedException('Esta rota não aceita chave de API.');
       }
 
       return this.authenticateApiKey(request, token);
@@ -78,7 +78,7 @@ export class AuthenticationGuard implements CanActivate {
     try {
       payload = this.jwt.verify<AccessTokenPayload>(token);
     } catch {
-      throw new UnauthorizedException('Token de acesso invalido ou expirado.');
+      throw new UnauthorizedException('Token de acesso inválido ou expirado.');
     }
 
     request.auth = { kind: 'user', userId: payload.sub, email: payload.email };
@@ -89,7 +89,7 @@ export class AuthenticationGuard implements CanActivate {
     const authenticated = await this.apiKeys.authenticate(token);
 
     if (authenticated === null) {
-      throw new UnauthorizedException('Chave de API invalida ou revogada.');
+      throw new UnauthorizedException('Chave de API inválida ou revogada.');
     }
 
     await this.enforceRateLimit(authenticated.apiKeyId);
@@ -107,10 +107,10 @@ export class AuthenticationGuard implements CanActivate {
   /**
    * Limite por chave, em janela fixa no Redis.
    *
-   * Janela fixa deixa passar ate o dobro do teto na virada, e isso e aceito de
-   * proposito: a alternativa correta e janela deslizante, que custa mais e so
+   * Janela fixa deixa passar até o dobro do teto na virada, e isso é aceito de
+   * proposito: a alternativa correta e janela deslizante, que custa mais e só
    * se paga quando existir cota contratual por plano. O contador expira
-   * sozinho, entao nao ha rotina de limpeza.
+   * sozinho, então não há rotina de limpeza.
    */
   private async enforceRateLimit(apiKeyId: string): Promise<void> {
     const windowMs = RATE_LIMIT_WINDOW_SECONDS * 1_000;

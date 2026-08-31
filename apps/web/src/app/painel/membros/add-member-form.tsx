@@ -8,7 +8,7 @@ import { Alert, Button } from '@/components/ui';
 import { addMember, type FormState } from '@/lib/actions';
 import type { OrganizationRole } from '@/lib/api';
 
-/** Papeis que a pessoa pode conceder: nunca um igual ou superior ao proprio. */
+/** Papéis que a pessoa pode conceder: nunca um igual ou superior ao próprio. */
 const GRANTABLE: Record<string, OrganizationRole[]> = {
   OWNER: ['OWNER', 'ADMIN', 'MEMBER', 'READONLY'],
   ADMIN: ['MEMBER', 'READONLY'],
@@ -29,8 +29,8 @@ export function AddMemberForm({
   const formRef = useRef<HTMLFormElement>(null);
 
   // O membro adicionado aparece na tabela acima, fora do campo de visao de quem
-  // acabou de digitar aqui, entao a confirmacao vira toast. O erro fica no
-  // formulario, que e onde o email errado sera corrigido.
+  // acabou de digitar aqui, então a confirmação vira toast. O erro fica no
+  // formulario, que é onde o email errado será corrigido.
   useEffect(() => {
     if (state.ok === true) {
       toast.success('Membro adicionado.');

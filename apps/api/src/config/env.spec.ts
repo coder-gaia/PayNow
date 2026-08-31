@@ -7,7 +7,7 @@ const valid = {
 };
 
 describe('validateEnv', () => {
-  it('aceita o minimo necessario e aplica os padroes', () => {
+  it('aceita o mínimo necessário e aplica os padrões', () => {
     const env = validateEnv({ ...valid });
 
     expect(env.NODE_ENV).toBe('development');
@@ -16,7 +16,7 @@ describe('validateEnv', () => {
     expect(env.SMTP_PORT).toBe(1025);
   });
 
-  it('converte a porta de string para numero', () => {
+  it('converte a porta de string para número', () => {
     expect(validateEnv({ ...valid, PORT: '8080' }).PORT).toBe(8080);
   });
 
@@ -25,7 +25,7 @@ describe('validateEnv', () => {
     expect(validateEnv({ ...valid, WORKER_ENABLED: 'false' }).WORKER_ENABLED).toBe(false);
   });
 
-  it('recusa flag que nao seja true ou false', () => {
+  it('recusa flag que não seja true ou false', () => {
     expect(() => validateEnv({ ...valid, WORKER_ENABLED: 'sim' })).toThrow(/WORKER_ENABLED/);
   });
 
@@ -37,7 +37,7 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...valid, JWT_SECRET: 'curto' })).toThrow(/JWT_SECRET/);
   });
 
-  it('aplica os padroes de expiracao de token', () => {
+  it('aplica os padrões de expiração de token', () => {
     const env = validateEnv({ ...valid });
 
     expect(env.JWT_ACCESS_TTL_MINUTES).toBe(15);
@@ -50,7 +50,7 @@ describe('validateEnv', () => {
     );
   });
 
-  it('recusa REDIS_URL que nao e URL', () => {
+  it('recusa REDIS_URL que não e URL', () => {
     expect(() => validateEnv({ ...valid, REDIS_URL: 'localhost:6379' })).toThrow(/REDIS_URL/);
   });
 
@@ -59,12 +59,12 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...valid, PORT: '0' })).toThrow(/PORT/);
   });
 
-  it('lista todos os problemas de uma vez, e nao apenas o primeiro', () => {
+  it('lista todos os problemas de uma vez, e não apenas o primeiro', () => {
     let message = '';
     try {
       validateEnv({
-        DATABASE_URL: 'nao-e-url',
-        REDIS_URL: 'tambem-nao',
+        DATABASE_URL: 'não-e-url',
+        REDIS_URL: 'também-não',
         PORT: '-1',
         JWT_SECRET: valid.JWT_SECRET,
       });

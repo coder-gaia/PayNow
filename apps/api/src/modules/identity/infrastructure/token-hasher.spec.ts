@@ -20,7 +20,7 @@ describe('TokenHasher', () => {
   });
 
   describe('hash', () => {
-    it('e deterministico', () => {
+    it('e determinístico', () => {
       const secret = hasher.generateSecret();
       expect(hasher.hash(secret)).toBe(hasher.hash(secret));
     });
@@ -29,7 +29,7 @@ describe('TokenHasher', () => {
       expect(hasher.hash('qualquer coisa')).toMatch(/^[0-9a-f]{64}$/);
     });
 
-    it('muda completamente com uma alteracao minima na entrada', () => {
+    it('muda completamente com uma alteração mínima na entrada', () => {
       expect(hasher.hash('segredo')).not.toBe(hasher.hash('segredp'));
     });
   });
@@ -44,7 +44,7 @@ describe('TokenHasher', () => {
       expect(hasher.matches('errado', hasher.hash('certo'))).toBe(false);
     });
 
-    it('recusa hash de tamanho invalido sem estourar', () => {
+    it('recusa hash de tamanho inválido sem estourar', () => {
       expect(hasher.matches('qualquer', 'curto-demais')).toBe(false);
       expect(hasher.matches('qualquer', '')).toBe(false);
     });

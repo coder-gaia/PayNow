@@ -7,21 +7,21 @@ import { AccountKind, ApiKeyEnvironment, OrganizationRole, PrismaClient } from '
  * Dados de demonstracao.
  *
  * Existe para que qualquer pessoa consiga exercitar o sistema inteiro sem
- * cadastrar nada a mao. O conteudo cresce a cada fase: a fase 01 cria contas,
- * organizacao e chaves de API; a fase 02 acrescenta o plano de contas do
- * ledger; a fase 03, produtos, precos e assinaturas.
+ * cadastrar nada a mão. O conteudo cresce a cada fase: a fase 01 cria contas,
+ * organização e chaves de API; a fase 02 acrescenta o plano de contas do
+ * ledger; a fase 03, produtos, preços e assinaturas.
  *
- * E idempotente: rodar duas vezes nao duplica nada e nao quebra. Isso importa
+ * E idempotente: rodar duas vezes não duplica nada é não quebra. Isso importa
  * porque `prisma migrate reset` chama o seed automaticamente. No ledger a
- * idempotencia e do proprio banco: o indice unico sobre o evento de origem
- * recusa o mesmo lancamento duas vezes.
+ * idempotência e do próprio banco: o índice único sobre o evento de origem
+ * recusa o mesmo lançamento duas vezes.
  *
  * Nada aqui deve rodar em producao. O script recusa se NODE_ENV for production.
  */
 
 const ARGON2_OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 } as const;
 
-/** Senha unica para todas as contas de demonstracao. Impressa no fim. */
+/** Senha única para todas as contas de demonstracao. Impressa no fim. */
 const DEMO_PASSWORD = 'paynow-demo-2026';
 
 const ORGANIZATION = {
@@ -34,25 +34,25 @@ const PEOPLE = [
     email: 'ana@livraria-aurora.test',
     name: 'Ana Ribeiro',
     role: OrganizationRole.OWNER,
-    description: 'Dona da conta. Ve tudo e pode promover e remover qualquer pessoa.',
+    description: 'Dona da conta. Vê tudo e pode promover e remover qualquer pessoa.',
   },
   {
     email: 'bruno@livraria-aurora.test',
     name: 'Bruno Salles',
     role: OrganizationRole.ADMIN,
-    description: 'Administra membros e chaves, mas nao pode mexer em quem e OWNER.',
+    description: 'Administra membros e chaves, mas não pode mexer em quem é OWNER.',
   },
   {
     email: 'carla@livraria-aurora.test',
     name: 'Carla Nunes',
     role: OrganizationRole.MEMBER,
-    description: 'Opera o dia a dia. Nao administra membros nem chaves.',
+    description: 'Opera o dia a dia. Não administra membros nem chaves.',
   },
   {
     email: 'davi@livraria-aurora.test',
     name: 'Davi Prado',
     role: OrganizationRole.READONLY,
-    description: 'So consulta. Util para conferir que as restricoes de papel funcionam.',
+    description: 'Só consulta. Útil para conferir que as restrições de papel funcionam.',
   },
 ] as const;
 
@@ -60,8 +60,8 @@ const PEOPLE = [
  * Chave de API fixa, exclusiva do ambiente de demonstracao.
  *
  * Uma chave gerada aleatoriamente obrigaria a copiar o valor a cada seed. Como
- * este segredo so existe em banco local recriavel, e como o valor esta no
- * repositorio publico e portanto vale zero, fixa-lo torna o roteiro de teste
+ * este segredo só existe em banco local recriável, e como o valor esta no
+ * repositório público e portanto vale zero, fixa-lo torna o roteiro de teste
  * copiavel e colavel.
  */
 const DEMO_API_KEY_SECRET = 'sk_test_paynowdemo0000000000000000000000000000';
@@ -70,7 +70,7 @@ const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
   if (process.env['NODE_ENV'] === 'production') {
-    throw new Error('O seed de demonstracao nao roda em producao.');
+    throw new Error('O seed de demonstracao não roda em producao.');
   }
 
   const passwordHash = await hash(DEMO_PASSWORD, ARGON2_OPTIONS);
@@ -121,11 +121,11 @@ async function seedApiKey(organizationId: string): Promise<void> {
 }
 
 /**
- * Lancamentos de referencia de docs/plano-de-contas.md.
+ * Lançamentos de referência de docs/plano-de-contas.md.
  *
- * Sao os mesmos cinco cenarios do documento, com os mesmos valores conferidos
- * a mao. Semear com eles serve a duas coisas ao mesmo tempo: da ao explorador
- * do painel um razao de verdade para mostrar, e prova que os lancamentos
+ * São os mesmos cinco cenários do documento, com os mesmos valores conferidos
+ * a mão. Semear com eles serve a duas coisas ao mesmo tempo: da ao explorador
+ * do painel um razão de verdade para mostrar, e prova que os lançamentos
  * documentados passam pelas constraints do banco.
  */
 async function seedLedger(organizationId: string): Promise<void> {
@@ -145,7 +145,7 @@ async function seedLedger(organizationId: string): Promise<void> {
   const customerCredit = await conta('customer:credit', AccountKind.LIABILITY);
   const refunds = await conta('merchant:refunds', AccountKind.CONTRA_REVENUE);
 
-  // Datas fixas, e nao relativas ao momento do seed, para que o razao da
+  // Datas fixas, e não relativas ao momento do seed, para que o razão da
   // demonstracao conte sempre a mesma historia.
   const entradas = [
     {
@@ -183,7 +183,7 @@ async function seedLedger(organizationId: string): Promise<void> {
     {
       eventType: 'subscription.downgraded',
       eventId: 'demo-downgrade-1',
-      description: 'Credito por downgrade no meio do ciclo',
+      description: 'Crédito por downgrade no meio do ciclo',
       occurredAt: new Date('2026-08-10T12:00:00Z'),
       lines: [
         { accountId: revenue, amountMinor: 10_000n },
@@ -193,7 +193,7 @@ async function seedLedger(organizationId: string): Promise<void> {
     {
       eventType: 'invoice.issued',
       eventId: 'demo-fatura-2',
-      description: 'Fatura de R$ 300,00 com R$ 100,00 de credito aplicado',
+      description: 'Fatura de R$ 300,00 com R$ 100,00 de crédito aplicado',
       occurredAt: new Date('2026-08-15T12:00:00Z'),
       lines: [
         { accountId: receivable, amountMinor: 20_000n },
@@ -252,7 +252,7 @@ async function report(organizationId: string): Promise<void> {
     '',
     'Dados de demonstracao prontos.',
     '',
-    `  Organizacao   ${ORGANIZATION.name}  (${organizationId})`,
+    `  Organização   ${ORGANIZATION.name}  (${organizationId})`,
     `  Senha         ${DEMO_PASSWORD}   (a mesma para todas as contas)`,
     '',
     '  Contas',
@@ -275,7 +275,7 @@ async function report(organizationId: string): Promise<void> {
      ORDER BY a.code
   `;
 
-  lines.push('', '  Razao');
+  lines.push('', '  Razão');
   for (const saldo of saldos) {
     const reais = (Number(saldo.balance) / 100).toFixed(2).padStart(10);
     lines.push(`    ${saldo.code.padEnd(22)} ${reais}`);

@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import type { Env } from '../../../config/env';
 
 /**
- * Cliente do banco, com ciclo de vida amarrado ao do modulo.
+ * Cliente do banco, com ciclo de vida amarrado ao do módulo.
  *
  * Ver ADR-0005 (fase 02): o Prisma cuida de schema, migrations e tipos, e o
  * nucleo transacional do ledger usa SQL cru onde precisa de FOR UPDATE,
@@ -28,7 +28,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$disconnect();
   }
 
-  /** Consulta minima usada pelo probe de prontidao. */
+  /** Consulta mínima usada pelo probe de prontidao. */
   async ping(): Promise<void> {
     await this.$queryRaw`SELECT 1`;
   }

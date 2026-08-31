@@ -14,7 +14,7 @@ export function LoginForm({ expired }: { expired: boolean }) {
     <form action={action} className="mt-6 flex flex-col gap-4">
       {expired && (
         <Alert tone="caution">
-          A sessao expirou ou foi encerrada por seguranca. Entre novamente.
+          A sessão expirou ou foi encerrada por segurança. Entre novamente.
         </Alert>
       )}
 
