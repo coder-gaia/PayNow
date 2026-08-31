@@ -346,16 +346,21 @@ test.describe('razão', () => {
     await expect(balancete).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: 'Soma' }).getByText('0,00')).toBeVisible();
 
-    // E os lançamentos carregam o evento de domínio que os originou.
-    await expect(page.getByText('payment.succeeded').first()).toBeVisible();
+    // E os lançamentos carregam o evento de domínio que os originou, com nome
+    // legível na tela e a identidade técnica no title: o tipo do evento e a
+    // chave de idempotência continuam alcançáveis sem poluir a leitura.
+    const lancamento = page.getByRole('listitem').filter({ hasText: 'Pagamento confirmado' });
+    await expect(lancamento).toBeVisible();
+    await expect(lancamento.getByTitle(/payment\.succeeded/)).toHaveCount(1);
 
     // As linhas são apresentadas como partida dobrada de verdade, em colunas
     // de débito e crédito, e com o nome da conta e não só o código. Valor com
     // sinal fazia a mesma conta aparecer duas vezes parecendo contraditória.
-    const lancamento = page.getByRole('listitem').filter({ hasText: 'payment.succeeded' });
-    await expect(lancamento.getByText('Débito').first()).toBeVisible();
-    await expect(lancamento.getByText('Crédito').first()).toBeVisible();
-    await expect(lancamento.getByText('Em liquidação no gateway').first()).toBeVisible();
+    await expect(lancamento.getByRole('columnheader', { name: 'Débito' })).toBeVisible();
+    await expect(lancamento.getByRole('columnheader', { name: 'Crédito' })).toBeVisible();
+    await expect(
+      lancamento.getByRole('rowheader', { name: 'Em liquidação no gateway' }),
+    ).toBeVisible();
   });
 });
 
@@ -392,7 +397,7 @@ test.describe('assinaturas', () => {
     // desbalancear nada. Esta é a razão de o barramento de eventos existir.
     await navLink(page, 'Razão').click();
     await expect(notice(page, 'Razão íntegro')).toBeVisible();
-    await expect(page.getByText('subscription.plan_changed').first()).toBeVisible();
+    await expect(page.getByText('Troca de plano').first()).toBeVisible();
   });
 
   test('cancelamento pede confirmação e pode ser desfeito', async ({ page, request }) => {
