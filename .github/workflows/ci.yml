@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualidade:
+    name: Qualidade estatica
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Formatacao
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Checagem de tipos
+        run: pnpm typecheck
+
+      # As decisoes arquiteturais viram erro de lint, e esta etapa prova que as
+      # regras realmente disparam. Ja aconteceu de as regras estarem
+      # configuradas e inertes, o que e pior do que nao ter regra: da a
+      # impressao de que a fronteira esta protegida.
+      - name: Regras arquiteturais
+        run: pnpm verify:architecture
+
+  testes:
+    name: Testes unitarios
+    runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Compilar
+        run: pnpm build
+
+      - name: Testes com cobertura
+        run: pnpm test:cov
+
+      - name: Enviar cobertura ao Codecov
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  e2e:
+    name: Testes ponta a ponta
+    runs-on: ubuntu-latest
+
+    # Aqui os servicos usam as portas padrao. O docker-compose local publica o
+    # PostgreSQL em 5433 para nao colidir com instalacao nativa, situacao que
+    # nao existe em runner efemero.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: paynow
+          POSTGRES_PASSWORD: paynow
+          POSTGRES_DB: paynow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U paynow -d paynow"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://paynow:paynow@localhost:5432/paynow?schema=public
+      REDIS_URL: redis://localhost:6379
+      WORKER_ENABLED: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Aplicar migrations
+        working-directory: apps/api
+        run: pnpm exec prisma migrate deploy
+
+      - name: Compilar
+        run: pnpm build
+
+      - name: Testes ponta a ponta
+        working-directory: apps/api
+        run: pnpm exec jest --config jest.e2e.config.js
+
+  commits:
+    name: Padrao de commit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      - name: Validar mensagens de commit
+        run: >-
+          pnpm commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose

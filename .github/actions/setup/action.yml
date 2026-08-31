@@ -1,0 +1,24 @@
+name: Preparar ambiente
+description: Instala Node e pnpm, restaura o cache, instala dependencias e gera o cliente Prisma.
+
+runs:
+  using: composite
+  steps:
+    - name: Instalar pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Instalar Node
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Instalar dependencias
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    # O cliente Prisma e gerado, e nao versionado. Sem esta etapa a checagem de
+    # tipos falha, porque PrismaService estende uma classe que ainda nao existe.
+    - name: Gerar cliente Prisma
+      shell: bash
+      run: pnpm --filter @paynow/api db:generate
