@@ -31,11 +31,12 @@ momento em que ela é tomada, com o contexto que existia na época.
 | [0002](0002-dinheiro-como-inteiro.md)       | Dinheiro como inteiro em unidade mínima                       | Aceita |
 | [0003](0003-ledger-de-partidas-dobradas.md) | Ledger append-only de partidas dobradas como fonte da verdade | Aceita |
 | [0004](0004-nestjs-11-em-vez-de-12.md)      | NestJS 11 em vez de 12, com gatilho de migração               | Aceita |
+| [0009](0009-relogio-injetado.md)            | Relógio injetado em vez de acesso direto ao tempo             | Aceita |
 
-As ADRs seguintes estão previstas no plano do projeto e são escritas na fase em
-que a decisão passa a valer, e não antes. A numeração é cronológica, então uma
-decisão que surgir fora da ordem prevista assume o próximo número livre e esta
-tabela é reajustada.
+Os números abaixo estão reservados no plano do projeto. Cada ADR é escrita na
+fase em que a decisão passa a valer, que nem sempre é a fase prevista: a
+ADR-0009 saiu na fase 01 porque o módulo de identidade já precisava calcular
+expiração de token, e isso exigiu a porta de relógio antes do previsto.
 
 | Prevista | Título                                                     | Fase |
 | -------- | ---------------------------------------------------------- | ---- |
@@ -43,7 +44,6 @@ tabela é reajustada.
 | 0006     | Outbox transacional em vez de publicação direta            | 05   |
 | 0007     | Idempotency-Key no modelo do Stripe                        | 05   |
 | 0008     | Advisory locks para mutação de assinatura                  | 03   |
-| 0009     | Relógio injetado em vez de acesso direto ao tempo          | 04   |
 | 0010     | Autenticação própria em vez de provedor externo            | 01   |
 | 0011     | Porta de gateway com implementação falsa e Stripe em teste | 05   |
 | 0012     | Worker no mesmo processo, com flag e gatilho de extração   | 05   |

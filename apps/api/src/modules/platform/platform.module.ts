@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { ClockModule } from './clock/clock.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
@@ -12,10 +13,10 @@ import { RedisModule } from './redis/redis.module';
  * Ele existe justamente para que nenhum modulo de dominio precise conhecer
  * outro para funcionar.
  *
- * Ao longo das fases seguintes ele recebe tambem o relogio injetado (fase 04),
- * o outbox transacional e a camada de idempotencia (fase 05).
+ * O relogio injetado (ADR-0009) ja vive aqui. Ao longo das fases seguintes o
+ * modulo recebe tambem o outbox transacional e a camada de idempotencia.
  */
 @Module({
-  imports: [PrismaModule, RedisModule, HealthModule],
+  imports: [ClockModule, PrismaModule, RedisModule, HealthModule],
 })
 export class PlatformModule {}
