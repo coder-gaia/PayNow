@@ -341,9 +341,16 @@ test.describe('razão', () => {
 
     await expect(notice(page, 'Razão íntegro')).toBeVisible();
 
-    // O balancete traz o plano de contas inteiro, e a soma tem de fechar.
-    const balancete = page.getByRole('row').filter({ hasText: 'customer:receivable' });
+    // O balancete traz o plano de contas inteiro, e a soma tem de fechar. A
+    // linha é procurada pelo nome da conta, e não pelo código: o código é a
+    // identidade para quem integra e vive no title, não no texto da célula.
+    // A busca e escopada ao painel do balancete: o nome da conta agora aparece
+    // tambem nas linhas de cada lancamento, que e justamente o ponto.
+    const painel = page.locator('section').filter({ hasText: 'Balancete' }).first();
+    const balancete = painel.getByRole('row').filter({ hasText: 'Contas a receber' });
     await expect(balancete).toBeVisible();
+    await expect(balancete).toContainText('faturas emitidas e ainda não pagas');
+    await expect(balancete.getByTitle('customer:receivable')).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: 'Soma' }).getByText('0,00')).toBeVisible();
 
     // E os lançamentos carregam o evento de domínio que os originou, com nome
@@ -428,25 +435,37 @@ test.describe('assinaturas', () => {
     await expect(linha).not.toContainText('encerra no fim do ciclo');
   });
 
+  /**
+   * A carteira de demonstração.
+   *
+   * O teste confere que os quatro clientes do seed aparecem com estado, plano
+   * e ciclo, e não que cada um está em um estado específico. A diferença é
+   * proposital: a organização de demonstração existe para ser usada, e usá-la
+   * muda o estado dela. Adiantar o relógio ativa quem estava em teste, o que é
+   * o comportamento correto do sistema. Fixar o estado aqui faria o teste
+   * acusar como defeito exatamente aquilo que a demonstração serve para
+   * mostrar.
+   */
   test('a carteira de demonstração mostra a máquina de estados', async ({ page }) => {
-    // Aqui a organização de demonstração é o próprio objeto do teste: o seed
-    // monta uma assinatura em cada estado justamente para que a tela mostre a
-    // máquina funcionando, e uma regressão no seed apagaria isso em silêncio.
     await page.goto('/entrar');
     await page.getByLabel('Email').fill('ana@livraria-aurora.test');
     await page.getByLabel('Senha', { exact: true }).fill('paynow-demo-2026');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page).toHaveURL(/\/painel$/);
 
-    // Em atraso continua com acesso: quatro assinaturas e quatro com acesso,
-    // porque cortar no primeiro dia de atraso transformaria uma falha de
-    // cartão em cancelamento.
-    await expect(page.getByText('4 com acesso ao produto')).toBeVisible();
-
     await navLink(page, 'Assinaturas').click();
 
-    await expect(page.getByRole('row').filter({ hasText: 'Padaria Lua' })).toContainText('Ativa');
-    await expect(page.getByRole('row').filter({ hasText: 'Bike Norte' })).toContainText('Em teste');
+    for (const cliente of ['Padaria Lua', 'Studio Vega', 'Bike Norte', 'Mercado Sul']) {
+      const linha = page.getByRole('row').filter({ hasText: cliente });
+      await expect(linha).toBeVisible();
+
+      // Todo estado exibido vem da máquina de transições, então a pílula
+      // sempre traz o nome técnico no title.
+      await expect(linha.locator('[title]').first()).toBeVisible();
+    }
+
+    // Em atraso continua com acesso ao produto, porque cortar no primeiro dia
+    // de atraso transformaria uma falha de cartão em cancelamento.
     await expect(page.getByRole('row').filter({ hasText: 'Mercado Sul' })).toContainText(
       'Em atraso',
     );

@@ -43,6 +43,7 @@ export interface PostedEntry {
 export interface AccountBalance {
   readonly code: AccountCode;
   readonly label: string;
+  readonly description: string;
   readonly kind: string;
   readonly normalBalance: 'debit' | 'credit';
   readonly balance: Money;
@@ -198,6 +199,10 @@ export class LedgerService {
       return {
         code: definition.code,
         label: definition.label,
+        // A descrição vem do plano de contas e é o que o painel mostra no
+        // lugar do código. "customer:receivable" identifica a conta para quem
+        // integra; para quem lê o balancete, não quer dizer nada.
+        description: definition.description,
         kind: definition.kind,
         normalBalance: definition.normalBalance,
         balance: Money.fromMinor(row?.balance ?? 0n, currency),

@@ -43,14 +43,14 @@ A primeira versão usa seis contas. A restrição é deliberada: cada conta nova
 multiplica os casos de teste do ledger, então nenhuma entra sem um caso de uso
 concreto que já exista no sistema.
 
-| Código                | Natureza       | Saldo normal | Representa                                                        |
-| --------------------- | -------------- | ------------ | ----------------------------------------------------------------- |
-| `customer:receivable` | Ativo          | Devedor      | O que o cliente deve ao merchant por faturas já emitidas          |
-| `gateway:clearing`    | Ativo          | Devedor      | Dinheiro capturado pelo gateway e ainda não liquidado ao merchant |
-| `merchant:revenue`    | Receita        | Credor       | Receita reconhecida do merchant                                   |
-| `platform:fee`        | Receita        | Credor       | Taxa da plataforma sobre a transação                              |
-| `customer:credit`     | Passivo        | Credor       | Crédito do cliente vindo de downgrade ou estorno parcial          |
-| `merchant:refunds`    | Contra receita | Devedor      | Estornos concedidos, deduzidos da receita                         |
+| Código                | Natureza       | Saldo normal | Representa                                                               |
+| --------------------- | -------------- | ------------ | ------------------------------------------------------------------------ |
+| `customer:receivable` | Ativo          | Devedor      | O que os clientes já devem por faturas emitidas e ainda não pagas        |
+| `gateway:clearing`    | Ativo          | Devedor      | Dinheiro já capturado pelo gateway e ainda não repassado ao merchant     |
+| `merchant:revenue`    | Receita        | Credor       | O que o merchant ganhou, reconhecido na emissão da fatura                |
+| `platform:fee`        | Receita        | Credor       | A parte do Paynow em cada transação, descontada do que o merchant recebe |
+| `customer:credit`     | Passivo        | Credor       | Saldo a favor do cliente, gerado por downgrade ou estorno parcial        |
+| `merchant:refunds`    | Contra receita | Devedor      | O que foi devolvido ao cliente, abatido da receita do merchant           |
 
 Contas são escopadas por organização. O identificador completo de uma conta é o
 par `(organization_id, code)`.

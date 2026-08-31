@@ -12,6 +12,21 @@ export const metadata = { title: 'Razão · Paynow' };
  * lado, e não apenas o saldo: a coluna de linhas diz de quantos lançamentos
  * cada saldo veio, e o total confere que tudo se anula.
  */
+/**
+ * Natureza da conta, em português.
+ *
+ * O tipo contábil continua sendo o do plano de contas na API, porque é o que
+ * um integrador espera receber. Aqui ele é traduzido: quem lê o balancete no
+ * painel não tem obrigação de saber o que é CONTRA_REVENUE.
+ */
+const NATUREZA: Record<string, string> = {
+  ASSET: 'Ativo',
+  LIABILITY: 'Passivo',
+  REVENUE: 'Receita',
+  EXPENSE: 'Despesa',
+  CONTRA_REVENUE: 'Redutora de receita',
+};
+
 export default async function LedgerPage() {
   const profile = await api.profile();
   const active = await resolveActiveOrganization(profile);
@@ -65,14 +80,22 @@ export default async function LedgerPage() {
         >
           {balances.map((conta) => (
             <tr key={conta.code}>
+              {/*
+                O nome da conta na frente e o que ela significa embaixo. O
+                código continua sendo a identidade da conta para quem integra,
+                mas fica no title: "customer:receivable" não diz nada para quem
+                abriu o balancete para conferir quanto tem a receber.
+              */}
               <Cell>
-                <span className="block font-mono text-[13px]">{conta.code}</span>
-                <span className="block text-[13px] text-ink-muted">{conta.label}</span>
+                <span className="block font-medium" title={conta.code}>
+                  {conta.label}
+                </span>
+                <span className="block text-[13px] text-ink-muted">{conta.description}</span>
               </Cell>
               <Cell className="text-[13px] text-ink-muted">
-                {conta.kind}
+                {NATUREZA[conta.kind] ?? conta.kind}
                 <span className="block text-ink-faint">
-                  saldo normal {conta.normalBalance === 'debit' ? 'devedor' : 'credor'}
+                  cresce no {conta.normalBalance === 'debit' ? 'débito' : 'crédito'}
                 </span>
               </Cell>
               <Cell className="tabular text-right text-[13px] text-ink-muted">

@@ -44,6 +44,7 @@ export class LedgerController {
     return balances.map((account) => ({
       code: account.code,
       label: account.label,
+      description: account.description,
       kind: account.kind,
       normalBalance: account.normalBalance,
       balanceMinor: account.balance.minor.toString(),

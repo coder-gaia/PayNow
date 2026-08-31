@@ -3,6 +3,8 @@ import { ApiProperty } from '@nestjs/swagger';
 export class AccountBalanceResponse {
   @ApiProperty({ example: 'customer:receivable' }) code!: string;
   @ApiProperty({ example: 'Contas a receber' }) label!: string;
+  @ApiProperty({ example: 'O que o cliente deve ao merchant por faturas já emitidas.' })
+  description!: string;
   @ApiProperty({ example: 'ASSET' }) kind!: string;
   @ApiProperty({ enum: ['debit', 'credit'] }) normalBalance!: 'debit' | 'credit';
   @ApiProperty({

@@ -166,6 +166,8 @@ export interface CreatedApiKey extends ApiKey {
 export interface AccountBalance {
   code: string;
   label: string;
+  /** O que a conta significa, em português. Ver docs/plano-de-contas.md. */
+  description: string;
   kind: string;
   normalBalance: 'debit' | 'credit';
   balanceMinor: string;
