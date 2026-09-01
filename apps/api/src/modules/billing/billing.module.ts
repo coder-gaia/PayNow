@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BillingCycleService } from './application/billing-cycle.service';
 import { BillingWorker } from './application/billing-worker';
 import { ReceiptMailer } from './application/receipt-mailer';
+import { RefundsService } from './application/refunds.service';
 import { CatalogService } from './application/catalog.service';
 import { InvoicesService } from './application/invoices.service';
 import { PaymentsService } from './application/payments.service';
@@ -47,6 +48,7 @@ import { PaymentsController } from './http/payments.controller';
     InvoicesService,
     PaymentsService,
     ReceiptMailer,
+    RefundsService,
     SubscriptionsService,
   ],
   exports: [
@@ -54,6 +56,7 @@ import { PaymentsController } from './http/payments.controller';
     CatalogService,
     InvoicesService,
     PaymentsService,
+    RefundsService,
     SubscriptionsService,
   ],
 })

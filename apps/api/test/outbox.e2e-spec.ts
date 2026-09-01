@@ -238,8 +238,13 @@ describe('Outbox (e2e)', () => {
 
     await outbox.relay();
 
-    const recibo = enviados.find((email) => email.subject.includes('Pagamento confirmado'));
-    expect(recibo?.to).toBe(customer.email);
+    // A busca é pelo destinatário, e não pelo assunto. O relay é global: uma
+    // varredura entrega tudo que estiver pendente, inclusive recibos de
+    // organizações criadas por outras suítes rodando em paralelo.
+    const recibo = enviados.find(
+      (email) => email.to === customer.email && email.subject.includes('Pagamento confirmado'),
+    );
+    expect(recibo).toBeDefined();
 
     const fila = await mensagens(organizationId);
     expect(fila.map((mensagem) => mensagem.eventType)).toEqual([

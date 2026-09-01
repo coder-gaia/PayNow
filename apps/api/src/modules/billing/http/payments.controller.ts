@@ -20,9 +20,22 @@ import { OrganizationRoleGuard } from '../../platform/http/organization-role.gua
 import { CatalogService } from '../application/catalog.service';
 import { InvoicesService } from '../application/invoices.service';
 import { PaymentsService } from '../application/payments.service';
+import { RefundsService } from '../application/refunds.service';
 import { MAX_ATTEMPTS, RETRY_SCHEDULE_HOURS } from '../domain/dunning';
 
 const uuid = () => new ParseUUIDPipe({ version: '7' });
+
+class RefundDto {
+  /**
+   * Valor a estornar, em unidade mínima, como string.
+   *
+   * Ausente estorna o que ainda resta do pagamento. String porque JSON não tem
+   * inteiro de 64 bits, pela mesma razão da ADR-0002.
+   */
+  @IsOptional() @IsString() @Matches(/^[1-9]\d{0,17}$/u) amountMinor?: string;
+
+  @IsString() @Length(3, 200) reason!: string;
+}
 
 class AttachPaymentMethodDto {
   /**
@@ -59,6 +72,7 @@ export class PaymentsController {
   constructor(
     private readonly invoices: InvoicesService,
     private readonly payments: PaymentsService,
+    private readonly refunds: RefundsService,
     private readonly catalog: CatalogService,
   ) {}
 
@@ -150,6 +164,56 @@ export class PaymentsController {
       failureCode: result.failureCode ?? null,
       nextAttemptAt: result.nextAttemptAt ?? null,
     };
+  }
+
+  @Post('payments/:paymentId/refund')
+  @RequireRole(OrganizationRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Estorna uma cobrança confirmada',
+    description:
+      'Total ou parcial. O estorno não apaga o pagamento: é um lançamento novo, com data ' +
+      'própria, e o histórico guarda os dois. A taxa da plataforma não volta.',
+  })
+  async refund(
+    @Param('organizationId', uuid()) organizationId: string,
+    @Param('paymentId', uuid()) paymentId: string,
+    @Body() dto: RefundDto,
+  ) {
+    const refund = await this.refunds.refund({
+      organizationId,
+      paymentId,
+      reason: dto.reason,
+      ...(dto.amountMinor === undefined
+        ? {}
+        : { amount: Money.fromMinor(BigInt(dto.amountMinor), 'BRL') }),
+    });
+
+    return {
+      id: refund.id,
+      status: refund.status,
+      amount: Money.fromMinor(refund.amountMinor, refund.currency).toDecimalString(),
+      currency: refund.currency,
+      reason: refund.reason,
+      gatewayRef: refund.gatewayRef,
+    };
+  }
+
+  @Get('refunds')
+  @ApiOperation({ summary: 'Estornos concedidos' })
+  async listRefunds(@Param('organizationId', uuid()) organizationId: string) {
+    const refunds = await this.refunds.list(organizationId);
+
+    return refunds.map((refund) => ({
+      id: refund.id,
+      status: refund.status,
+      amount: Money.fromMinor(refund.amountMinor, refund.currency).toDecimalString(),
+      currency: refund.currency,
+      reason: refund.reason,
+      invoiceNumber: refund.invoice.number,
+      customerName: refund.invoice.customer.name,
+      createdAt: refund.createdAt,
+    }));
   }
 
   @Get('dunning')

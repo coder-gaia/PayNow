@@ -26,6 +26,7 @@ export const EVENT = {
   INVOICE_ISSUED: 'invoice.issued',
   PAYMENT_SUCCEEDED: 'payment.succeeded',
   PAYMENT_FAILED: 'payment.failed',
+  REFUND_ISSUED: 'refund.issued',
 } as const;
 
 export type EventType = (typeof EVENT)[keyof typeof EVENT];
@@ -148,6 +149,26 @@ export interface PaymentFailedPayload {
   readonly retriable: boolean;
 }
 
+/**
+ * Estorno concedido.
+ *
+ * Aponta para o pagamento que está desfazendo, e não o substitui. O estorno é
+ * um fato novo com data própria: anular o pagamento original destruiria a
+ * resposta para "quanto entrou em março", que continua sendo o valor cheio
+ * mesmo depois de devolvido em abril.
+ */
+export interface RefundIssuedPayload {
+  readonly refundId: string;
+  readonly paymentId: string;
+  readonly invoiceId: string;
+  readonly invoiceNumber: number;
+  readonly customerId: string;
+  readonly customerName: string;
+  readonly amount: MoneyPayload;
+  readonly reason: string;
+  readonly gatewayRef: string;
+}
+
 export interface SubscriptionCanceledPayload {
   readonly subscriptionId: string;
   readonly customerId: string;
@@ -164,6 +185,7 @@ export interface DomainEventPayloads {
   [EVENT.INVOICE_ISSUED]: InvoiceIssuedPayload;
   [EVENT.PAYMENT_SUCCEEDED]: PaymentSucceededPayload;
   [EVENT.PAYMENT_FAILED]: PaymentFailedPayload;
+  [EVENT.REFUND_ISSUED]: RefundIssuedPayload;
 }
 
 export interface DomainEvent<T extends EventType = EventType> {

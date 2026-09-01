@@ -10,6 +10,7 @@ import {
   type InvoiceIssuedPayload,
   type MoneyPayload,
   type PaymentSucceededPayload,
+  type RefundIssuedPayload,
   type SubscriptionPlanChangedPayload,
 } from '../../platform/events/domain-event';
 import { ACCOUNT } from '../domain/chart-of-accounts';
@@ -41,6 +42,7 @@ export class BillingAccountingHandler implements DomainEventHandler {
     EVENT.INVOICE_ISSUED,
     EVENT.SUBSCRIPTION_PLAN_CHANGED,
     EVENT.PAYMENT_SUCCEEDED,
+    EVENT.REFUND_ISSUED,
   ];
 
   constructor(private readonly ledger: LedgerService) {}
@@ -57,6 +59,10 @@ export class BillingAccountingHandler implements DomainEventHandler {
 
       case EVENT.PAYMENT_SUCCEEDED:
         await this.registrarPagamento(event, tx);
+        return;
+
+      case EVENT.REFUND_ISSUED:
+        await this.registrarEstorno(event, tx);
         return;
 
       default:
@@ -123,6 +129,40 @@ export class BillingAccountingHandler implements DomainEventHandler {
           { account: ACCOUNT.MERCHANT_REVENUE, amount: fee },
           { account: ACCOUNT.PLATFORM_FEE, amount: fee.negated() },
         ].filter((line) => !line.amount.isZero()),
+      },
+      tx,
+    );
+  }
+
+  /**
+   * Estorno concedido.
+   *
+   * Duas linhas: o dinheiro sai da conta de liquidação, e a devolução entra em
+   * uma conta redutora de receita em vez de subtrair da receita direta. A
+   * diferença importa na hora de responder quanto o merchant faturou no mês:
+   * receita bruta e devoluções são números distintos, e quem só guarda o
+   * líquido perde os dois.
+   *
+   * A taxa da plataforma não volta, e é decisão de negócio: a plataforma
+   * prestou o serviço de processar aquela cobrança. Quando isso mudar, o que
+   * muda é este método.
+   */
+  private async registrarEstorno(event: DomainEvent, tx: Prisma.TransactionClient): Promise<void> {
+    const payload = event.payload as RefundIssuedPayload;
+    const amount = toMoney(payload.amount);
+
+    await this.ledger.post(
+      {
+        organizationId: event.organizationId,
+        event: { type: event.type, id: event.id },
+        description:
+          `Estorno de ${amount.toDecimalString()} na fatura ${payload.invoiceNumber} ` +
+          `de ${payload.customerName}: ${payload.reason}`,
+        occurredAt: event.occurredAt,
+        lines: [
+          { account: ACCOUNT.MERCHANT_REFUNDS, amount },
+          { account: ACCOUNT.GATEWAY_CLEARING, amount: amount.negated() },
+        ],
       },
       tx,
     );

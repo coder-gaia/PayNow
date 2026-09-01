@@ -56,6 +56,7 @@ model Organization {
   subscriptions  Subscription[]
   invoices       Invoice[]
   payments       Payment[]
+  refunds        Refund[]
   outbox         OutboxMessage[]
   clock          OrganizationClock?
 
@@ -353,6 +354,7 @@ model Invoice {
   customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
   subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
   payments     Payment[]
+  refunds      Refund[]
 
   @@unique([organizationId, number])
   @@index([organizationId, status])
@@ -399,6 +401,7 @@ model Payment {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  refunds      Refund[]
 
   @@unique([invoiceId, attempt])
   @@index([organizationId, status])
@@ -614,4 +617,45 @@ model OutboxMessage {
   @@unique([organizationId, eventType, eventId])
   @@index([status, nextAttemptAt])
   @@map("outbox_messages")
+}
+
+/// Situacao de um estorno.
+enum RefundStatus {
+  /// Enviado ao provedor, sem resposta.
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+/// Devolucao de dinheiro ja recebido.
+///
+/// O estorno nao apaga o pagamento: e um fato novo, com data propria, que
+/// aponta para o pagamento que esta desfazendo. Anular o lancamento original
+/// destruiria a resposta para "quanto entrou em marco", que continua sendo o
+/// valor cheio mesmo depois de devolvido em abril.
+model Refund {
+  id             String @id @default(uuid(7)) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  paymentId      String @map("payment_id") @db.Uuid
+  invoiceId      String @map("invoice_id") @db.Uuid
+
+  amountMinor BigInt @map("amount_minor")
+  currency    String @db.Char(3)
+  reason      String
+
+  status         RefundStatus
+  gatewayRef     String? @map("gateway_ref")
+  failureMessage String? @map("failure_message")
+  idempotencyKey String  @map("idempotency_key")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  payment      Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, status])
+  @@index([paymentId])
+  @@map("refunds")
 }
