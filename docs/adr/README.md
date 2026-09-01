@@ -35,6 +35,8 @@ momento em que ela é tomada, com o contexto que existia na época.
 | [0008](0008-advisory-locks-para-assinatura.md)  | Advisory locks para mutação de assinatura                     | Aceita |
 | [0009](0009-relogio-injetado.md)                | Relógio injetado em vez de acesso direto ao tempo             | Aceita |
 | [0010](0010-autenticacao-propria.md)            | Autenticação própria em vez de provedor externo               | Aceita |
+| [0011](0011-porta-de-gateway.md)                | Porta de gateway com implementação falsa como padrão          | Aceita |
+| [0014](0014-escopo-pci-saq-a.md)                | Escopo PCI-DSS SAQ-A por desenho                              | Aceita |
 | [0015](0015-relogio-virtual-por-organizacao.md) | Relógio virtual por organização, via AsyncLocalStorage        | Aceita |
 
 Os números abaixo estão reservados no plano do projeto. Cada ADR é escrita na
@@ -42,13 +44,11 @@ fase em que a decisão passa a valer, que nem sempre é a fase prevista: a
 ADR-0009 saiu na fase 01 porque o módulo de identidade já precisava calcular
 expiração de token, e isso exigiu a porta de relógio antes do previsto.
 
-| Prevista | Título                                                     | Fase |
-| -------- | ---------------------------------------------------------- | ---- |
-| 0006     | Outbox transacional em vez de publicação direta            | 05   |
-| 0007     | Idempotency-Key no modelo do Stripe                        | 05   |
-| 0011     | Porta de gateway com implementação falsa e Stripe em teste | 05   |
-| 0012     | Worker no mesmo processo, com flag e gatilho de extração   | 05   |
-| 0013     | OpenTelemetry com Datadog como backend                     | 09   |
-| 0014     | Escopo PCI-DSS SAQ-A por desenho                           | 05   |
+| Prevista | Título                                                   | Fase |
+| -------- | -------------------------------------------------------- | ---- |
+| 0006     | Outbox transacional em vez de publicação direta          | 05   |
+| 0007     | Idempotency-Key no modelo do Stripe                      | 05   |
+| 0012     | Worker no mesmo processo, com flag e gatilho de extração | 05   |
+| 0013     | OpenTelemetry com Datadog como backend                   | 09   |
 
 Use [template.md](template.md) para criar uma nova.

@@ -9,6 +9,7 @@ import { EVENT } from '../../platform/events/domain-event';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { nextPeriodEnd } from '../domain/proration';
 import { assertTransition } from '../domain/subscription-state';
+import { InvoicesService } from './invoices.service';
 
 /** Chave de advisory lock por assinatura. A mesma da ADR-0008. */
 const LOCK_NAMESPACE = 0x7061796e;
@@ -66,6 +67,7 @@ export class BillingCycleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: DomainEventPublisher,
+    private readonly invoices: InvoicesService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -222,7 +224,7 @@ export class BillingCycleService {
         type: EVENT.SUBSCRIPTION_RENEWED,
         // Derivada do início do período, e não de um aleatório nem de um
         // contador: rodar o ciclo duas vezes sobre o mesmo período produz a
-        // mesma chave, e o índice único do razão recusa a segunda fatura.
+        // mesma chave, e o índice único do razão recusa a duplicata.
         id: `subscription-renewed:${subscription.id}:${inicio.toISOString()}`,
         organizationId: subscription.organizationId,
         occurredAt: agora,
@@ -242,6 +244,20 @@ export class BillingCycleService {
       },
       tx,
     );
+
+    // A renovação é um fato de produto; a fatura é o fato contábil. Emitir a
+    // fatura aqui, e não deixar o razão reagir à renovação, é o que permite
+    // que exista renovação sem cobrança, como o fim de um teste gratuito.
+    await this.invoices.issue(tx, {
+      organizationId: subscription.organizationId,
+      customerId: subscription.customerId,
+      subscriptionId: subscription.id,
+      amount: Money.fromMinor(subscription.price.amountMinor, subscription.price.currency),
+      periodStart: inicio,
+      periodEnd: fim,
+      description: `Fatura de ${subscription.customer.name}, plano ${subscription.price.product.name}`,
+      eventKey: `invoice-issued:${subscription.id}:${inicio.toISOString()}`,
+    });
 
     this.logger.log(
       `Assinatura ${subscription.id} renovada para ${fim.toISOString()} ` +

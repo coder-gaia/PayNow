@@ -54,6 +54,8 @@ model Organization {
   customers      Customer[]
   products       Product[]
   subscriptions  Subscription[]
+  invoices       Invoice[]
+  payments       Payment[]
   clock          OrganizationClock?
 
   @@map("organizations")
@@ -287,12 +289,119 @@ model Customer {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  /// Token opaco do meio de pagamento, emitido pelo provedor.
+  ///
+  /// Nunca guardamos numero de cartao. O que fica aqui e uma referencia que so
+  /// o provedor sabe resolver, e bandeira e ultimos quatro digitos para
+  /// exibicao. Ver ADR-0014: e isto que mantem o escopo PCI em SAQ-A.
+  paymentMethodToken String? @map("payment_method_token")
+  paymentMethodBrand String? @map("payment_method_brand")
+  paymentMethodLast4 String? @map("payment_method_last4") @db.VarChar(4)
+
   organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   subscriptions Subscription[]
+  invoices      Invoice[]
 
   @@unique([organizationId, email])
   @@index([organizationId])
   @@map("customers")
+}
+
+/// Situacao de uma fatura.
+enum InvoiceStatus {
+  /// Emitida e ainda nao paga.
+  OPEN
+  /// Quitada.
+  PAID
+  /// Anulada antes de ser paga. Nao vira receita.
+  VOID
+  /// Recuperacao esgotada sem pagamento.
+  UNCOLLECTIBLE
+}
+
+/// O que o cliente deve por um periodo.
+///
+/// A fatura existe para que pagamento tenha objeto. Sem ela, "pagar" nao teria
+/// o que quitar, e a recuperacao nao teria onde contar tentativas.
+model Invoice {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  customerId     String        @map("customer_id") @db.Uuid
+  subscriptionId String?       @map("subscription_id") @db.Uuid
+  /// Sequencial por organizacao, para leitura humana. Ver InvoicesService.
+  number         Int
+  status         InvoiceStatus
+
+  amountMinor BigInt @map("amount_minor")
+  currency    String @db.Char(3)
+
+  periodStart DateTime  @map("period_start") @db.Timestamptz(3)
+  periodEnd   DateTime  @map("period_end") @db.Timestamptz(3)
+  dueAt       DateTime  @map("due_at") @db.Timestamptz(3)
+  paidAt      DateTime? @map("paid_at") @db.Timestamptz(3)
+
+  /// Quantas cobrancas ja foram tentadas, e quando vem a proxima.
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime? @map("next_attempt_at") @db.Timestamptz(3)
+
+  version   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  payments     Payment[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([nextAttemptAt])
+  @@map("invoices")
+}
+
+/// Resultado de uma tentativa de cobranca.
+enum PaymentStatus {
+  /// Enviada e sem resposta. O provedor pode ou nao ter cobrado.
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+/// Uma tentativa de cobranca contra uma fatura.
+///
+/// Cada tentativa e uma linha, e nenhuma e apagada. O historico de tentativas
+/// e o que responde "por que este cliente foi cortado", e sobrescrever a
+/// tentativa anterior apagaria justamente a resposta.
+model Payment {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  invoiceId      String        @map("invoice_id") @db.Uuid
+  /// Numero da tentativa, a partir de 1.
+  attempt        Int
+  status         PaymentStatus
+
+  amountMinor BigInt @map("amount_minor")
+  currency    String @db.Char(3)
+
+  gateway    String
+  gatewayRef String? @map("gateway_ref")
+
+  failureCode    String?  @map("failure_code")
+  failureMessage String?  @map("failure_message")
+  retriable      Boolean?
+
+  /// Chave enviada ao provedor. Deriva da fatura e da tentativa, nunca aleatoria.
+  idempotencyKey String @map("idempotency_key")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([invoiceId, attempt])
+  @@index([organizationId, status])
+  @@map("payments")
 }
 
 /// O que o merchant vende. "Plano Pro", por exemplo.
@@ -393,6 +502,7 @@ model Subscription {
   customer     Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
   price        Price               @relation(fields: [priceId], references: [id], onDelete: Restrict)
   events       SubscriptionEvent[]
+  invoices     Invoice[]
 
   @@index([organizationId, status])
   @@index([customerId])

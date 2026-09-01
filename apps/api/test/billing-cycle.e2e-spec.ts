@@ -110,9 +110,17 @@ describe('Ciclo de cobrança (e2e)', () => {
 
   const recarregar = (id: string) => prisma.subscription.findUniqueOrThrow({ where: { id } });
 
+  /**
+   * Faturas emitidas, contadas pelo razão.
+   *
+   * O filtro é `invoice.issued` e não `subscription.renewed` porque são fatos
+   * de naturezas diferentes: renovar é fato de produto, faturar é fato
+   * contábil. Nem toda renovação fatura, e o fim de um período de teste é
+   * exatamente a renovação que fatura pela primeira vez.
+   */
   const faturas = async (organizationId: string) => {
     const entries = await ledger.entries(organizationId);
-    return entries.filter((entry) => entry.eventType === 'subscription.renewed');
+    return entries.filter((entry) => entry.eventType === 'invoice.issued');
   };
 
   describe('congelamento', () => {
@@ -196,8 +204,8 @@ describe('Ciclo de cobrança (e2e)', () => {
       expect(depois.currentPeriodStart.toISOString()).toBe('2026-02-10T12:00:00.000Z');
       expect(depois.currentPeriodEnd.toISOString()).toBe('2026-03-10T12:00:00.000Z');
 
-      // A fatura do primeiro ciclo saiu no start; esta é a da renovação.
-      expect(await faturas(organizationId)).toHaveLength(1);
+      // Duas faturas: a do primeiro ciclo, emitida no start, e a da renovação.
+      expect(await faturas(organizationId)).toHaveLength(2);
     });
 
     /**
@@ -220,7 +228,8 @@ describe('Ciclo de cobrança (e2e)', () => {
       expect(depois.currentPeriodStart.toISOString()).toBe('2026-04-10T12:00:00.000Z');
       expect(depois.currentPeriodEnd.toISOString()).toBe('2026-05-10T12:00:00.000Z');
 
-      expect(await faturas(organizationId)).toHaveLength(3);
+      // Três renovações mais a fatura do primeiro ciclo.
+      expect(await faturas(organizationId)).toHaveLength(4);
     });
 
     /**
@@ -251,7 +260,7 @@ describe('Ciclo de cobrança (e2e)', () => {
       const depois = await comRelogio(organizationId, () => cycle.runDue(organizationId));
 
       expect(depois.effects).toEqual([]);
-      expect(await faturas(organizationId)).toHaveLength(1);
+      expect(await faturas(organizationId)).toHaveLength(2);
     });
   });
 
@@ -291,7 +300,7 @@ describe('Ciclo de cobrança (e2e)', () => {
       // O que já era devido continua no razão: cancelar não perdoa a dívida.
       const entries = await ledger.entries(organizationId);
       expect(entries).toHaveLength(1);
-      expect(entries[0]?.eventType).toBe('subscription.started');
+      expect(entries[0]?.eventType).toBe('invoice.issued');
     });
 
     it('o cancelamento agendado se cumpre no fim do ciclo', async () => {
@@ -329,7 +338,7 @@ describe('Ciclo de cobrança (e2e)', () => {
       expect(report.balanced).toBe(true);
 
       // Doze renovações mais a fatura do primeiro ciclo.
-      expect(await faturas(organizationId)).toHaveLength(12);
+      expect(await faturas(organizationId)).toHaveLength(13);
 
       const balances = await ledger.balances(organizationId);
       const receber = balances.find((conta) => conta.code === 'customer:receivable');

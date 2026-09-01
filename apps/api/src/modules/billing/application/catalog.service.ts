@@ -14,6 +14,38 @@ export class CatalogService {
   // Clientes do merchant
   // ------------------------------------------------------------------
 
+  /**
+   * Vincula um meio de pagamento ao cliente.
+   *
+   * O que fica guardado é o token do provedor, e nunca o cartão. Bandeira e
+   * últimos quatro dígitos existem só para que a interface possa dizer "Visa
+   * final 4242" em vez de mostrar um identificador opaco a quem está
+   * conferindo a cobrança. Ver ADR-0014.
+   */
+  async attachPaymentMethod(
+    organizationId: string,
+    customerId: string,
+    method: { token: string; brand?: string; last4?: string },
+  ) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: customerId, organizationId },
+      select: { id: true },
+    });
+
+    if (customer === null) {
+      throw new NotFoundException('Cliente não encontrado nesta organização.');
+    }
+
+    return this.prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        paymentMethodToken: method.token,
+        paymentMethodBrand: method.brand ?? null,
+        paymentMethodLast4: method.last4 ?? null,
+      },
+    });
+  }
+
   async createCustomer(
     organizationId: string,
     input: { email: string; name: string; externalId?: string },

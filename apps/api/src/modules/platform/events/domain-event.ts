@@ -23,6 +23,9 @@ export const EVENT = {
   SUBSCRIPTION_PLAN_CHANGED: 'subscription.plan_changed',
   SUBSCRIPTION_CANCELED: 'subscription.canceled',
   SUBSCRIPTION_RENEWED: 'subscription.renewed',
+  INVOICE_ISSUED: 'invoice.issued',
+  PAYMENT_SUCCEEDED: 'payment.succeeded',
+  PAYMENT_FAILED: 'payment.failed',
 } as const;
 
 export type EventType = (typeof EVENT)[keyof typeof EVENT];
@@ -84,6 +87,67 @@ export interface SubscriptionPlanChangedPayload {
   readonly cycleDays: number;
 }
 
+/**
+ * Fatura emitida.
+ *
+ * É este evento, e não o de assinatura, que move o razão. A separação importa:
+ * uma assinatura renovada é um fato de produto, e uma fatura emitida é um fato
+ * contábil. Nem toda renovação emite fatura, o fim de um período de teste é a
+ * mesma renovação sem cobrança, e amarrar a contabilidade ao evento de produto
+ * obrigaria a política contábil a conhecer essas exceções.
+ */
+export interface InvoiceIssuedPayload {
+  readonly invoiceId: string;
+  readonly invoiceNumber: number;
+  readonly customerId: string;
+  readonly subscriptionId?: string;
+  readonly description: string;
+  readonly amount: MoneyPayload;
+  readonly periodStart: string;
+  readonly periodEnd: string;
+  readonly dueAt: string;
+}
+
+/**
+ * Cobrança confirmada.
+ *
+ * Carrega o valor e a taxa separados porque são fatos contábeis distintos: o
+ * dinheiro que entrou no gateway e a parte dele que é da plataforma. Somá-los
+ * antes de lançar perderia a informação de quanto o merchant vai receber de
+ * fato, que é justamente o que ele quer saber.
+ */
+export interface PaymentSucceededPayload {
+  readonly paymentId: string;
+  readonly invoiceId: string;
+  readonly invoiceNumber: number;
+  readonly customerId: string;
+  readonly customerName: string;
+  readonly attempt: number;
+  readonly amount: MoneyPayload;
+  readonly platformFee: MoneyPayload;
+  readonly gateway: string;
+  readonly gatewayRef: string;
+}
+
+/**
+ * Cobrança recusada.
+ *
+ * Não move o razão: recusa não é fato contábil, porque nada mudou de mão. O
+ * que ela move é a recuperação, e é por isso que `retriable` viaja no payload.
+ */
+export interface PaymentFailedPayload {
+  readonly paymentId: string;
+  readonly invoiceId: string;
+  readonly invoiceNumber: number;
+  readonly customerId: string;
+  readonly customerName: string;
+  readonly attempt: number;
+  readonly amount: MoneyPayload;
+  readonly code: string;
+  readonly message: string;
+  readonly retriable: boolean;
+}
+
 export interface SubscriptionCanceledPayload {
   readonly subscriptionId: string;
   readonly customerId: string;
@@ -97,6 +161,9 @@ export interface DomainEventPayloads {
   [EVENT.SUBSCRIPTION_PLAN_CHANGED]: SubscriptionPlanChangedPayload;
   [EVENT.SUBSCRIPTION_CANCELED]: SubscriptionCanceledPayload;
   [EVENT.SUBSCRIPTION_RENEWED]: SubscriptionStartedPayload;
+  [EVENT.INVOICE_ISSUED]: InvoiceIssuedPayload;
+  [EVENT.PAYMENT_SUCCEEDED]: PaymentSucceededPayload;
+  [EVENT.PAYMENT_FAILED]: PaymentFailedPayload;
 }
 
 export interface DomainEvent<T extends EventType = EventType> {

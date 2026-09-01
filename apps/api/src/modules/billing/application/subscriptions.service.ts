@@ -9,6 +9,7 @@ import { EVENT, type MoneyPayload } from '../../platform/events/domain-event';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { nextPeriodEnd, prorate } from '../domain/proration';
 import { assertTransition } from '../domain/subscription-state';
+import { InvoicesService } from './invoices.service';
 
 /** Chave de advisory lock por assinatura. Ver ADR-0008. */
 const LOCK_NAMESPACE = 0x7061796e; // "payn"
@@ -47,6 +48,7 @@ export class SubscriptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: DomainEventPublisher,
+    private readonly invoices: InvoicesService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -140,6 +142,22 @@ export class SubscriptionsService {
         },
         tx,
       );
+
+      // Período de teste não emite fatura: nada é devido enquanto o teste
+      // corre. A primeira fatura sai quando o teste acabar, pelo ciclo de
+      // cobrança, que é o mesmo caminho de qualquer renovação.
+      if (!comTeste) {
+        await this.invoices.issue(tx, {
+          organizationId: input.organizationId,
+          customerId: input.customerId,
+          subscriptionId: subscription.id,
+          amount: Money.fromMinor(price.amountMinor, price.currency),
+          periodStart,
+          periodEnd,
+          description: `Fatura de ${customer.name}, plano ${price.product.name}`,
+          eventKey: `invoice-issued:${subscription.id}:${periodStart.toISOString()}`,
+        });
+      }
 
       return subscription;
     });

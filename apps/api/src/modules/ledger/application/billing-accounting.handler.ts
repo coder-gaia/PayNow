@@ -7,9 +7,10 @@ import {
   type DomainEventHandler,
   EVENT,
   type EventType,
+  type InvoiceIssuedPayload,
   type MoneyPayload,
+  type PaymentSucceededPayload,
   type SubscriptionPlanChangedPayload,
-  type SubscriptionStartedPayload,
 } from '../../platform/events/domain-event';
 import { ACCOUNT } from '../domain/chart-of-accounts';
 import { LedgerService } from './ledger.service';
@@ -18,9 +19,9 @@ const toMoney = (payload: MoneyPayload): Money =>
   Money.fromMinor(BigInt(payload.amountMinor), payload.currency);
 
 /**
- * Política contábil das assinaturas.
+ * Política contábil da cobrança.
  *
- * Aqui mora o conhecimento de como um fato de assinatura vira lançamento. O
+ * Aqui mora o conhecimento de como um fato de negócio vira lançamento. O
  * módulo de cobrança não sabe que existem contas, e o razão não sabe o que é
  * um ciclo: o evento é o contrato entre os dois, e a ADR-0001 é o motivo.
  *
@@ -28,26 +29,34 @@ const toMoney = (payload: MoneyPayload): Money =>
  * fronteira. Política contábil muda por decisão de negócio, e não por mudança
  * de produto: se um dia a receita passar a ser reconhecida ao longo do ciclo
  * em vez de na emissão, o que muda é este arquivo, e nada em cobrança.
+ *
+ * Repare no que **não** está aqui. Recusa de cobrança não vira lançamento,
+ * porque nada mudou de mão: o cliente continua devendo exatamente o que devia.
+ * Lançar a recusa criaria movimento contábil para um não evento, e o balancete
+ * passaria a contar tentativas em vez de dinheiro.
  */
 @Injectable()
-export class SubscriptionAccountingHandler implements DomainEventHandler {
+export class BillingAccountingHandler implements DomainEventHandler {
   readonly handles: readonly EventType[] = [
-    EVENT.SUBSCRIPTION_STARTED,
-    EVENT.SUBSCRIPTION_RENEWED,
+    EVENT.INVOICE_ISSUED,
     EVENT.SUBSCRIPTION_PLAN_CHANGED,
+    EVENT.PAYMENT_SUCCEEDED,
   ];
 
   constructor(private readonly ledger: LedgerService) {}
 
   async handle(event: DomainEvent, tx: Prisma.TransactionClient): Promise<void> {
     switch (event.type) {
-      case EVENT.SUBSCRIPTION_STARTED:
-      case EVENT.SUBSCRIPTION_RENEWED:
+      case EVENT.INVOICE_ISSUED:
         await this.emitirFatura(event, tx);
         return;
 
       case EVENT.SUBSCRIPTION_PLAN_CHANGED:
         await this.registrarRateio(event, tx);
+        return;
+
+      case EVENT.PAYMENT_SUCCEEDED:
+        await this.registrarPagamento(event, tx);
         return;
 
       default:
@@ -59,22 +68,61 @@ export class SubscriptionAccountingHandler implements DomainEventHandler {
    * Emissão de fatura.
    *
    * O cliente passa a dever e a receita é reconhecida. Nada de dinheiro entrou
-   * ainda: a entrada é registrada quando o pagamento confirmar, na fase 05.
+   * ainda: a entrada é registrada quando o pagamento confirmar.
    */
   private async emitirFatura(event: DomainEvent, tx: Prisma.TransactionClient): Promise<void> {
-    const payload = event.payload as SubscriptionStartedPayload;
+    const payload = event.payload as InvoiceIssuedPayload;
     const amount = toMoney(payload.amount);
 
     await this.ledger.post(
       {
         organizationId: event.organizationId,
         event: { type: event.type, id: event.id },
-        description: `Fatura de ${payload.customerName}, plano ${payload.planName}`,
+        description: payload.description,
         occurredAt: event.occurredAt,
         lines: [
           { account: ACCOUNT.CUSTOMER_RECEIVABLE, amount },
           { account: ACCOUNT.MERCHANT_REVENUE, amount: amount.negated() },
         ],
+      },
+      tx,
+    );
+  }
+
+  /**
+   * Pagamento confirmado.
+   *
+   * Quatro linhas, dois fatos. O dinheiro entrou no gateway e a dívida do
+   * cliente foi quitada; e a plataforma reteve a sua parte, que sai da receita
+   * do merchant. Somar a taxa antes de lançar perderia justamente a informação
+   * que o merchant quer: quanto vai sobrar para ele.
+   *
+   * O que entra em `gateway:clearing` é o valor cheio, e não o líquido. O
+   * dinheiro está todo lá até a liquidação; a taxa é uma obrigação entre as
+   * partes, não uma quantia que deixou de existir.
+   */
+  private async registrarPagamento(
+    event: DomainEvent,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const payload = event.payload as PaymentSucceededPayload;
+    const amount = toMoney(payload.amount);
+    const fee = toMoney(payload.platformFee);
+
+    await this.ledger.post(
+      {
+        organizationId: event.organizationId,
+        event: { type: event.type, id: event.id },
+        description:
+          `Pagamento da fatura ${payload.invoiceNumber} de ${payload.customerName}` +
+          (payload.attempt > 1 ? `, na ${payload.attempt}ª tentativa` : ''),
+        occurredAt: event.occurredAt,
+        lines: [
+          { account: ACCOUNT.GATEWAY_CLEARING, amount },
+          { account: ACCOUNT.CUSTOMER_RECEIVABLE, amount: amount.negated() },
+          { account: ACCOUNT.MERCHANT_REVENUE, amount: fee },
+          { account: ACCOUNT.PLATFORM_FEE, amount: fee.negated() },
+        ].filter((line) => !line.amount.isZero()),
       },
       tx,
     );
