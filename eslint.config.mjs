@@ -70,18 +70,15 @@ export default tseslint.config(
     // que é o oposto do acoplamento com tempo ambiente que a regra evita.
     ignores: ['apps/api/src/modules/platform/**', '**/*.spec.ts'],
     rules: {
-      'no-restricted-globals': [
-        'error',
-        {
-          name: 'Date',
-          message:
-            'ADR-0009: use o Clock injetado (modules/platform/clock) em vez de acessar o relógio do sistema.',
-        },
-      ],
+      // A regra mira o que o relógio ambiente tem de perigoso, que é ler a
+      // hora atual, e não a classe Date. `new Date(iso)` converte um texto que
+      // já veio de algum lugar e não consulta relógio nenhum; proibi-lo
+      // obrigaria a contornar a regra para formatar uma data, e regra que se
+      // contorna por rotina deixa de ser levada a sério.
       'no-restricted-syntax': [
         'error',
         {
-          selector: "NewExpression[callee.name='Date']",
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
           message:
             'ADR-0009: use o Clock injetado (modules/platform/clock) em vez de `new Date()`.',
         },

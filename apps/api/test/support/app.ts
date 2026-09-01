@@ -13,8 +13,26 @@ import { AppModule } from '../../src/app.module';
  * verificando um sistema que não existe: o prefixo de rota e o pipe de
  * validação fazem parte do comportamento observavel da API.
  */
-export async function createTestApp(): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+export interface TestAppOptions {
+  /**
+   * Provedores trocados por dublê.
+   *
+   * Usado com parcimônia: quase todo teste aqui roda contra o sistema inteiro
+   * de propósito. A exceção legítima é o que sai do processo, como o envio de
+   * email, onde o que interessa verificar é a mecânica de entrega e não o
+   * servidor de terceiro.
+   */
+  readonly overrides?: readonly { token: unknown; value: unknown }[];
+}
+
+export async function createTestApp(options: TestAppOptions = {}): Promise<INestApplication> {
+  let builder = Test.createTestingModule({ imports: [AppModule] });
+
+  for (const override of options.overrides ?? []) {
+    builder = builder.overrideProvider(override.token).useValue(override.value);
+  }
+
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
 
   app.setGlobalPrefix('v1', { exclude: ['health/live', 'health/ready'] });

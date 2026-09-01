@@ -4,6 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 
 import type { Env } from '../../../config/env';
 import { OrganizationClockService } from '../../platform/clock/organization-clock.service';
+import { OutboxService } from '../../platform/events/outbox.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { BillingCycleService } from './billing-cycle.service';
 
@@ -43,6 +44,7 @@ export class BillingWorker {
     private readonly prisma: PrismaService,
     private readonly clocks: OrganizationClockService,
     private readonly cycle: BillingCycleService,
+    private readonly outbox: OutboxService,
     config: ConfigService<Env, true>,
   ) {
     this.enabled = config.get('WORKER_ENABLED', { infer: true });
@@ -62,6 +64,18 @@ export class BillingWorker {
 
     try {
       await this.varrer();
+
+      // O relay roda fora do laço de organizações porque a fila do outbox não
+      // é por organização: uma varredura entrega o que estiver pendente,
+      // independente de quem publicou.
+      const entregas = await this.outbox.relay();
+
+      if (entregas.delivered > 0 || entregas.failed > 0) {
+        this.logger.log(
+          `Outbox: ${entregas.delivered} entregue(s), ${entregas.retrying} reagendada(s), ` +
+            `${entregas.failed} desistida(s)`,
+        );
+      }
     } catch (error) {
       // Uma varredura que falha não pode derrubar o processo: a próxima
       // acontece em um minuto, e o trabalho não perdido continua pendente no

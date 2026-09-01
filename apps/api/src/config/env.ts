@@ -58,7 +58,14 @@ export const envSchema = z.object({
 
   SMTP_HOST: z.string().min(1).default('localhost'),
   SMTP_PORT: port(1025),
-  SMTP_FROM: z.string().min(3).default('não-responda@paynow.local'),
+  /**
+   * Remetente dos emails.
+   *
+   * Sem acento de propósito: a parte local de um endereço de email é ASCII, e
+   * um remetente inválido faz o envio falhar em um lugar difícil de associar à
+   * causa.
+   */
+  SMTP_FROM: z.string().min(3).default('nao-responda@paynow.local'),
 });
 
 export type Env = z.infer<typeof envSchema>;

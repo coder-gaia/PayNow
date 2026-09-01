@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
 import type { DomainEvent, DomainEventHandler, EventType } from './domain-event';
+import { OutboxService } from './outbox.service';
 
 /**
  * Publicador de eventos de domínio.
@@ -13,11 +14,17 @@ import type { DomainEvent, DomainEventHandler, EventType } from './domain-event'
  * A ordem de entrega não é garantida e nenhum handler deve depender de outro.
  * Handler que precisa de resultado de handler é acoplamento disfarçado, e o
  * lugar certo para essa lógica é quem publicou.
+ *
+ * Um `publish` faz duas coisas, e as duas na mesma transação: chama os
+ * handlers síncronos e grava a mensagem no outbox para quem consome depois do
+ * commit. Não são alternativas, são garantias diferentes. Ver ADR-0006.
  */
 @Injectable()
 export class DomainEventPublisher {
   private readonly logger = new Logger(DomainEventPublisher.name);
   private readonly porTipo = new Map<EventType, DomainEventHandler[]>();
+
+  constructor(private readonly outbox: OutboxService) {}
 
   /**
    * Registra um consumidor.
@@ -41,12 +48,16 @@ export class DomainEventPublisher {
     if (handlers.length === 0) {
       // Não é erro: nem todo evento interessa a alguém hoje. Vale registrar,
       // porque um evento que ninguém consome costuma indicar handler esquecido.
-      this.logger.debug(`Evento ${event.type} publicado sem nenhum consumidor.`);
-      return;
+      this.logger.debug(`Evento ${event.type} publicado sem nenhum handler síncrono.`);
     }
 
     for (const handler of handlers) {
       await handler.handle(event, tx);
     }
+
+    // A mensagem entra na mesma transação. Se qualquer handler acima falhar, ou
+    // se quem publicou desistir depois, ela desaparece junto: não se anuncia
+    // para fora um fato que não aconteceu.
+    await this.outbox.enqueue(event, tx);
   }
 }

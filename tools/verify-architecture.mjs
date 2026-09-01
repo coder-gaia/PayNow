@@ -41,6 +41,15 @@ const cases = [
     expectRule: 'no-restricted-syntax',
   },
   {
+    // Sonda separada porque a regra distingue `new Date()` de `new Date(iso)`.
+    // Sem esta, refinar o seletor para nao atrapalhar a conversao de texto
+    // poderia desligar a proibicao do construtor sem ninguem perceber.
+    name: 'modulo de dominio construindo a hora atual',
+    file: join(modulesDir, '__probe_beta', 'instante.ts'),
+    code: ['export const agora = (): Date => new Date();', ''].join('\n'),
+    expectRule: 'no-restricted-syntax',
+  },
+  {
     name: 'módulo de plataforma importando um módulo de domínio',
     file: join(modulesDir, 'platform', '__probe_invasao.ts'),
     code: [

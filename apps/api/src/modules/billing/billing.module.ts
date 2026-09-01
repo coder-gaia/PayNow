@@ -1,12 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, type OnModuleInit } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { BillingCycleService } from './application/billing-cycle.service';
 import { BillingWorker } from './application/billing-worker';
+import { ReceiptMailer } from './application/receipt-mailer';
 import { CatalogService } from './application/catalog.service';
 import { InvoicesService } from './application/invoices.service';
 import { PaymentsService } from './application/payments.service';
 import { SubscriptionsService } from './application/subscriptions.service';
+import { OutboxService } from '../platform/events/outbox.service';
 import { BillingClockController } from './http/billing-clock.controller';
 import { BillingController } from './http/billing.controller';
 import { PaymentsController } from './http/payments.controller';
@@ -44,6 +46,7 @@ import { PaymentsController } from './http/payments.controller';
     CatalogService,
     InvoicesService,
     PaymentsService,
+    ReceiptMailer,
     SubscriptionsService,
   ],
   exports: [
@@ -54,4 +57,13 @@ import { PaymentsController } from './http/payments.controller';
     SubscriptionsService,
   ],
 })
-export class BillingModule {}
+export class BillingModule implements OnModuleInit {
+  constructor(
+    private readonly outbox: OutboxService,
+    private readonly receipts: ReceiptMailer,
+  ) {}
+
+  onModuleInit(): void {
+    this.outbox.register(this.receipts);
+  }
+}

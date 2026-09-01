@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
 import { ClockModule } from './clock/clock.module';
+import { MailModule } from './mail/mail.module';
 import { PaymentsGatewayModule } from './payments/payments-gateway.module';
 import { EventsModule } from './events/events.module';
 import { IdempotencyInterceptor } from './http/idempotency.interceptor';
@@ -26,6 +27,7 @@ import { RedisModule } from './redis/redis.module';
   imports: [
     ClockModule,
     EventsModule,
+    MailModule,
     PaymentsGatewayModule,
     PrismaModule,
     RedisModule,
