@@ -33,6 +33,7 @@ momento em que ela é tomada, com o contexto que existia na época.
 | [0004](0004-nestjs-11-em-vez-de-12.md)          | NestJS 11 em vez de 12, com gatilho de migração               | Aceita |
 | [0005](0005-prisma-e-sql-cru.md)                | Prisma para schema e tipos, SQL cru no núcleo do ledger       | Aceita |
 | [0008](0008-advisory-locks-para-assinatura.md)  | Advisory locks para mutação de assinatura                     | Aceita |
+| [0007](0007-idempotency-key.md)                 | Idempotency-Key no modelo do Stripe                           | Aceita |
 | [0009](0009-relogio-injetado.md)                | Relógio injetado em vez de acesso direto ao tempo             | Aceita |
 | [0010](0010-autenticacao-propria.md)            | Autenticação própria em vez de provedor externo               | Aceita |
 | [0011](0011-porta-de-gateway.md)                | Porta de gateway com implementação falsa como padrão          | Aceita |

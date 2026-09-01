@@ -529,3 +529,43 @@ model SubscriptionEvent {
   @@index([subscriptionId, occurredAt])
   @@map("subscription_events")
 }
+
+/// Estado de um registro de idempotencia.
+enum IdempotencyStatus {
+  /// A requisicao original ainda esta sendo processada.
+  IN_PROGRESS
+  /// Terminou, e a resposta esta guardada para repeticoes.
+  COMPLETED
+}
+
+/// Resposta guardada por chave de idempotencia. Ver ADR-0007.
+///
+/// O escopo separa as chaves por cliente: uma chave escolhida por um merchant
+/// nunca colide com a de outro, e nao ha como um adivinhar a chave do outro
+/// para ler uma resposta alheia.
+///
+/// O hash da requisicao existe para pegar o erro mais comum de quem usa
+/// idempotencia errado: reaproveitar a mesma chave para um pedido diferente.
+/// Sem ele, a segunda chamada receberia calada a resposta da primeira, e o
+/// cliente concluiria que cobrou quando nao cobrou.
+model IdempotencyRecord {
+  id    String @id @default(uuid(7)) @db.Uuid
+  scope String
+  key   String
+
+  method      String
+  path        String
+  requestHash String @map("request_hash")
+
+  status         IdempotencyStatus
+  responseStatus Int?              @map("response_status")
+  responseBody   Json?             @map("response_body")
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+
+  @@unique([scope, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
