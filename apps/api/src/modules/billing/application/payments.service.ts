@@ -291,11 +291,13 @@ export class PaymentsService {
       const horas = retriable ? nextAttemptDelayHours(payment.attempt) : null;
       const nextAttemptAt = horas === null ? null : addHours(agora, horas);
 
+      const esgotou = horas === null;
+
       const invoice = await tx.invoice.update({
         where: { id: payment.invoiceId },
         data: {
           nextAttemptAt,
-          ...(horas === null ? { status: InvoiceStatus.UNCOLLECTIBLE } : {}),
+          ...(esgotou ? { status: InvoiceStatus.UNCOLLECTIBLE } : {}),
         },
       });
 
@@ -323,7 +325,7 @@ export class PaymentsService {
         tx,
       );
 
-      await this.acertarAssinatura(tx, invoice.subscriptionId, false, agora);
+      await this.acertarAssinatura(tx, invoice.subscriptionId, false, agora, esgotou);
 
       return {
         paymentId: payment.id,
@@ -388,6 +390,7 @@ export class PaymentsService {
     subscriptionId: string | null,
     pago: boolean,
     agora: Date,
+    recuperacaoEsgotada = false,
   ): Promise<void> {
     if (subscriptionId === null) {
       return;
@@ -405,36 +408,64 @@ export class PaymentsService {
     // cobrança quando o período vencer. PAST_DUE significa "já esteve em dia e
     // caiu", e é essa distinção que faz o painel poder dizer, sem consultar o
     // histórico, se aquele cliente já pagou alguma vez.
-    if (!pago && subscription.status !== SubscriptionStatus.ACTIVE) {
+    if (!pago && subscription.status === SubscriptionStatus.INCOMPLETE) {
       return;
     }
 
-    const destino = pago ? SubscriptionStatus.ACTIVE : SubscriptionStatus.PAST_DUE;
+    // A recuperação esgotada é o fim da linha, e o caminho até lá passa por
+    // PAST_DUE mesmo quando a primeira recusa já é definitiva. A máquina de
+    // estados não aceita ACTIVE indo direto para UNPAID, e ela está certa: o
+    // histórico da assinatura precisa mostrar a queda antes do desfecho, senão
+    // fica parecendo que o corte veio do nada.
+    const caminho = pago
+      ? [SubscriptionStatus.ACTIVE]
+      : recuperacaoEsgotada
+        ? [SubscriptionStatus.PAST_DUE, SubscriptionStatus.UNPAID]
+        : [SubscriptionStatus.PAST_DUE];
 
-    if (subscription.status === destino) {
-      return;
+    let atual = subscription.status;
+
+    for (const destino of caminho) {
+      if (atual === destino) {
+        continue;
+      }
+
+      assertTransition(atual, destino);
+
+      await tx.subscription.update({
+        where: { id: subscription.id },
+        data: { status: destino, version: { increment: 1 } },
+      });
+
+      await tx.subscriptionEvent.create({
+        data: {
+          subscriptionId: subscription.id,
+          fromStatus: atual,
+          toStatus: destino,
+          reason: motivoDaTransicao(destino),
+          occurredAt: agora,
+        },
+      });
+
+      atual = destino;
     }
-
-    assertTransition(subscription.status, destino);
-
-    await tx.subscription.update({
-      where: { id: subscription.id },
-      data: { status: destino, version: { increment: 1 } },
-    });
-
-    await tx.subscriptionEvent.create({
-      data: {
-        subscriptionId: subscription.id,
-        fromStatus: subscription.status,
-        toStatus: destino,
-        reason: pago ? 'Pagamento confirmado' : 'Cobrança recusada, recuperação em andamento',
-        occurredAt: agora,
-      },
-    });
   }
 
   /** O calendário de novas tentativas, para a interface poder explicá-lo. */
   retrySchedule(): readonly number[] {
     return RETRY_SCHEDULE_HOURS;
+  }
+}
+
+function motivoDaTransicao(destino: SubscriptionStatus): string {
+  switch (destino) {
+    case SubscriptionStatus.ACTIVE:
+      return 'Pagamento confirmado';
+    case SubscriptionStatus.PAST_DUE:
+      return 'Cobrança recusada, recuperação em andamento';
+    case SubscriptionStatus.UNPAID:
+      return 'Recuperação esgotada sem pagamento';
+    default:
+      return 'Mudança provocada por cobrança';
   }
 }

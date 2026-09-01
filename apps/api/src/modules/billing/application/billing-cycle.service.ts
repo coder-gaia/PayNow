@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { type Prisma, SubscriptionStatus } from '@prisma/client';
+import { InvoiceStatus, type Prisma, PaymentStatus, SubscriptionStatus } from '@prisma/client';
 import { Money } from '@paynow/money';
 
 import { CLOCK, type Clock } from '../../platform/clock/clock';
@@ -10,6 +10,7 @@ import { PrismaService } from '../../platform/prisma/prisma.service';
 import { nextPeriodEnd } from '../domain/proration';
 import { assertTransition } from '../domain/subscription-state';
 import { InvoicesService } from './invoices.service';
+import { PaymentsService } from './payments.service';
 
 /** Chave de advisory lock por assinatura. A mesma da ADR-0008. */
 const LOCK_NAMESPACE = 0x7061796e;
@@ -28,7 +29,8 @@ const MAX_VOLTAS = 500;
 /** Quantas assinaturas cada volta processa. */
 const LOTE = 100;
 
-export type CycleAction = 'renovada' | 'ativada' | 'encerrada' | 'expirada';
+export type CycleAction =
+  'renovada' | 'ativada' | 'encerrada' | 'expirada' | 'cobrada' | 'recusada' | 'incobravel';
 
 export interface CycleEffect {
   readonly subscriptionId: string;
@@ -68,6 +70,7 @@ export class BillingCycleService {
     private readonly prisma: PrismaService,
     private readonly events: DomainEventPublisher,
     private readonly invoices: InvoicesService,
+    private readonly payments: PaymentsService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -83,6 +86,69 @@ export class BillingCycleService {
     const ranAt = this.clock.now();
     const effects: CycleEffect[] = [];
 
+    await this.virarCiclos(organizationId, ranAt, effects);
+    await this.cobrarPendentes(organizationId, ranAt, effects);
+
+    return { ranAt, effects };
+  }
+
+  /**
+   * Cobra as faturas cuja próxima tentativa venceu.
+   *
+   * A recuperação roda depois da virada de ciclo, e não antes, porque a virada
+   * emite faturas novas: cobrar primeiro deixaria a fatura recém emitida para
+   * a rodada seguinte, e a assinatura passaria um ciclo inteiro sem tentativa.
+   *
+   * Cada cobrança fala com o provedor, então nada aqui roda dentro de
+   * transação. Uma falha em uma fatura não derruba as outras: o relatório
+   * registra o que aconteceu com cada uma.
+   */
+  private async cobrarPendentes(
+    organizationId: string,
+    agora: Date,
+    effects: CycleEffect[],
+  ): Promise<void> {
+    const vencidas = await this.prisma.invoice.findMany({
+      where: {
+        organizationId,
+        status: InvoiceStatus.OPEN,
+        nextAttemptAt: { lte: agora },
+      },
+      include: { customer: true },
+      orderBy: { nextAttemptAt: 'asc' },
+      take: LOTE,
+    });
+
+    for (const invoice of vencidas) {
+      const resultado = await this.payments.chargeInvoice(organizationId, invoice.id);
+
+      // PENDING é o provedor sem resposta. Não conta como cobrada nem como
+      // recusada, porque nenhuma das duas é verdade, e a fatura já foi
+      // reagendada por quem tentou.
+      if (resultado.status === PaymentStatus.PENDING) {
+        continue;
+      }
+
+      effects.push({
+        subscriptionId: invoice.subscriptionId ?? invoice.id,
+        customerName: invoice.customer.name,
+        action:
+          resultado.status === PaymentStatus.SUCCEEDED
+            ? 'cobrada'
+            : resultado.invoiceStatus === InvoiceStatus.UNCOLLECTIBLE
+              ? 'incobravel'
+              : 'recusada',
+        at: agora,
+      });
+    }
+  }
+
+  /** Vira os ciclos vencidos, emitindo fatura a cada virada. */
+  private async virarCiclos(
+    organizationId: string,
+    ranAt: Date,
+    effects: CycleEffect[],
+  ): Promise<void> {
     for (let volta = 0; volta < MAX_VOLTAS; volta += 1) {
       const vencidas = await this.prisma.subscription.findMany({
         where: {
@@ -102,7 +168,7 @@ export class BillingCycleService {
       });
 
       if (vencidas.length === 0) {
-        return { ranAt, effects };
+        return;
       }
 
       for (const vencida of vencidas) {

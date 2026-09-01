@@ -4,6 +4,7 @@ import type { INestApplication } from '@nestjs/common';
 import { BillingInterval, InvoiceStatus, PaymentStatus, SubscriptionStatus } from '@prisma/client';
 import { Money } from '@paynow/money';
 
+import { BillingCycleService } from '../src/modules/billing/application/billing-cycle.service';
 import { CatalogService } from '../src/modules/billing/application/catalog.service';
 import { PaymentsService } from '../src/modules/billing/application/payments.service';
 import { SubscriptionsService } from '../src/modules/billing/application/subscriptions.service';
@@ -31,6 +32,7 @@ describe('Pagamentos (e2e)', () => {
   let catalog: CatalogService;
   let subscriptions: SubscriptionsService;
   let payments: PaymentsService;
+  let cycle: BillingCycleService;
   let ledger: LedgerService;
   let gateway: FakeGateway;
   let clocks: OrganizationClockService;
@@ -42,6 +44,7 @@ describe('Pagamentos (e2e)', () => {
     catalog = app.get(CatalogService);
     subscriptions = app.get(SubscriptionsService);
     payments = app.get(PaymentsService);
+    cycle = app.get(BillingCycleService);
     ledger = app.get(LedgerService);
     gateway = app.get(FakeGateway);
     clocks = app.get(OrganizationClockService);
@@ -107,6 +110,15 @@ describe('Pagamentos (e2e)', () => {
 
   const recarregarFatura = (id: string) =>
     prisma.invoice.findUniqueOrThrow({ where: { id }, include: { payments: true } });
+
+  /** Adianta o relógio e roda o ciclo, como a rota de avanço faz. */
+  const avancarHoras = async (organizationId: string, horas: number) => {
+    const state = await clocks.advance(organizationId, horas * 60 * 60 * 1000);
+
+    return scopes.run({ organizationId, now: state.now, virtual: true }, () =>
+      cycle.runDue(organizationId),
+    );
+  };
 
   describe('cobrança bem sucedida', () => {
     it('quita a fatura, ativa a assinatura e reconhece o dinheiro no razão', async () => {
@@ -430,6 +442,104 @@ describe('Pagamentos (e2e)', () => {
         PaymentStatus.PENDING,
         PaymentStatus.SUCCEEDED,
       ]);
+    });
+  });
+
+  /**
+   * A recuperação acontecendo sozinha.
+   *
+   * Este é o teste que amarra os dois pilares. O calendário de tentativas é
+   * medido em horas e dias, então verificá-lo de verdade exigiria esperar
+   * dias. Com o relógio congelado, a semana inteira de recuperação cabe em
+   * três chamadas, contra o banco de verdade e pelo mesmo caminho de código
+   * que roda em produção.
+   */
+  describe('recuperação automática pelo ciclo', () => {
+    it('adiantar o tempo tenta de novo, e a segunda tentativa quita', async () => {
+      const { organizationId, invoice } = await montar();
+      gateway.setScenario({ kind: 'decline' });
+
+      const primeira = await comRelogio(organizationId, () =>
+        payments.chargeInvoice(organizationId, invoice.id),
+      );
+      expect(primeira.status).toBe(PaymentStatus.FAILED);
+
+      // Antes da hora marcada, o ciclo não mexe na fatura. Insistir antes do
+      // agendado é o mesmo que insistir sem motivo: a causa da recusa não teve
+      // tempo de mudar. Meia hora, e o calendário pede uma.
+      const cedo = await avancarHoras(organizationId, 0.5);
+      expect(cedo.effects).toEqual([]);
+
+      gateway.setScenario({ kind: 'succeed' });
+
+      // Passada a hora, o ciclo tenta sozinho.
+      const naHora = await avancarHoras(organizationId, 1);
+      expect(naHora.effects.some((effect) => effect.action === 'cobrada')).toBe(true);
+
+      const depois = await recarregarFatura(invoice.id);
+      expect(depois.status).toBe(InvoiceStatus.PAID);
+      expect(depois.payments).toHaveLength(2);
+    });
+
+    /**
+     * O fim da linha.
+     *
+     * Quatro recusas ao longo de uma semana esgotam o calendário, a fatura vira
+     * incobrável e a assinatura vai para UNPAID. O caminho passa por PAST_DUE
+     * mesmo quando a queda e o desfecho acontecem na mesma cobrança: o
+     * histórico precisa mostrar a queda antes do corte.
+     */
+    it('esgotar o calendário torna a fatura incobrável e a assinatura não paga', async () => {
+      const { organizationId, invoice, subscription } = await montar();
+
+      // Primeiro pagamento confirma, para a assinatura sair de INCOMPLETE.
+      await comRelogio(organizationId, () => payments.chargeInvoice(organizationId, invoice.id));
+
+      const segunda = await prisma.invoice.create({
+        data: {
+          organizationId,
+          customerId: invoice.customerId,
+          subscriptionId: subscription.id,
+          number: 997,
+          status: InvoiceStatus.OPEN,
+          amountMinor: 10_000n,
+          currency: 'BRL',
+          periodStart: new Date('2026-04-01T12:00:00.000Z'),
+          periodEnd: new Date('2026-05-01T12:00:00.000Z'),
+          dueAt: new Date('2026-04-04T12:00:00.000Z'),
+        },
+      });
+
+      gateway.setScenario({ kind: 'decline' });
+
+      // Tentativa 1, e depois as quatro do calendário: 1h, 24h, 72h, 168h.
+      await comRelogio(organizationId, () => payments.chargeInvoice(organizationId, segunda.id));
+
+      for (const horas of [2, 25, 73, 169]) {
+        await avancarHoras(organizationId, horas);
+      }
+
+      const depois = await recarregarFatura(segunda.id);
+      expect(depois.status).toBe(InvoiceStatus.UNCOLLECTIBLE);
+      expect(depois.nextAttemptAt).toBeNull();
+
+      const assinatura = await prisma.subscription.findUniqueOrThrow({
+        where: { id: subscription.id },
+      });
+      expect(assinatura.status).toBe(SubscriptionStatus.UNPAID);
+
+      // O histórico mostra a queda e o corte, nessa ordem.
+      const historico = await prisma.subscriptionEvent.findMany({
+        where: { subscriptionId: subscription.id },
+        orderBy: { occurredAt: 'asc' },
+      });
+      const estados = historico.map((evento) => evento.toStatus);
+      expect(estados).toContain(SubscriptionStatus.PAST_DUE);
+      expect(estados[estados.length - 1]).toBe(SubscriptionStatus.UNPAID);
+
+      // E o razão não registrou nenhuma das recusas: nada mudou de mão.
+      const entries = await ledger.entries(organizationId);
+      expect(entries.filter((entry) => entry.eventType === 'payment.failed')).toHaveLength(0);
     });
   });
 

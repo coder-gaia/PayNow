@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { BillingCycleService } from './application/billing-cycle.service';
+import { BillingWorker } from './application/billing-worker';
 import { CatalogService } from './application/catalog.service';
 import { InvoicesService } from './application/invoices.service';
 import { PaymentsService } from './application/payments.service';
@@ -31,9 +33,14 @@ import { PaymentsController } from './http/payments.controller';
  * escolha de quem o implementa é da raiz de composição. Ver ADR-0011.
  */
 @Module({
+  // O agendador é importado aqui, e não na raiz, porque cobrança é o único
+  // módulo que agenda alguma coisa. Quando os webhooks da fase 06 também
+  // precisarem, ele sobe para a raiz de composição.
+  imports: [ScheduleModule.forRoot()],
   controllers: [BillingController, BillingClockController, PaymentsController],
   providers: [
     BillingCycleService,
+    BillingWorker,
     CatalogService,
     InvoicesService,
     PaymentsService,
