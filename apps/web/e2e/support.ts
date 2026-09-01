@@ -170,7 +170,7 @@ export async function startSubscription(
   priceId: string,
   customerName: string,
   skipTrial = true,
-): Promise<{ id: string; customerName: string }> {
+): Promise<{ id: string; customerId: string; customerName: string }> {
   const customer = await json<{ id: string }>(
     request,
     'post',
@@ -188,7 +188,30 @@ export async function startSubscription(
     { data: { customerId: customer.id, priceId, skipTrial }, token: workspace.accessToken },
   );
 
-  return { id: subscription.id, customerName };
+  return { id: subscription.id, customerId: customer.id, customerName };
+}
+
+/**
+ * Vincula um meio de pagamento ao cliente de uma assinatura.
+ *
+ * O token é inventado, e o gateway falso aceita qualquer um. O que importa é o
+ * campo estar preenchido: sem ele a cobrança é recusada antes de chegar ao
+ * provedor. Nunca é número de cartão, ver ADR-0014.
+ */
+export async function attachPaymentMethod(
+  request: APIRequestContext,
+  workspace: Workspace,
+  customerId: string,
+): Promise<void> {
+  await json(
+    request,
+    'post',
+    `/organizations/${workspace.organizationId}/customers/${customerId}/payment-method`,
+    {
+      data: { token: `pm_${unique('teste')}`, brand: 'visa', last4: '4242' },
+      token: workspace.accessToken,
+    },
+  );
 }
 
 export async function login(page: Page, email: string): Promise<void> {

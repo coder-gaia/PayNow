@@ -329,8 +329,13 @@ async function seedBilling(organizationId: string): Promise<void> {
   for (const cliente of clientes) {
     const customer = await prisma.customer.upsert({
       where: { organizationId_email: { organizationId, email: cliente.email } },
-      update: { name: cliente.nome },
-      create: { organizationId, email: cliente.email, name: cliente.nome },
+      update: { name: cliente.nome, ...meioDePagamento(cliente.email) },
+      create: {
+        organizationId,
+        email: cliente.email,
+        name: cliente.nome,
+        ...meioDePagamento(cliente.email),
+      },
     });
 
     const jaTem = await prisma.subscription.findFirst({ where: { customerId: customer.id } });
@@ -362,6 +367,25 @@ async function seedBilling(organizationId: string): Promise<void> {
       },
     });
   }
+}
+
+/**
+ * Meio de pagamento de demonstração.
+ *
+ * O token é inventado e o gateway falso aceita qualquer um, o que é o
+ * comportamento correto de um ambiente onde não existe cartão de verdade. O
+ * que importa aqui é que o campo esteja preenchido: sem ele a cobrança é
+ * recusada antes de chegar ao provedor, e a tela de faturas nasceria sem nada
+ * para demonstrar.
+ *
+ * Nunca é número de cartão. Ver ADR-0014.
+ */
+function meioDePagamento(email: string) {
+  return {
+    paymentMethodToken: `pm_demo_${email.split('@')[0] ?? 'cliente'}`,
+    paymentMethodBrand: 'visa',
+    paymentMethodLast4: '4242',
+  };
 }
 
 function descreverEstado(estado: SubscriptionStatus): string {
@@ -445,6 +469,23 @@ async function report(organizationId: string): Promise<void> {
         `    ${assinatura.status.padEnd(10)} ${assinatura.customer.name.padEnd(16)} ` +
           `${assinatura.price.product.name.padEnd(12)} ` +
           `R$ ${reais(assinatura.price.amountMinor).padStart(9)}`,
+      );
+    }
+  }
+
+  const faturas = await prisma.invoice.findMany({
+    where: { organizationId },
+    include: { customer: true, payments: true },
+    orderBy: { number: 'asc' },
+  });
+
+  if (faturas.length > 0) {
+    lines.push('', '  Faturas');
+    for (const fatura of faturas) {
+      lines.push(
+        `    nº ${String(fatura.number).padEnd(3)} ${fatura.status.padEnd(14)} ` +
+          `${fatura.customer.name.padEnd(16)} R$ ${reais(fatura.amountMinor).padStart(9)} ` +
+          `${fatura.payments.length} tentativa(s)`,
       );
     }
   }

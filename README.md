@@ -379,7 +379,7 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       estados, trial, rateio proporcional.
 - [x] **04 Relógio e ciclo de cobrança.** Relógio virtual, agendamento, avanço
       determinístico do tempo.
-- [ ] **05 Pagamentos.** Porta de gateway, idempotência, outbox, retry, dunning,
+- [x] **05 Pagamentos.** Porta de gateway, idempotência, outbox, retry, dunning,
       estorno.
 - [ ] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
 - [ ] **07 Suíte adversarial.** Harness determinístico integrado ao CI.

@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 
 import {
   addPerson,
+  attachPaymentMethod,
   createApiKey,
   createPlan,
   createWorkspace,
@@ -636,6 +637,108 @@ test.describe('linha do tempo', () => {
   });
 });
 
+test.describe('faturas', () => {
+  /**
+   * O caminho inteiro do dinheiro, pela interface.
+   *
+   * Assinar emite fatura, cobrar quita, e o razão registra as duas coisas. É o
+   * fluxo que o projeto existe para fazer, e este é o único teste que o
+   * percorre do começo ao fim clicando.
+   */
+  test('cobra a fatura e o pagamento chega ao razão', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'faturas');
+    const plano = await createPlan(request, workspace, 'Plano Cobrado', '12000');
+    const assinatura = await startSubscription(
+      request,
+      workspace,
+      plano.priceId,
+      'Livraria Cobrada',
+    );
+    await attachPaymentMethod(request, workspace, assinatura.customerId);
+
+    await login(page, workspace.owner.email);
+    await navLink(page, 'Faturas').click();
+    await expect(page).toHaveURL(/\/painel\/faturas$/);
+
+    const linha = page.getByRole('row').filter({ hasText: 'Livraria Cobrada' });
+    await expect(linha).toContainText('Em aberto');
+    await expect(linha).toContainText('120,00');
+
+    await linha.getByRole('button', { name: 'Cobrar' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await expect(dialogo).toContainText('primeira tentativa');
+    await dialogo.getByRole('button', { name: 'Cobrar agora' }).click();
+
+    await expect(notice(page, 'quitada')).toBeVisible();
+    await expect(linha).toContainText('Paga');
+
+    // O razão registra a entrada com a taxa separada: quatro linhas, e o
+    // total do lançamento é o valor mais a taxa.
+    await navLink(page, 'Razão').click();
+    await expect(notice(page, 'Razão íntegro')).toBeVisible();
+    await expect(page.getByText('Pagamento confirmado').first()).toBeVisible();
+  });
+
+  /**
+   * A recusa, e o que a tela faz com ela.
+   *
+   * Recusa não é erro do sistema: é resposta do emissor. A tela precisa dizer
+   * isso sem parecer que quebrou, e precisa mostrar que a recuperação segue.
+   */
+  test('a recusa fica registrada e a fatura continua em aberto', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'recusada');
+    const plano = await createPlan(request, workspace, 'Plano Recusado', '4000');
+    const assinatura = await startSubscription(request, workspace, plano.priceId, 'Bar Recusado');
+
+    // Sem meio de pagamento, a cobrança é recusada antes de chegar ao provedor.
+    await login(page, workspace.owner.email);
+    await page.goto('/painel/faturas');
+
+    const linha = page.getByRole('row').filter({ hasText: 'Bar Recusado' });
+    await linha.getByRole('button', { name: 'Cobrar' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cobrar agora' }).click();
+
+    await expect(toast(page, 'meio de pagamento')).toBeVisible();
+    await expect(linha).toContainText('Em aberto');
+  });
+
+  test('o estorno não apaga o pagamento', async ({ page, request }) => {
+    const workspace = await createWorkspace(request, 'estorno');
+    const plano = await createPlan(request, workspace, 'Plano Estornado', '5000');
+    const assinatura = await startSubscription(
+      request,
+      workspace,
+      plano.priceId,
+      'Feira Estornada',
+    );
+    await attachPaymentMethod(request, workspace, assinatura.customerId);
+
+    await login(page, workspace.owner.email);
+    await page.goto('/painel/faturas');
+
+    // Escopado ao painel de faturas: depois do estorno o nome do cliente
+    // aparece também na tabela de estornos, e a busca solta acharia as duas.
+    const emitidas = page.locator('section').filter({ hasText: 'Emitidas' }).first();
+    const linha = emitidas.getByRole('row').filter({ hasText: 'Feira Estornada' });
+    await linha.getByRole('button', { name: 'Cobrar' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cobrar agora' }).click();
+    await expect(notice(page, 'quitada')).toBeVisible();
+
+    await linha.getByRole('button', { name: 'Estornar' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await expect(dialogo).toContainText('o histórico guarda os dois');
+    await dialogo.getByRole('button', { name: 'Estornar' }).click();
+
+    await expect(notice(page, 'Estorno')).toBeVisible();
+
+    // A fatura continua paga: o estorno é um fato novo, e não um desfazer.
+    await expect(linha).toContainText('Paga');
+    await expect(page.getByRole('row').filter({ hasText: 'Estorno pelo painel' })).toBeVisible();
+  });
+});
+
 /**
  * Largura de celular.
  *
@@ -652,6 +755,7 @@ test.describe('linha do tempo', () => {
 test.describe('tela pequena', () => {
   const PAGINAS = [
     '/painel',
+    '/painel/faturas',
     '/painel/assinaturas',
     '/painel/tempo',
     '/painel/ledger',

@@ -291,6 +291,58 @@ export interface CycleReport {
   effects: CycleEffect[];
 }
 
+export type InvoiceStatus = 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE';
+export type PaymentStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
+
+export interface PaymentAttempt {
+  id: string;
+  attempt: number;
+  status: PaymentStatus;
+  gateway: string;
+  gatewayRef: string | null;
+  failureCode: string | null;
+  failureMessage: string | null;
+  retriable: boolean | null;
+  createdAt: string;
+}
+
+export interface Invoice {
+  id: string;
+  number: number;
+  status: InvoiceStatus;
+  amount: string;
+  currency: string;
+  periodStart: string;
+  periodEnd: string;
+  dueAt: string;
+  paidAt: string | null;
+  attemptCount: number;
+  nextAttemptAt: string | null;
+  customer: { id: string; name: string; email: string };
+  payments: PaymentAttempt[];
+}
+
+export interface InvoiceDetail extends Invoice {
+  plan: string | null;
+}
+
+export interface Refund {
+  id: string;
+  status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  amount: string;
+  currency: string;
+  reason: string;
+  invoiceNumber: number;
+  customerName: string;
+  createdAt: string;
+}
+
+/** O calendário de recuperação, para a interface poder explicá-lo. */
+export interface DunningSchedule {
+  maxAttempts: number;
+  scheduleHours: number[];
+}
+
 export interface LedgerVerification {
   checkedAt: string;
   entryCount: number;
@@ -314,4 +366,9 @@ export const api = {
     apiFetch<SubscriptionDetail>(`/organizations/${id}/subscriptions/${subscriptionId}`),
   products: (id: string) => apiFetch<Product[]>(`/organizations/${id}/products`),
   clock: (id: string) => apiFetch<ClockState>(`/organizations/${id}/clock`),
+  invoices: (id: string) => apiFetch<Invoice[]>(`/organizations/${id}/invoices`),
+  invoice: (id: string, invoiceId: string) =>
+    apiFetch<InvoiceDetail>(`/organizations/${id}/invoices/${invoiceId}`),
+  refunds: (id: string) => apiFetch<Refund[]>(`/organizations/${id}/refunds`),
+  dunning: (id: string) => apiFetch<DunningSchedule>(`/organizations/${id}/dunning`),
 };

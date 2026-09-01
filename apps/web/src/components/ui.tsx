@@ -108,6 +108,10 @@ const SUBSCRIPTION_STYLE: Record<string, string> = {
   PAST_DUE: 'border-caution text-ink bg-caution-soft',
   CANCELED: 'border-rule text-ink-faint bg-surface',
   UNPAID: 'border-debit text-debit bg-debit-soft',
+  OPEN: 'border-caution text-ink bg-caution-soft',
+  PAID: 'border-credit text-credit bg-credit-soft',
+  VOID: 'border-rule text-ink-faint bg-surface',
+  UNCOLLECTIBLE: 'border-debit text-debit bg-debit-soft',
 };
 
 const SUBSCRIPTION_LABEL: Record<string, string> = {
@@ -117,6 +121,10 @@ const SUBSCRIPTION_LABEL: Record<string, string> = {
   PAST_DUE: 'Em atraso',
   CANCELED: 'Cancelada',
   UNPAID: 'Não paga',
+  OPEN: 'Em aberto',
+  PAID: 'Paga',
+  VOID: 'Anulada',
+  UNCOLLECTIBLE: 'Incobrável',
 };
 
 export function StatusPill({ status }: { status: string }) {

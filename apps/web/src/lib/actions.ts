@@ -402,3 +402,46 @@ export async function runBillingCycle(organizationId: string): Promise<ClockActi
     return toFormState(error);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Faturas e estornos
+// ---------------------------------------------------------------------------
+
+export async function chargeInvoice(
+  organizationId: string,
+  invoiceId: string,
+): Promise<
+  FormState & { charge?: { status: string; attempt: number; failureCode: string | null } }
+> {
+  try {
+    const result = await apiFetch<{
+      status: string;
+      attempt: number;
+      invoiceStatus: string;
+      failureCode: string | null;
+    }>(`/organizations/${organizationId}/invoices/${invoiceId}/charge`, { method: 'POST' });
+
+    revalidarPainel();
+    return { ok: true, charge: result };
+  } catch (error) {
+    return toFormState(error);
+  }
+}
+
+export async function refundPayment(
+  organizationId: string,
+  paymentId: string,
+  reason: string,
+): Promise<FormState> {
+  try {
+    await apiFetch(`/organizations/${organizationId}/payments/${paymentId}/refund`, {
+      method: 'POST',
+      body: { reason },
+    });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  revalidarPainel();
+  return { ok: true };
+}

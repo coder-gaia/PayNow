@@ -50,6 +50,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <nav className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
             <NavLink href="/painel">Visão geral</NavLink>
             <NavLink href="/painel/assinaturas">Assinaturas</NavLink>
+            <NavLink href="/painel/faturas">Faturas</NavLink>
             <NavLink href="/painel/tempo">Tempo</NavLink>
             <NavLink href="/painel/ledger">Razão</NavLink>
             <NavLink href="/painel/membros">Membros</NavLink>
@@ -93,7 +94,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <footer className="mx-auto max-w-5xl px-6 pb-10">
         <p className="border-t border-rule pt-4 font-mono text-[11px] text-ink-faint">
-          Fase 04 de 09. Os pagamentos e a recuperação chegam nas fases seguintes.
+          Fase 05 de 09. Os webhooks e a suíte adversarial chegam nas fases seguintes.
         </p>
       </footer>
     </div>
