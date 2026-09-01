@@ -197,6 +197,14 @@ export class OutboxService {
    * a mensagem da fila pela janela de visibilidade: se este processo morrer no
    * meio da entrega, ela reaparece sozinha e alguém tenta de novo.
    *
+   * A ordenação tem desempate por `id` de propósito. Com o relógio congelado,
+   * vários fatos compartilham o mesmo `occurred_at`, e ordenar só por ele
+   * deixaria a ordem de entrega a critério do banco. O `id` é UUIDv7, que
+   * cresce com o tempo de inserção, então o desempate reproduz a ordem em que
+   * as mensagens foram gravadas. Ordem de entrega nunca foi garantia do
+   * contrato, mas determinismo é: a fase 07 depende de a mesma sequência de
+   * comandos produzir a mesma história.
+   *
    * A entrega continua sendo pelo menos uma vez. Isto não promete exatamente
    * uma vez, e nada prometeria: o processo pode morrer entre a entrega e a
    * marca de entregue, e o consumidor receberá de novo. O que isto elimina é a
@@ -222,7 +230,7 @@ export class OutboxService {
            FROM outbox_messages
           WHERE status = 'PENDING'
             AND (next_attempt_at IS NULL OR next_attempt_at <= ${agora})
-          ORDER BY occurred_at
+          ORDER BY occurred_at, id
           LIMIT ${LOTE}
             FOR UPDATE SKIP LOCKED
        )

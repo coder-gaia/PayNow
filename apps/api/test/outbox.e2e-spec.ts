@@ -111,8 +111,19 @@ describe('Outbox (e2e)', () => {
     return { organizationId: organization.id, customer, subscription };
   };
 
+  /**
+   * A fila da organização, na ordem em que o relay a percorreria.
+   *
+   * O desempate por `id` não é detalhe de teste: com o relógio congelado, a
+   * fatura e o pagamento acontecem no mesmo instante virtual, e ordenar só por
+   * `occurredAt` devolve as duas em ordem arbitrária. Foi assim que este teste
+   * passou local e falhou no CI.
+   */
   const mensagens = (organizationId: string) =>
-    prisma.outboxMessage.findMany({ where: { organizationId }, orderBy: { occurredAt: 'asc' } });
+    prisma.outboxMessage.findMany({
+      where: { organizationId },
+      orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+    });
 
   it('a mensagem nasce na mesma transação do fato', async () => {
     const { organizationId } = await montar();
