@@ -361,6 +361,7 @@ demonstração com limite de taxa.
 | Documento                                          | Conteúdo                                              |
 | -------------------------------------------------- | ----------------------------------------------------- |
 | [docs/why.md](docs/why.md)                         | Por que o projeto existe e qual problema ele ataca    |
+| [docs/arquitetura.md](docs/arquitetura.md)         | A arquitetura explicada, com os pontos fracos na mesa |
 | [docs/plano-de-contas.md](docs/plano-de-contas.md) | Contrato contábil, contas e lançamentos de referência |
 | [docs/pagina-inicial.md](docs/pagina-inicial.md)   | Desenho da porta de entrada, em forma de razão        |
 | [docs/adr/](docs/adr/)                             | Decisões arquiteturais, numeradas e imutáveis         |
