@@ -1,13 +1,17 @@
 import { randomUUID } from 'node:crypto';
 
 import type { INestApplication } from '@nestjs/common';
-import { BillingInterval, OutboxStatus } from '@prisma/client';
+import { BillingInterval, OutboxStatus, SubscriptionStatus } from '@prisma/client';
 import { Money } from '@paynow/money';
 
+import { BillingCycleService } from '../src/modules/billing/application/billing-cycle.service';
 import { CatalogService } from '../src/modules/billing/application/catalog.service';
 import { PaymentsService } from '../src/modules/billing/application/payments.service';
 import { SubscriptionsService } from '../src/modules/billing/application/subscriptions.service';
+import { ClockScopeStorage } from '../src/modules/platform/clock/clock-scope';
 import { OrganizationClockService } from '../src/modules/platform/clock/organization-clock.service';
+import { DomainEventPublisher } from '../src/modules/platform/events/domain-event-publisher';
+import { EVENT } from '../src/modules/platform/events/domain-event';
 import { OutboxService } from '../src/modules/platform/events/outbox.service';
 import { MAILER, type Mailer } from '../src/modules/platform/mail/mailer';
 import { PrismaService } from '../src/modules/platform/prisma/prisma.service';
@@ -31,6 +35,9 @@ describe('Outbox (e2e)', () => {
   let subscriptions: SubscriptionsService;
   let payments: PaymentsService;
   let outbox: OutboxService;
+  let publisher: DomainEventPublisher;
+  let cycle: BillingCycleService;
+  let scopes: ClockScopeStorage;
   let clocks: OrganizationClockService;
   let prisma: PrismaService;
 
@@ -62,6 +69,9 @@ describe('Outbox (e2e)', () => {
     subscriptions = app.get(SubscriptionsService);
     payments = app.get(PaymentsService);
     outbox = app.get(OutboxService);
+    publisher = app.get(DomainEventPublisher);
+    cycle = app.get(BillingCycleService);
+    scopes = app.get(ClockScopeStorage);
     clocks = app.get(OrganizationClockService);
     prisma = app.get(PrismaService);
   });
@@ -144,30 +154,36 @@ describe('Outbox (e2e)', () => {
    * Uma transação que falha depois de publicar não pode deixar mensagem para
    * trás. Se deixasse, alguém lá fora saberia de um fato que o banco desfez, e
    * não haveria como retirar o aviso.
+   *
+   * O evento escolhido tem de ser um que o outbox realmente enfileira. A
+   * primeira versão deste teste usava `subscription.plan_changed`, que não tem
+   * consumidor registrado: `enqueue` desiste na primeira linha e nenhuma
+   * mensagem seria escrita nem no caminho feliz. O teste passava afirmando
+   * nada, que é pior do que não existir. Aqui a chave ocupada é a da fatura de
+   * renovação, que tem consumidor, e por isso a asserção tem o que verificar.
    */
   it('transação desfeita não deixa mensagem na fila', async () => {
     const { organizationId, subscription } = await montar();
-    const antes = await mensagens(organizationId);
 
-    const outroProduto = await catalog.createProduct(organizationId, { name: 'Outro Plano' });
-    const outroPreco = await catalog.createPrice(organizationId, outroProduto.id, {
-      amount: Money.fromDecimal('300.00', 'BRL'),
-      interval: BillingInterval.MONTH,
+    // Precisa estar ativa para o ciclo renovar em vez de expirar.
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { status: SubscriptionStatus.ACTIVE },
     });
 
-    // Ocupa a chave que a troca de plano vai usar no razão, o que faz a
-    // transação inteira falhar no lançamento contábil.
-    const [assinaturaAtual] = await prisma.$queryRaw<{ version: number }[]>`
-      SELECT version FROM subscriptions WHERE id = ${subscription.id}::uuid
-    `;
+    const antes = await mensagens(organizationId);
+
+    // Ocupa a chave que a fatura da renovação vai usar no razão, o que faz a
+    // transação inteira da virada de ciclo falhar no lançamento contábil.
+    const inicioDoProximoCiclo = subscription.currentPeriodEnd;
 
     await prisma.journalEntry.create({
       data: {
         organizationId,
-        eventType: 'subscription.plan_changed',
-        eventId: `plan-changed:${subscription.id}:${(assinaturaAtual?.version ?? 0) + 1}`,
+        eventType: 'invoice.issued',
+        eventId: `invoice-issued:${subscription.id}:${inicioDoProximoCiclo.toISOString()}`,
         description: 'Lançamento que ocupa a chave do evento',
-        occurredAt: new Date('2026-05-01T12:00:00.000Z'),
+        occurredAt: inicioDoProximoCiclo,
         lines: {
           create: [
             {
@@ -185,13 +201,11 @@ describe('Outbox (e2e)', () => {
       },
     });
 
+    const state = await clocks.advance(organizationId, 40 * 24 * 60 * 60 * 1000);
+
     await expect(
-      clocks.runFor(organizationId, () =>
-        subscriptions.changePlan({
-          organizationId,
-          subscriptionId: subscription.id,
-          priceId: outroPreco.id,
-        }),
+      scopes.run({ organizationId, now: state.now, virtual: true }, () =>
+        cycle.runDue(organizationId),
       ),
     ).rejects.toThrow(/já foi lançado/);
 
@@ -199,6 +213,67 @@ describe('Outbox (e2e)', () => {
 
     // Nada de novo na fila. A mensagem viveu e morreu com a transação.
     expect(depois).toHaveLength(antes.length);
+
+    // E o ciclo não avançou: a assinatura continua no período de antes.
+    const assinatura = await prisma.subscription.findUniqueOrThrow({
+      where: { id: subscription.id },
+    });
+    expect(assinatura.currentPeriodEnd.toISOString()).toBe(inicioDoProximoCiclo.toISOString());
+  });
+
+  /**
+   * A costura, exercitada direto.
+   *
+   * O teste acima prova que um handler que falha derruba a transação inteira,
+   * mas não prova que o `enqueue` usa a transação de quem publicou: o handler
+   * do razão lança **antes** de o enqueue rodar, então ele nunca é alcançado.
+   * E não existe hoje nenhum caminho de domínio que falhe depois de um publish
+   * bem sucedido, porque publicar é sempre a última coisa que cada transação
+   * faz.
+   *
+   * Então a garantia é provocada aqui, direto na costura: publica dentro de uma
+   * transação e desiste em seguida. Mover o `enqueue` para fora da transação
+   * faz este teste falhar, e foi assim que ele foi conferido.
+   */
+  it('a mensagem morre com a transação que a publicou', async () => {
+    const { organizationId, customer } = await montar();
+    const antes = await mensagens(organizationId);
+
+    const chave = `invoice-issued:costura:${randomUUID()}`;
+
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await publisher.publish(
+          {
+            type: EVENT.INVOICE_ISSUED,
+            id: chave,
+            organizationId,
+            occurredAt: new Date('2026-05-01T12:00:00.000Z'),
+            payload: {
+              invoiceId: randomUUID(),
+              invoiceNumber: 9999,
+              customerId: customer.id,
+              description: 'Fatura da sonda de costura',
+              amount: { amountMinor: '1000', currency: 'BRL' },
+              periodStart: '2026-05-01T12:00:00.000Z',
+              periodEnd: '2026-06-01T12:00:00.000Z',
+              dueAt: '2026-05-04T12:00:00.000Z',
+            },
+          },
+          tx,
+        );
+
+        throw new Error('desisti depois de publicar');
+      }),
+    ).rejects.toThrow(/desisti depois de publicar/);
+
+    // Nem a mensagem, nem o lançamento que o handler escreveu.
+    expect(await mensagens(organizationId)).toHaveLength(antes.length);
+
+    const lancamento = await prisma.journalEntry.findFirst({
+      where: { organizationId, eventId: chave },
+    });
+    expect(lancamento).toBeNull();
   });
 
   it('o relay entrega e marca, e uma segunda passada não reenvia', async () => {

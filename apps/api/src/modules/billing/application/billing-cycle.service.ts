@@ -3,7 +3,7 @@ import { InvoiceStatus, type Prisma, PaymentStatus, SubscriptionStatus } from '@
 import { Money } from '@paynow/money';
 
 import { CLOCK, type Clock } from '../../platform/clock/clock';
-import { isAfterOrEqual } from '../../platform/clock/duration';
+import { addDays, isAfterOrEqual } from '../../platform/clock/duration';
 import { DomainEventPublisher } from '../../platform/events/domain-event-publisher';
 import { EVENT } from '../../platform/events/domain-event';
 import { PrismaService } from '../../platform/prisma/prisma.service';
@@ -120,7 +120,32 @@ export class BillingCycleService {
     });
 
     for (const invoice of vencidas) {
-      const resultado = await this.payments.chargeInvoice(organizationId, invoice.id);
+      let resultado;
+
+      try {
+        resultado = await this.payments.chargeInvoice(organizationId, invoice.id);
+      } catch (error) {
+        // Cliente sem meio de pagamento é o caso comum aqui, e é condição de
+        // negócio e não defeito. Deixar a exceção subir faria um cliente sem
+        // cartão interromper a cobrança de todos os outros da organização, que
+        // é o oposto do que uma passagem em lote deve fazer.
+        //
+        // A fatura é empurrada um dia para a frente em vez de ficar parada:
+        // se o cartão for cadastrado nesse meio tempo, a passagem seguinte a
+        // encontra sozinha. `attemptCount` não muda, porque não houve
+        // tentativa de cobrança nenhuma.
+        await this.prisma.invoice.update({
+          where: { id: invoice.id },
+          data: { nextAttemptAt: addDays(agora, 1) },
+        });
+
+        this.logger.warn(
+          `Fatura ${invoice.number} de ${invoice.customer.name} não pôde ser cobrada: ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        );
+
+        continue;
+      }
 
       // PENDING é o provedor sem resposta. Não conta como cobrada nem como
       // recusada, porque nenhuma das duas é verdade, e a fatura já foi

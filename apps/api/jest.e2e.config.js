@@ -10,6 +10,9 @@ module.exports = {
   rootDir: 'test',
   testRegex: '.*\.e2e-spec\.ts$',
   testTimeout: 30000,
+  // Ver o comentario em test/support/env.ts: desliga o cron de fundo, que
+  // entregaria a fila do outbox por baixo das suites.
+  setupFiles: ['<rootDir>/support/env.ts'],
   transform: {
     '^.+\.ts$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.json' }],
   },

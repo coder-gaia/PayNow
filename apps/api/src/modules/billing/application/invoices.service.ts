@@ -76,6 +76,16 @@ export class InvoicesService {
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
         dueAt: addDays(agora, DEFAULT_DUE_DAYS),
+        // A fatura nasce pronta para ser cobrada, e é isto que faz a cobrança
+        // recorrente acontecer sozinha. Sem `nextAttemptAt` preenchido, a
+        // passagem de coleta do ciclo, que filtra por ele, nunca enxergava uma
+        // fatura recém emitida: o sistema emitia a fatura da renovação e
+        // esperava alguém apertar um botão para cobrá-la, o que é o oposto do
+        // que um motor de assinaturas existe para fazer.
+        //
+        // `dueAt` é outra coisa e continua sendo outra coisa: é o prazo até a
+        // dívida ser considerada atrasada, não a hora de tentar cobrar.
+        nextAttemptAt: agora,
       },
     });
 

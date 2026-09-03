@@ -420,11 +420,30 @@ describe('Pagamentos (e2e)', () => {
       expect(entries[0]?.eventType).toBe('invoice.issued');
     });
 
-    it('a tentativa seguinte usa chave nova e pode dar certo', async () => {
+    /**
+     * A tentativa sem desfecho é retomada, e não substituída.
+     *
+     * Este é o teste que protege contra cobrar duas vezes o mesmo cliente. Se
+     * a retomada apresentasse uma chave nova ao provedor, uma cobrança que ele
+     * capturou sem conseguir responder seria capturada de novo, e o cliente
+     * pagaria dobrado sem que nada no sistema parecesse errado.
+     *
+     * A regra tem duas metades opostas, e é por isso que ela é fácil de errar:
+     * depois de uma recusa conhecida a tentativa seguinte precisa de chave
+     * nova, e depois de um desfecho desconhecido precisa da mesma chave. Quem
+     * decide é o que se sabe sobre a anterior, e não o número da tentativa.
+     */
+    it('a tentativa seguinte reaproveita a mesma chave, para não cobrar duas vezes', async () => {
       const { organizationId, invoice } = await montar();
       gateway.setScenario({ kind: 'timeout' });
 
-      await comRelogio(organizationId, () => payments.chargeInvoice(organizationId, invoice.id));
+      const primeira = await comRelogio(organizationId, () =>
+        payments.chargeInvoice(organizationId, invoice.id),
+      );
+
+      const pendente = await prisma.payment.findUniqueOrThrow({
+        where: { id: primeira.paymentId },
+      });
 
       gateway.setScenario({ kind: 'succeed' });
       const segunda = await comRelogio(organizationId, () =>
@@ -433,15 +452,39 @@ describe('Pagamentos (e2e)', () => {
 
       expect(segunda.status).toBe(PaymentStatus.SUCCEEDED);
 
+      // A mesma linha, a mesma chave: para o provedor é a mesma cobrança.
+      expect(segunda.paymentId).toBe(primeira.paymentId);
+
       const depois = await recarregarFatura(invoice.id);
       expect(depois.status).toBe(InvoiceStatus.PAID);
-      // A tentativa sem desfecho continua registrada, como PENDING. Ela é a
-      // evidência de que houve uma chamada cujo resultado se desconhece, e
-      // apagá-la esconderia um possível pagamento em duplicidade no provedor.
-      expect(depois.payments.map((p) => p.status)).toEqual([
-        PaymentStatus.PENDING,
-        PaymentStatus.SUCCEEDED,
-      ]);
+      expect(depois.payments).toHaveLength(1);
+      expect(depois.payments[0]?.idempotencyKey).toBe(pendente.idempotencyKey);
+      expect(depois.payments[0]?.status).toBe(PaymentStatus.SUCCEEDED);
+    });
+
+    /**
+     * O calendário acaba, inclusive para a incerteza.
+     *
+     * Reagendar para sempre transformaria uma dúvida em um laço infinito de
+     * chamadas ao provedor, e ninguém olharia, porque nada estaria quebrado.
+     */
+    it('esgotado o calendário, a fatura para de ser reagendada e fica para reconciliação', async () => {
+      const { organizationId, invoice } = await montar();
+      gateway.setScenario({ kind: 'timeout' });
+
+      let ultimo;
+      for (let i = 0; i < 5; i += 1) {
+        ultimo = await comRelogio(organizationId, () =>
+          payments.chargeInvoice(organizationId, invoice.id),
+        );
+      }
+
+      expect(ultimo?.nextAttemptAt).toBeUndefined();
+
+      const depois = await recarregarFatura(invoice.id);
+      expect(depois.nextAttemptAt).toBeNull();
+      expect(depois.status).toBe(InvoiceStatus.OPEN);
+      expect(depois.payments[0]?.status).toBe(PaymentStatus.PENDING);
     });
   });
 
@@ -540,6 +583,96 @@ describe('Pagamentos (e2e)', () => {
       // E o razão não registrou nenhuma das recusas: nada mudou de mão.
       const entries = await ledger.entries(organizationId);
       expect(entries.filter((entry) => entry.eventType === 'payment.failed')).toHaveLength(0);
+    });
+  });
+
+  /**
+   * A renovação se cobra sozinha.
+   *
+   * Este é o teste que faltava, e a ausência dele escondia o defeito mais
+   * grave que o projeto teve: a fatura era emitida com `nextAttemptAt` nulo, e
+   * a passagem de coleta do ciclo filtra justamente por esse campo. O sistema
+   * emitia a fatura da renovação e ficava esperando alguém apertar um botão,
+   * que é o oposto do que um motor de assinaturas existe para fazer. Tudo
+   * passava, porque nenhum teste ligava as duas pontas.
+   */
+  describe('cobrança automática da renovação', () => {
+    it('virar o ciclo emite a fatura e cobra na mesma passagem', async () => {
+      const { organizationId, invoice, subscription } = await montar();
+
+      // Quita a primeira fatura, para a assinatura ficar ativa e renovar.
+      await comRelogio(organizationId, () => payments.chargeInvoice(organizationId, invoice.id));
+
+      const antes = await prisma.invoice.count({ where: { organizationId } });
+
+      // Um mês à frente: o ciclo vira, emite a fatura nova e a cobra.
+      const relatorio = await avancarHoras(organizationId, 24 * 32);
+
+      const depois = await prisma.invoice.findMany({
+        where: { organizationId },
+        orderBy: { number: 'asc' },
+        include: { payments: true },
+      });
+
+      expect(depois.length).toBe(antes + 1);
+
+      const renovada = depois[depois.length - 1];
+      expect(renovada?.status).toBe(InvoiceStatus.PAID);
+      expect(renovada?.payments).toHaveLength(1);
+
+      // E o relatório do ciclo conta as duas coisas: a renovação e a cobrança.
+      expect(relatorio.effects.map((e) => e.action)).toEqual(
+        expect.arrayContaining(['renovada', 'cobrada']),
+      );
+
+      const assinatura = await prisma.subscription.findUniqueOrThrow({
+        where: { id: subscription.id },
+      });
+      expect(assinatura.status).toBe(SubscriptionStatus.ACTIVE);
+    });
+
+    it('cliente sem meio de pagamento não derruba a cobrança dos outros', async () => {
+      const comCartao = await montar();
+      await comRelogio(comCartao.organizationId, () =>
+        payments.chargeInvoice(comCartao.organizationId, comCartao.invoice.id),
+      );
+
+      // Um segundo cliente na mesma organização, sem cartão nenhum.
+      const semCartao = await catalog.createCustomer(comCartao.organizationId, {
+        email: `sem-cartao-${randomUUID().slice(0, 8)}@exemplo.test`,
+        name: 'Cliente Sem Cartão',
+      });
+
+      const produto = await catalog.createProduct(comCartao.organizationId, {
+        name: `Plano ${randomUUID().slice(0, 6)}`,
+      });
+
+      const preco = await catalog.createPrice(comCartao.organizationId, produto.id, {
+        amount: Money.fromDecimal('50.00', 'BRL'),
+        interval: BillingInterval.MONTH,
+      });
+
+      await comRelogio(comCartao.organizationId, () =>
+        subscriptions.start({
+          organizationId: comCartao.organizationId,
+          customerId: semCartao.id,
+          priceId: preco.id,
+        }),
+      );
+
+      // A passagem inteira precisa sobreviver ao cliente sem cartão.
+      const relatorio = await avancarHoras(comCartao.organizationId, 24 * 32);
+
+      expect(relatorio.effects.some((e) => e.action === 'cobrada')).toBe(true);
+
+      // A fatura do cliente sem cartão continua aberta e reagendada, para ser
+      // encontrada sozinha se um cartão for cadastrado depois.
+      const doSemCartao = await prisma.invoice.findFirstOrThrow({
+        where: { customerId: semCartao.id },
+      });
+      expect(doSemCartao.status).toBe(InvoiceStatus.OPEN);
+      expect(doSemCartao.nextAttemptAt).not.toBeNull();
+      expect(doSemCartao.attemptCount).toBe(0);
     });
   });
 

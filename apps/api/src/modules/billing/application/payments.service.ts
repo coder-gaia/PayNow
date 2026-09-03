@@ -168,28 +168,51 @@ export class PaymentsService {
         );
       }
 
-      const attempt = invoice.attemptCount + 1;
-
-      const payment = await tx.payment.create({
-        data: {
-          organizationId,
-          invoiceId: invoice.id,
-          attempt,
-          status: PaymentStatus.PENDING,
-          amountMinor: invoice.amountMinor,
-          currency: invoice.currency,
-          gateway: this.gateway.name,
-          // A chave inclui a tentativa, então cada tentativa é uma cobrança
-          // distinta para o provedor. Sem a tentativa na chave, a segunda
-          // cobrança de uma recuperação seria reconhecida como repetição da
-          // primeira e devolveria a recusa antiga para sempre.
-          idempotencyKey: `charge:${invoice.id}:${attempt}`,
-        },
+      // Uma tentativa que ficou sem desfecho é retomada, e não substituída.
+      //
+      // Esta é a regra mais importante do arquivo, e ela tem duas metades
+      // opostas. Depois de uma **recusa conhecida**, a tentativa seguinte
+      // precisa de chave nova: reapresentar a mesma faria o provedor devolver
+      // a recusa antiga para sempre, e a recuperação nunca cobraria nada.
+      // Depois de um **desfecho desconhecido**, a tentativa seguinte precisa
+      // da mesma chave: o provedor pode ter capturado o dinheiro sem
+      // conseguir responder, e uma chave nova o faria capturar de novo.
+      //
+      // O que decide não é o número da tentativa, é o que se sabe sobre a
+      // anterior. Derivar a chave de `attemptCount` tratava os dois casos
+      // igual e cobrava em dobro exatamente no cenário em que a idempotência
+      // deveria proteger.
+      const pendente = await tx.payment.findFirst({
+        where: { invoiceId: invoice.id, status: PaymentStatus.PENDING },
+        orderBy: { attempt: 'desc' },
       });
 
+      const payment =
+        pendente ??
+        (await tx.payment.create({
+          data: {
+            organizationId,
+            invoiceId: invoice.id,
+            attempt: invoice.attemptCount + 1,
+            status: PaymentStatus.PENDING,
+            amountMinor: invoice.amountMinor,
+            currency: invoice.currency,
+            gateway: this.gateway.name,
+            idempotencyKey: `charge:${invoice.id}:${invoice.attemptCount + 1}`,
+          },
+        }));
+
+      // O contador é da fatura, e não da linha de pagamento.
+      //
+      // Retomar uma tentativa sem desfecho reaproveita a mesma linha, então
+      // `payment.attempt` fica parado. Se o calendário de recuperação lesse
+      // dele, uma cobrança que o provedor nunca respondesse seria reagendada
+      // para sempre, no primeiro intervalo, sem nunca esgotar. Contar na
+      // fatura mede o que interessa: quantas vezes já se falou com o provedor
+      // sobre esta dívida.
       await tx.invoice.update({
         where: { id: invoice.id },
-        data: { attemptCount: attempt, nextAttemptAt: null },
+        data: { attemptCount: invoice.attemptCount + 1, nextAttemptAt: null },
       });
 
       return {
@@ -288,7 +311,7 @@ export class PaymentsService {
       // Recusa definitiva não volta para a fila. Insistir em um cartão
       // cancelado queima a relação com o cliente e ainda conta como tentativa
       // fracassada para o adquirente, que é algo que se paga.
-      const horas = retriable ? nextAttemptDelayHours(payment.attempt) : null;
+      const horas = retriable ? nextAttemptDelayHours(payment.invoice.attemptCount) : null;
       const nextAttemptAt = horas === null ? null : addHours(agora, horas);
 
       const esgotou = horas === null;
@@ -342,9 +365,14 @@ export class PaymentsService {
    * Passo 3, incerteza: não sabemos se cobrou.
    *
    * Nada é lançado no razão e a fatura continua aberta. A tentativa fica
-   * PENDING para sempre, como registro de que houve uma chamada cujo desfecho
-   * se desconhece, e uma tentativa nova é agendada. Reconciliar PENDING contra
-   * o provedor é trabalho da fase 09.
+   * PENDING como registro de que houve uma chamada cujo desfecho se
+   * desconhece, e é ela que será retomada, com a mesma chave, na próxima vez.
+   *
+   * O calendário tem fim aqui também. Esgotado, a fatura para de ser
+   * reagendada e fica com uma tentativa PENDING pendurada, que é a descrição
+   * honesta do estado: alguém precisa perguntar ao provedor o que aconteceu.
+   * Reagendar para sempre transformaria uma dúvida em um laço infinito de
+   * chamadas ao provedor, e ninguém olharia porque nada estaria quebrado.
    */
   private async registrarIndefinido(paymentId: string, motivo: string): Promise<ChargeResult> {
     const agora = this.clock.now();
@@ -353,26 +381,35 @@ export class PaymentsService {
       const payment = await tx.payment.update({
         where: { id: paymentId },
         data: { failureMessage: motivo },
+        include: { invoice: true },
       });
 
-      const nextAttemptAt = addHours(agora, nextAttemptDelayHours(payment.attempt) ?? 1);
+      const horas = nextAttemptDelayHours(payment.invoice.attemptCount);
+      const nextAttemptAt = horas === null ? null : addHours(agora, horas);
 
       const invoice = await tx.invoice.update({
         where: { id: payment.invoiceId },
         data: { nextAttemptAt },
       });
 
-      this.logger.warn(
-        `Cobrança sem desfecho conhecido na fatura ${invoice.number}: ${motivo}. ` +
-          'A tentativa fica PENDING até ser reconciliada.',
-      );
+      if (nextAttemptAt === null) {
+        this.logger.error(
+          `Fatura ${invoice.number} tem uma cobrança sem desfecho conhecido e o calendário ` +
+            'de tentativas acabou. Ela precisa ser reconciliada contra o provedor à mão.',
+        );
+      } else {
+        this.logger.warn(
+          `Cobrança sem desfecho conhecido na fatura ${invoice.number}: ${motivo}. ` +
+            'A mesma tentativa será retomada, com a mesma chave.',
+        );
+      }
 
       return {
         paymentId: payment.id,
         status: PaymentStatus.PENDING,
         attempt: payment.attempt,
         invoiceStatus: invoice.status,
-        nextAttemptAt,
+        ...(nextAttemptAt === null ? {} : { nextAttemptAt }),
       };
     });
   }
