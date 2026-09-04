@@ -41,6 +41,7 @@ momento em que ela é tomada, com o contexto que existia na época.
 | [0012](0012-worker-no-mesmo-processo.md)        | Worker no mesmo processo, com flag e gatilho de extração      | Aceita |
 | [0014](0014-escopo-pci-saq-a.md)                | Escopo PCI-DSS SAQ-A por desenho                              | Aceita |
 | [0015](0015-relogio-virtual-por-organizacao.md) | Relógio virtual por organização, via AsyncLocalStorage        | Aceita |
+| [0016](0016-webhooks-entrega-e-recebimento.md)  | Webhooks: entrega separada do consumo, entrada deduplicada    | Aceita |
 
 Os números abaixo estão reservados no plano do projeto. Cada ADR é escrita na
 fase em que a decisão passa a valer, que nem sempre é a fase prevista: a

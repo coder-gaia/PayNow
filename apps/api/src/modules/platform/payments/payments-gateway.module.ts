@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 
 import { FakeGateway } from './fake-gateway';
+import { GatewayNotifications } from './gateway-notifications.service';
 import { PAYMENT_GATEWAY } from './payment-gateway';
 
 /**
@@ -17,7 +18,11 @@ import { PAYMENT_GATEWAY } from './payment-gateway';
  */
 @Global()
 @Module({
-  providers: [FakeGateway, { provide: PAYMENT_GATEWAY, useExisting: FakeGateway }],
-  exports: [PAYMENT_GATEWAY, FakeGateway],
+  providers: [
+    FakeGateway,
+    { provide: PAYMENT_GATEWAY, useExisting: FakeGateway },
+    GatewayNotifications,
+  ],
+  exports: [PAYMENT_GATEWAY, FakeGateway, GatewayNotifications],
 })
 export class PaymentsGatewayModule {}

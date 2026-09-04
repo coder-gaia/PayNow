@@ -4,8 +4,14 @@ import { Money } from '@paynow/money';
 
 import { CLOCK, type Clock } from '../../platform/clock/clock';
 import { addHours } from '../../platform/clock/duration';
+import { OrganizationClockService } from '../../platform/clock/organization-clock.service';
 import { DomainEventPublisher } from '../../platform/events/domain-event-publisher';
 import { EVENT } from '../../platform/events/domain-event';
+import type {
+  GatewayNotification,
+  GatewayNotificationHandler,
+  GatewayNotificationResult,
+} from '../../platform/payments/gateway-notification';
 import {
   GatewayUnavailableError,
   PAYMENT_GATEWAY,
@@ -77,7 +83,9 @@ export interface ChargeResult {
  * ele, um timeout deixaria o sistema sem saber sequer que tentou.
  */
 @Injectable()
-export class PaymentsService {
+export class PaymentsService implements GatewayNotificationHandler {
+  readonly name = 'pagamentos';
+
   private readonly logger = new Logger(PaymentsService.name);
 
   constructor(
@@ -85,7 +93,78 @@ export class PaymentsService {
     private readonly events: DomainEventPublisher,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly clocks: OrganizationClockService,
   ) {}
+
+  /**
+   * O provedor contando, depois, o desfecho de uma cobrança.
+   *
+   * Este é o caminho que fecha o buraco do timeout. Quando a chamada de
+   * cobrança morre sem resposta, a tentativa fica `PENDING` e o log diz, com
+   * essas palavras, que alguém precisa conciliar à mão. Aqui a conciliação
+   * acontece sozinha, quando o provedor nos procura.
+   *
+   * A segunda linha de defesa contra reentrega mora nesta função, e não no
+   * índice único de quem recebe o webhook. O índice recusa o **mesmo** evento
+   * duas vezes; ele não faz nada contra dois eventos distintos falando da
+   * mesma cobrança, nem contra uma reentrega que chegue enquanto o processo
+   * caiu entre gravar e aplicar. A checagem de estado cobre os dois: só uma
+   * cobrança ainda `PENDING` aceita desfecho.
+   */
+  async applyGatewayNotification(
+    notification: GatewayNotification,
+  ): Promise<{ result: GatewayNotificationResult; organizationId?: string; note: string }> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { idempotencyKey: notification.idempotencyKey },
+      select: { id: true, organizationId: true, status: true },
+    });
+
+    if (payment === null) {
+      // Pode ser evento de outro ambiente apontado para cá. Não é erro nosso e
+      // não deve virar alarme: quem recebeu registra e segue.
+      return {
+        result: 'desconhecida',
+        note: `Nenhuma cobrança com a chave ${notification.idempotencyKey}.`,
+      };
+    }
+
+    if (payment.status !== PaymentStatus.PENDING) {
+      return {
+        result: 'ignorada',
+        organizationId: payment.organizationId,
+        note: `A cobrança já estava ${payment.status}, e o desfecho conhecido não muda.`,
+      };
+    }
+
+    // Sob o relógio da organização, e não o de parede. Uma organização com o
+    // tempo congelado precisa que o lançamento contábil caia no instante
+    // congelado: gravá-lo com a hora real furaria o determinismo que a
+    // ADR-0015 existe para dar.
+    return this.clocks.runFor(payment.organizationId, async () => {
+      if (notification.kind === 'charge.succeeded') {
+        await this.registrarSucesso(payment.id, notification.reference);
+
+        return {
+          result: 'aplicada' as const,
+          organizationId: payment.organizationId,
+          note: `Cobrança confirmada pelo provedor com a referência ${notification.reference}.`,
+        };
+      }
+
+      await this.registrarFalha(
+        payment.id,
+        notification.code,
+        notification.message,
+        notification.retriable,
+      );
+
+      return {
+        result: 'aplicada' as const,
+        organizationId: payment.organizationId,
+        note: `Cobrança recusada pelo provedor: ${notification.code}.`,
+      };
+    });
+  }
 
   /**
    * Tenta cobrar uma fatura.

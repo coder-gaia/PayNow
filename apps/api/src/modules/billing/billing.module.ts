@@ -1,5 +1,4 @@
 import { Module, type OnModuleInit } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 
 import { BillingCycleService } from './application/billing-cycle.service';
 import { BillingWorker } from './application/billing-worker';
@@ -10,6 +9,7 @@ import { InvoicesService } from './application/invoices.service';
 import { PaymentsService } from './application/payments.service';
 import { SubscriptionsService } from './application/subscriptions.service';
 import { OutboxService } from '../platform/events/outbox.service';
+import { GatewayNotifications } from '../platform/payments/gateway-notifications.service';
 import { BillingClockController } from './http/billing-clock.controller';
 import { BillingController } from './http/billing.controller';
 import { PaymentsController } from './http/payments.controller';
@@ -36,10 +36,6 @@ import { PaymentsController } from './http/payments.controller';
  * escolha de quem o implementa é da raiz de composição. Ver ADR-0011.
  */
 @Module({
-  // O agendador é importado aqui, e não na raiz, porque cobrança é o único
-  // módulo que agenda alguma coisa. Quando os webhooks da fase 06 também
-  // precisarem, ele sobe para a raiz de composição.
-  imports: [ScheduleModule.forRoot()],
   controllers: [BillingController, BillingClockController, PaymentsController],
   providers: [
     BillingCycleService,
@@ -64,9 +60,16 @@ export class BillingModule implements OnModuleInit {
   constructor(
     private readonly outbox: OutboxService,
     private readonly receipts: ReceiptMailer,
+    private readonly notifications: GatewayNotifications,
+    private readonly payments: PaymentsService,
   ) {}
 
   onModuleInit(): void {
     this.outbox.register(this.receipts);
+
+    // Quem sabe conciliar uma cobrança é este módulo, e é aqui que ele diz
+    // isso. O módulo de webhooks encontra o handler pela porta, sem nunca
+    // aprender o que é uma fatura.
+    this.notifications.register(this.payments);
   }
 }

@@ -47,18 +47,20 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  memberships    Membership[]
-  apiKeys        ApiKey[]
-  accounts       Account[]
-  journalEntries JournalEntry[]
-  customers      Customer[]
-  products       Product[]
-  subscriptions  Subscription[]
-  invoices       Invoice[]
-  payments       Payment[]
-  refunds        Refund[]
-  outbox         OutboxMessage[]
-  clock          OrganizationClock?
+  memberships       Membership[]
+  apiKeys           ApiKey[]
+  accounts          Account[]
+  journalEntries    JournalEntry[]
+  customers         Customer[]
+  products          Product[]
+  subscriptions     Subscription[]
+  invoices          Invoice[]
+  payments          Payment[]
+  refunds           Refund[]
+  outbox            OutboxMessage[]
+  webhookEndpoints  WebhookEndpoint[]
+  webhookDeliveries WebhookDelivery[]
+  clock             OrganizationClock?
 
   @@map("organizations")
 }
@@ -404,6 +406,12 @@ model Payment {
   refunds      Refund[]
 
   @@unique([invoiceId, attempt])
+  /// A chave e o unico identificador que o provedor conhece: e o que mandamos
+  /// a ele. O webhook de entrada casa a notificacao com a cobranca por ela, e
+  /// esse caminho so e correto se a chave apontar para uma linha so. Ja era
+  /// verdade por construcao, porque a chave deriva de (fatura, tentativa), mas
+  /// verdade por construcao vira mentira quando alguem muda a construcao.
+  @@unique([idempotencyKey])
   @@index([organizationId, status])
   @@map("payments")
 }
@@ -598,9 +606,9 @@ model OutboxMessage {
   id             String @id @default(uuid(7)) @db.Uuid
   organizationId String @map("organization_id") @db.Uuid
 
-  eventType String   @map("event_type")
-  eventId   String   @map("event_id")
-  payload   Json
+  eventType  String   @map("event_type")
+  eventId    String   @map("event_id")
+  payload    Json
   occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
 
   status        OutboxStatus @default(PENDING)
@@ -644,9 +652,9 @@ model Refund {
   reason      String
 
   status         RefundStatus
-  gatewayRef     String? @map("gateway_ref")
-  failureMessage String? @map("failure_message")
-  idempotencyKey String  @map("idempotency_key")
+  gatewayRef     String?      @map("gateway_ref")
+  failureMessage String?      @map("failure_message")
+  idempotencyKey String       @map("idempotency_key")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -658,4 +666,126 @@ model Refund {
   @@index([organizationId, status])
   @@index([paymentId])
   @@map("refunds")
+}
+
+/// Endereco do merchant que recebe nossos eventos.
+model WebhookEndpoint {
+  id             String @id @default(uuid(7)) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+
+  url         String
+  description String?
+
+  /// Segredo usado para assinar. Guardado em claro porque assinar exige o
+  /// valor, e nao o hash: diferente da chave de API, que so precisa ser
+  /// comparada. Cifrar em repouso entra no endurecimento da fase 09, e ate la
+  /// isto e divida consciente e nomeada.
+  secret String
+
+  enabled Boolean @default(true)
+
+  /// Tipos de evento assinados. Lista vazia significa todos, que e o padrao
+  /// util: quem integra costuma querer tudo antes de saber o que filtrar.
+  eventTypes String[] @map("event_types")
+
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  disabledAt DateTime? @map("disabled_at") @db.Timestamptz(3)
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries   WebhookDelivery[]
+
+  @@index([organizationId, enabled])
+  @@map("webhook_endpoints")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCEEDED
+  /// Tentativas esgotadas. Fica para inspecao e pode ser reenviada a mao.
+  FAILED
+}
+
+/// Uma entrega, para um endereco, de um evento.
+///
+/// A linha existe antes de qualquer chamada HTTP acontecer, e e ela que torna a
+/// entrega retentavel sem duplicar. O indice unico sobre (endereco, evento) e o
+/// que permite o consumidor do outbox ser reexecutado a vontade: ele so cria
+/// linhas, e criar a mesma duas vezes e recusado pelo banco.
+model WebhookDelivery {
+  id             String @id @default(uuid(7)) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  endpointId     String @map("endpoint_id") @db.Uuid
+
+  eventType  String   @map("event_type")
+  eventId    String   @map("event_id")
+  payload    Json
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
+
+  status        WebhookDeliveryStatus @default(PENDING)
+  attempts      Int                   @default(0)
+  nextAttemptAt DateTime?             @map("next_attempt_at") @db.Timestamptz(3)
+
+  lastStatusCode Int?      @map("last_status_code")
+  lastError      String?   @map("last_error")
+  lastDurationMs Int?      @map("last_duration_ms")
+  deliveredAt    DateTime? @map("delivered_at") @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@unique([endpointId, eventId])
+  @@index([status, nextAttemptAt])
+  @@index([organizationId, createdAt])
+  @@map("webhook_deliveries")
+}
+
+enum InboundEventStatus {
+  /// Recebido e guardado, ainda nao aplicado.
+  RECEIVED
+  /// Aplicado: mudou alguma coisa no sistema.
+  PROCESSED
+  /// Entendido e deliberadamente sem efeito. Ex: a cobranca ja tinha desfecho.
+  IGNORED
+  /// Nao foi possivel aplicar. Fica para inspecao e reprocessamento.
+  FAILED
+}
+
+/// Um evento que o provedor nos mandou.
+///
+/// A linha e gravada em transacao propria, **antes** de qualquer efeito, e o
+/// indice unico sobre (provedor, id externo) e o que recusa a reentrega. Ver
+/// ADR-0016: nem o indice sozinho nem a checagem de estado sozinha bastam, e
+/// por isso os dois existem.
+model InboundWebhookEvent {
+  id       String @id @default(uuid(7)) @db.Uuid
+  provider String
+
+  /// O identificador que o provedor deu ao evento. E dele, nao nosso.
+  externalId String @map("external_id")
+  eventType  String @map("event_type")
+
+  /// O corpo exato como chegou, em texto e nao em Json: a assinatura cobre os
+  /// bytes recebidos, e reserializar mudaria a ordem das chaves e quebraria
+  /// qualquer reverificacao posterior.
+  body String
+
+  status InboundEventStatus @default(RECEIVED)
+
+  /// Descoberta durante o processamento, e nula ate la: o provedor identifica a
+  /// cobranca pela chave que nos demos a ele, e nao pela nossa organizacao.
+  organizationId String? @map("organization_id") @db.Uuid
+
+  /// O que o processamento concluiu, em uma linha, para inspecao.
+  note String?
+
+  receivedAt  DateTime  @default(now()) @map("received_at") @db.Timestamptz(3)
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(3)
+
+  @@unique([provider, externalId])
+  @@index([status, receivedAt])
+  @@map("inbound_webhook_events")
 }

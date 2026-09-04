@@ -13,7 +13,11 @@ import type { Env } from './config/env';
 const UNVERSIONED_ROUTES = ['health/live', 'health/ready'];
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // `rawBody` guarda os bytes exatos da requisição ao lado do corpo parseado.
+  // O webhook de entrada precisa deles: a assinatura do provedor cobre o que
+  // chegou, e `JSON.parse` seguido de `JSON.stringify` reordena as chaves, o
+  // que faria toda entrega legítima ser recusada.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   const config = app.get(ConfigService<Env, true>);
 
   app.setGlobalPrefix('v1', { exclude: UNVERSIONED_ROUTES });

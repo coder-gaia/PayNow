@@ -33,7 +33,8 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<INest
   }
 
   const moduleRef = await builder.compile();
-  const app = moduleRef.createNestApplication();
+  // `rawBody` como no main.ts: sem ele o webhook de entrada recusaria tudo.
+  const app = moduleRef.createNestApplication({ rawBody: true });
 
   app.setGlobalPrefix('v1', { exclude: ['health/live', 'health/ready'] });
   app.useGlobalPipes(

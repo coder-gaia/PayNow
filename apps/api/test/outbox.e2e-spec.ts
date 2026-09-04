@@ -129,22 +129,29 @@ describe('Outbox (e2e)', () => {
    * `occurredAt` devolve as duas em ordem arbitrária. Foi assim que este teste
    * passou local e falhou no CI.
    */
-  const mensagens = (organizationId: string) =>
+  const mensagens = (organizationId: string, eventType?: string) =>
     prisma.outboxMessage.findMany({
-      where: { organizationId },
+      where: { organizationId, ...(eventType === undefined ? {} : { eventType }) },
       orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
     });
 
   it('a mensagem nasce na mesma transação do fato', async () => {
     const { organizationId } = await montar();
 
+    // Iniciar a assinatura publica dois fatos, e desde a fase 06 os dois têm
+    // consumidor: o recibo por email escuta a fatura, e os webhooks de saída
+    // escutam tudo. A asserção é por tipo, e não por posição, porque a posição
+    // muda quando um assinante novo aparece.
     const fila = await mensagens(organizationId);
+    expect(fila.map((mensagem) => mensagem.eventType).sort()).toEqual([
+      'invoice.issued',
+      'subscription.started',
+    ]);
 
     // A fatura emitida no início da assinatura já está na fila, e ainda não
     // saiu: gravar a intenção de contar e contar são momentos diferentes.
-    expect(fila).toHaveLength(1);
-    expect(fila[0]?.eventType).toBe('invoice.issued');
-    expect(fila[0]?.status).toBe(OutboxStatus.PENDING);
+    const daFatura = await mensagens(organizationId, 'invoice.issued');
+    expect(daFatura[0]?.status).toBe(OutboxStatus.PENDING);
     expect(enviados).toHaveLength(0);
   });
 
@@ -156,11 +163,15 @@ describe('Outbox (e2e)', () => {
    * não haveria como retirar o aviso.
    *
    * O evento escolhido tem de ser um que o outbox realmente enfileira. A
-   * primeira versão deste teste usava `subscription.plan_changed`, que não tem
-   * consumidor registrado: `enqueue` desiste na primeira linha e nenhuma
-   * mensagem seria escrita nem no caminho feliz. O teste passava afirmando
-   * nada, que é pior do que não existir. Aqui a chave ocupada é a da fatura de
-   * renovação, que tem consumidor, e por isso a asserção tem o que verificar.
+   * primeira versão deste teste usava `subscription.plan_changed`, que naquele
+   * momento não tinha consumidor registrado: `enqueue` desiste na primeira
+   * linha e nenhuma mensagem seria escrita nem no caminho feliz. O teste
+   * passava afirmando nada, que é pior do que não existir.
+   *
+   * Desde a fase 06 todo tipo tem consumidor, porque os webhooks de saída
+   * escutam todos, e a armadilha original não se repetiria hoje. A escolha
+   * continua explícita de propósito: ela deixa de depender de qual consumidor
+   * está registrado nesta versão do código.
    */
   it('transação desfeita não deixa mensagem na fila', async () => {
     const { organizationId, subscription } = await montar();
@@ -309,7 +320,9 @@ describe('Outbox (e2e)', () => {
 
     expect(relatorio.retrying).toBeGreaterThanOrEqual(1);
 
-    const fila = await mensagens(organizationId);
+    // Quem falha é o envio do recibo, que escuta a fatura emitida. A asserção
+    // é sobre essa mensagem, e não sobre a primeira da fila.
+    const fila = await mensagens(organizationId, 'invoice.issued');
     expect(fila[0]?.status).toBe(OutboxStatus.PENDING);
     expect(fila[0]?.attempts).toBe(1);
     expect(fila[0]?.lastError).toMatch(/fora do ar/);
@@ -334,6 +347,7 @@ describe('Outbox (e2e)', () => {
 
     const fila = await mensagens(organizationId);
     expect(fila.map((mensagem) => mensagem.eventType)).toEqual([
+      'subscription.started',
       'invoice.issued',
       'payment.succeeded',
     ]);

@@ -17,6 +17,7 @@ afirmada. Saldo não é um campo, é uma consequência.
 - [O problema](#o-problema)
 - [Os três pilares](#os-três-pilares)
 - [Arquitetura](#arquitetura)
+- [Webhooks](#webhooks)
 - [Stack](#stack)
 - [Como rodar](#como-rodar)
 - [Estrutura do repositório](#estrutura-do-repositório)
@@ -160,6 +161,7 @@ flowchart LR
     api --> redis
     api --> gateways
     hooks -- "webhook assinado HMAC" --> destino["endpoint do merchant"]
+    fake -- "desfecho contado depois" --> hooks
 ```
 
 A regra `boundaries/element-types` no ESLint impede que um módulo de domínio
@@ -173,6 +175,40 @@ platform    ->  platform, config
 domínio     ->  platform, config, ele mesmo
 domínio     ->  outro domínio: o build quebra
 ```
+
+## Webhooks
+
+Nas duas direções, e a direção de entrada é a que resolve o problema mais
+incômodo do sistema.
+
+**Saída.** Cada fato vira uma entrega por endereço interessado, assinada em
+HMAC-SHA256 no formato `t=<unix>,v1=<hex>` sobre `${t}.${corpo}`. O instante
+entra na assinatura, e não ao lado dela: sem isso, uma entrega legítima
+capturada valeria para sempre.
+
+O detalhe que dá o desenho: **o consumidor do outbox não faz chamada de rede.**
+Ele só cria linhas de entrega. Se ele chamasse a rede, um endereço fora do ar
+faria o outbox devolver a mensagem inteira para a fila, e os endereços que já
+tinham recebido receberiam de novo. A chamada acontece numa varredura separada,
+com retentativa por entrega, em oito passos de dez segundos a um dia.
+
+Toda tentativa fica registrada com código de resposta, duração e erro. É o que
+transforma "não recebi" de discussão em pergunta com resposta.
+
+**Entrada.** A cobrança que morre sem resposta é o caso sem saída boa: o
+dinheiro pode ter saído, pode não ter. Sem webhook de entrada, alguém precisa
+abrir o painel do provedor e conciliar à mão. Com ele, o provedor conta o
+desfecho e a fatura se resolve sozinha.
+
+A deduplicação tem duas camadas, e nenhuma basta sozinha:
+
+| Camada                                   | Cobre                                                         | Não cobre                                                  |
+| ---------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| Índice único em (provedor, id)           | A mesma entrega repetida                                      | O processo morrer entre gravar o recibo e aplicar o efeito |
+| Só uma cobrança pendente aceita desfecho | O caso acima, e dois eventos distintos sobre a mesma cobrança | Nada de novo, mas depende do primeiro para haver rastro    |
+
+O raciocínio inteiro, incluindo o que foi trocado por quê e o que ficou fraco,
+está na [ADR-0016](docs/adr/0016-webhooks-entrega-e-recebimento.md).
 
 ## Stack
 
@@ -382,7 +418,7 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       determinístico do tempo.
 - [x] **05 Pagamentos.** Porta de gateway, idempotência, outbox, retry, dunning,
       estorno.
-- [ ] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
+- [x] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
 - [ ] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
 - [ ] **08 Painel e demonstração.** Página inicial em forma de razão, carrossel
       de depoimentos, métricas, console de caos, fatura explicável.
