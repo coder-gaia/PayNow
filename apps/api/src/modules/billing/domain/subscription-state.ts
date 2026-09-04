@@ -11,13 +11,25 @@ export { SubscriptionStatus };
  * passar, e o erro só apareceria na cobrança.
  *
  *   INCOMPLETE ──> TRIALING ──> ACTIVE ──> PAST_DUE ──> ACTIVE
- *        │              │          │            │
- *        └──> CANCELED  └─> CANCELED           └──> UNPAID
- *                                  └──> CANCELED
+ *        │              │          │            │           ▲
+ *        └──> CANCELED  └─> CANCELED           └──> UNPAID ─┘
+ *                                  └──> CANCELED       │
+ *                                                      └──> CANCELED
  *
- * As duas setas entre ACTIVE e PAST_DUE são o coração da recuperação: voltar
- * de PAST_DUE para ACTIVE é tão importante quanto cair nele, e um desenho que
- * só previsse a queda deixaria receita na mesa.
+ * As setas de volta para ACTIVE são o coração da recuperação: subir é tão
+ * importante quanto cair, e um desenho que só previsse a queda deixaria receita
+ * na mesa.
+ *
+ * `UNPAID` também sobe, e a razão está na ADR-0018. Ele significa "paramos de
+ * pedir", e não "recusamos o dinheiro". Quando o pagamento entra, por
+ * confirmação tardia do provedor ou por uma cobrança manual, o motivo de estar
+ * ali evaporou. Sem esta seta, o desfecho tardio de uma cobrança que deu certo
+ * fazia a transação inteira ser desfeita, e o dinheiro nunca era registrado.
+ *
+ * `CANCELED` continua final, e continua sendo o único. A diferença é que
+ * `UNPAID` é uma situação, e `CANCELED` é uma decisão já comunicada: o cliente
+ * foi avisado de que acabou, e ressuscitar sem ele pedir seria cobrar de novo
+ * mês que vem por algo que ele considera encerrado.
  */
 const TRANSICOES: Readonly<Record<SubscriptionStatus, readonly SubscriptionStatus[]>> = {
   [SubscriptionStatus.INCOMPLETE]: [
@@ -36,9 +48,9 @@ const TRANSICOES: Readonly<Record<SubscriptionStatus, readonly SubscriptionStatu
     SubscriptionStatus.UNPAID,
     SubscriptionStatus.CANCELED,
   ],
-  // Estados finais. Uma assinatura encerrada não volta: cria-se outra.
+  // Estado final, e só ele. Uma assinatura encerrada não volta: cria-se outra.
   [SubscriptionStatus.CANCELED]: [],
-  [SubscriptionStatus.UNPAID]: [SubscriptionStatus.CANCELED],
+  [SubscriptionStatus.UNPAID]: [SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELED],
 };
 
 /** Estados em que a assinatura dá acesso ao produto. */

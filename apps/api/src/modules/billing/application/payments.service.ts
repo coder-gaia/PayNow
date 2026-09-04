@@ -514,7 +514,26 @@ export class PaymentsService implements GatewayNotificationHandler {
 
     const subscription = await tx.subscription.findUnique({ where: { id: subscriptionId } });
 
-    if (subscription === null || isFinal(subscription.status)) {
+    if (subscription === null) {
+      return;
+    }
+
+    if (isFinal(subscription.status)) {
+      // Dinheiro que entra para uma assinatura já encerrada.
+      //
+      // O pagamento é registrado do mesmo jeito, porque o dinheiro entrou de
+      // verdade e apagá-lo do razão seria mentir sobre o caixa. O que não pode
+      // acontecer é isso passar em silêncio: é valor recebido por serviço que
+      // não vai ser prestado, e alguém precisa devolver ou combinar outra
+      // coisa com o cliente. Ver ADR-0018.
+      if (pago) {
+        this.logger.error(
+          `Pagamento confirmado para a assinatura ${subscription.id}, que está ` +
+            `${subscription.status}. O dinheiro entrou e o serviço não será prestado: ` +
+            'é preciso estornar ou combinar com o cliente.',
+        );
+      }
+
       return;
     }
 

@@ -33,6 +33,17 @@ describe('máquina de estados da assinatura', () => {
     it('vai para UNPAID quando a recuperação se esgota', () => {
       expect(canTransition(PAST_DUE, UNPAID)).toBe(true);
     });
+
+    /**
+     * UNPAID significa "paramos de pedir", e não "recusamos o dinheiro".
+     *
+     * Esta seta era proibida, e a proibição custava caro: um desfecho tardio do
+     * provedor, confirmando uma cobrança que tinha dado certo, fazia a transação
+     * inteira ser desfeita e o dinheiro nunca era registrado. Ver ADR-0018.
+     */
+    it('volta de UNPAID para ACTIVE quando o dinheiro entra depois', () => {
+      expect(canTransition(UNPAID, ACTIVE)).toBe(true);
+    });
   });
 
   describe('transições proibidas', () => {
@@ -50,9 +61,18 @@ describe('máquina de estados da assinatura', () => {
       expect(canTransition(ACTIVE, TRIALING)).toBe(false);
     });
 
-    it('não volta de UNPAID para ACTIVE sem passar por uma assinatura nova', () => {
-      expect(canTransition(UNPAID, ACTIVE)).toBe(false);
+    /**
+     * A assimetria entre UNPAID e CANCELED é deliberada.
+     *
+     * UNPAID é uma situação, e ela muda quando o dinheiro entra. CANCELED é uma
+     * decisão já comunicada ao cliente: ressuscitar sem ele pedir seria cobrar
+     * de novo mês que vem por algo que ele considera encerrado.
+     */
+    it('de UNPAID ainda dá para cancelar, e de CANCELED não dá para nada', () => {
       expect(canTransition(UNPAID, CANCELED)).toBe(true);
+      expect(canTransition(UNPAID, PAST_DUE)).toBe(false);
+      expect(canTransition(UNPAID, TRIALING)).toBe(false);
+      expect(canTransition(UNPAID, INCOMPLETE)).toBe(false);
     });
 
     it('nenhum estado transita para si mesmo', () => {

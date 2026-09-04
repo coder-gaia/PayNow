@@ -43,6 +43,7 @@ momento em que ela é tomada, com o contexto que existia na época.
 | [0015](0015-relogio-virtual-por-organizacao.md)    | Relógio virtual por organização, via AsyncLocalStorage        | Aceita |
 | [0016](0016-webhooks-entrega-e-recebimento.md)     | Webhooks: entrega separada do consumo, entrada deduplicada    | Aceita |
 | [0017](0017-suite-adversarial-por-convergencia.md) | Suíte adversarial que compara duas execuções                  | Aceita |
+| [0018](0018-recuperacao-tardia.md)                 | Dinheiro tardio reativa o que não morreu, e nunca ressuscita  | Aceita |
 
 Os números abaixo estão reservados no plano do projeto. Cada ADR é escrita na
 fase em que a decisão passa a valer, que nem sempre é a fase prevista: a
