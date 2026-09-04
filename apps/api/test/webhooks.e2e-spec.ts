@@ -217,12 +217,7 @@ describe('Webhooks (e2e)', () => {
     expect(recebido).toBeDefined();
 
     // O verificador é o mesmo que a documentação manda o integrador usar.
-    const verificacao = verifyWebhook(
-      recebido!.body,
-      recebido!.signature,
-      secret,
-      new Date(),
-    );
+    const verificacao = verifyWebhook(recebido!.body, recebido!.signature, secret, new Date());
     expect(verificacao.valid).toBe(true);
 
     // O envelope carrega o tipo na raiz, para o merchant rotear sem inspecionar

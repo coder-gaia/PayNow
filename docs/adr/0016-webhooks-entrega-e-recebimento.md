@@ -45,6 +45,34 @@ chamada HTTP fica numa varredura separada, com retentativa por entrega. O índic
 reexecutado à vontade, porque criar a mesma entrega duas vezes é recusado pelo
 banco.
 
+### O outbox passou a entregar por consumidor, e não por lista
+
+Esta fase mudou uma peça da ADR-0006, e a mudança é dela e não daqui, então fica
+registrada onde foi descoberta.
+
+O relay entregava a mensagem percorrendo a lista de consumidores e parava no
+primeiro que falhasse. Com um consumidor só, isso é indistinguível do correto.
+Com dois, um consumidor quebrado impede todos os que vêm depois de receberem,
+enquanto estiver quebrado. Foi exatamente o que aconteceu: o CI não tem servidor
+de email, o recibo é registrado antes dos webhooks, e nenhum webhook de
+`invoice.issued` era entregue lá. Localmente passava, porque localmente o
+Mailpit responde.
+
+A correção óbvia, percorrer a lista inteira e retentar a mensagem, troca um
+defeito por outro: a retentativa reentregaria a quem já tinha recebido, e o
+cliente receberia o mesmo recibo duas vezes. Por isso a mensagem passou a
+registrar **quem já recebeu**, por nome de consumidor, e a retentativa cobre só
+quem faltou.
+
+"Pelo menos uma vez" continua sendo a promessa, e não virou "exatamente uma
+vez": o processo ainda pode morrer entre entregar e registrar que entregou. O
+que mudou é que a garantia passou a valer por consumidor, que é o que a ADR-0006
+sempre quis dizer e a implementação não cumpria.
+
+Efeito colateral: o nome do consumidor deixou de ser rótulo de log e virou
+chave. Renomear um consumidor faz as mensagens que estão na fila acharem que ele
+nunca recebeu nada. O registro passou a recusar nomes repetidos.
+
 ### A assinatura cobre o instante, e não só o corpo
 
 Formato `t=<unix>,v1=<hex>`, HMAC-SHA256 sobre `${t}.${corpo}`, como o Stripe

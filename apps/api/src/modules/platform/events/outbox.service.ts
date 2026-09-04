@@ -65,6 +65,17 @@ export class OutboxService {
 
   /** Registra quem recebe depois do commit. Ver o comentário em outbox.ts. */
   register(consumer: OutboxConsumer): void {
+    // O nome deixou de ser rótulo de log quando virou a chave que diz quem já
+    // recebeu cada mensagem. Dois consumidores com o mesmo nome fariam o
+    // segundo ser pulado para sempre, em silêncio.
+    for (const registrados of this.porTipo.values()) {
+      for (const registrado of registrados) {
+        if (registrado.name === consumer.name && registrado !== consumer) {
+          throw new Error(`Já existe um consumidor de outbox chamado ${consumer.name}.`);
+        }
+      }
+    }
+
     for (const tipo of consumer.handles) {
       const lista = this.porTipo.get(tipo) ?? [];
       lista.push(consumer);
@@ -130,11 +141,35 @@ export class OutboxService {
         attempts: linha.attempts,
       };
 
-      try {
-        for (const consumidor of consumidores) {
-          await consumidor.deliver(mensagem);
+      // Cada consumidor é tentado por si. Parar no primeiro que falha faria um
+      // consumidor quebrado impedir todos os outros de receberem, enquanto ele
+      // estivesse quebrado. Foi assim que um servidor de email fora do ar
+      // deixou de entregar webhooks: o email vinha antes na lista.
+      // `?? []` porque isto vem de $queryRaw, que devolve a coluna crua: uma
+      // linha gravada antes da migration teria nulo, e o Prisma não está no
+      // caminho para trocar por vazio.
+      const entregues = [...(linha.delivered_to ?? [])];
+      const erros: string[] = [];
+
+      for (const consumidor of consumidores) {
+        // Quem já recebeu numa rodada anterior não recebe de novo. É o que
+        // torna a retentativa segura sem exigir que cada consumidor invente a
+        // própria deduplicação.
+        if (entregues.includes(consumidor.name)) {
+          continue;
         }
 
+        try {
+          await consumidor.deliver(mensagem);
+          entregues.push(consumidor.name);
+        } catch (error) {
+          erros.push(
+            `${consumidor.name}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
+      if (erros.length === 0) {
         await this.prisma.outboxMessage.update({
           where: { id: linha.id },
           data: {
@@ -143,41 +178,47 @@ export class OutboxService {
             attempts: linha.attempts + 1,
             nextAttemptAt: null,
             lastError: null,
+            deliveredTo: entregues,
           },
         });
 
         delivered += 1;
-      } catch (error) {
-        const tentativas = linha.attempts + 1;
-        const espera = BACKOFF_MS[tentativas - 1];
-        const motivo = error instanceof Error ? error.message : String(error);
+        continue;
+      }
 
-        await this.prisma.outboxMessage.update({
-          where: { id: linha.id },
-          data: {
-            attempts: tentativas,
-            lastError: motivo.slice(0, 500),
-            // Esgotadas as tentativas, a mensagem fica como FAILED e não some.
-            // Apagar o que não conseguiu ser entregue é apagar a única
-            // evidência de que alguém lá fora não soube de algo que aconteceu
-            // aqui.
-            ...(espera === undefined
-              ? { status: OutboxStatus.FAILED, nextAttemptAt: null }
-              : { nextAttemptAt: addMilliseconds(agora, espera) }),
-          },
-        });
+      const tentativas = linha.attempts + 1;
+      const espera = BACKOFF_MS[tentativas - 1];
+      const motivo = erros.join(' | ');
 
-        if (espera === undefined) {
-          failed += 1;
-          this.logger.error(
-            `Mensagem ${linha.id} (${linha.event_type}) desistiu após ${tentativas} tentativas: ${motivo}`,
-          );
-        } else {
-          retrying += 1;
-          this.logger.warn(
-            `Mensagem ${linha.id} (${linha.event_type}) falhou na tentativa ${tentativas}: ${motivo}`,
-          );
-        }
+      await this.prisma.outboxMessage.update({
+        where: { id: linha.id },
+        data: {
+          attempts: tentativas,
+          lastError: motivo.slice(0, 500),
+          // O que já saiu fica registrado mesmo quando a mensagem volta para a
+          // fila: é isso que impede a retentativa de reentregar a quem já
+          // recebeu.
+          deliveredTo: entregues,
+          // Esgotadas as tentativas, a mensagem fica como FAILED e não some.
+          // Apagar o que não conseguiu ser entregue é apagar a única
+          // evidência de que alguém lá fora não soube de algo que aconteceu
+          // aqui.
+          ...(espera === undefined
+            ? { status: OutboxStatus.FAILED, nextAttemptAt: null }
+            : { nextAttemptAt: addMilliseconds(agora, espera) }),
+        },
+      });
+
+      if (espera === undefined) {
+        failed += 1;
+        this.logger.error(
+          `Mensagem ${linha.id} (${linha.event_type}) desistiu após ${tentativas} tentativas: ${motivo}`,
+        );
+      } else {
+        retrying += 1;
+        this.logger.warn(
+          `Mensagem ${linha.id} (${linha.event_type}) falhou na tentativa ${tentativas}: ${motivo}`,
+        );
       }
     }
 
@@ -221,6 +262,7 @@ export class OutboxService {
         payload: unknown;
         occurred_at: Date;
         attempts: number;
+        delivered_to: string[] | null;
       }[]
     >`
       UPDATE outbox_messages
@@ -234,7 +276,8 @@ export class OutboxService {
           LIMIT ${LOTE}
             FOR UPDATE SKIP LOCKED
        )
-      RETURNING id, organization_id, event_type, event_id, payload, occurred_at, attempts
+      RETURNING id, organization_id, event_type, event_id, payload, occurred_at, attempts,
+                delivered_to
     `;
   }
 

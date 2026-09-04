@@ -137,7 +137,12 @@ export class WebhookDispatcher implements OutboxConsumer {
     let failed = 0;
 
     for (const entrega of pendentes) {
-      const resultado = await this.tentar(entrega.id, entrega.endpoint.url, entrega.endpoint.secret, entrega.payload);
+      const resultado = await this.tentar(
+        entrega.id,
+        entrega.endpoint.url,
+        entrega.endpoint.secret,
+        entrega.payload,
+      );
 
       if (resultado === 'entregue') {
         delivered += 1;
@@ -198,7 +203,11 @@ export class WebhookDispatcher implements OutboxConsumer {
 
       if (!shouldRetry(resposta.status)) {
         if (resposta.status >= 200 && resposta.status < 300) {
-          await this.marcarEntregue(deliveryId, resposta.status, Math.round(performance.now() - inicio));
+          await this.marcarEntregue(
+            deliveryId,
+            resposta.status,
+            Math.round(performance.now() - inicio),
+          );
           return 'entregue';
         }
 
@@ -272,11 +281,7 @@ export class WebhookDispatcher implements OutboxConsumer {
     return 'reagendada';
   }
 
-  private async desistir(
-    deliveryId: string,
-    statusCode: number,
-    motivo: string,
-  ): Promise<void> {
+  private async desistir(deliveryId: string, statusCode: number, motivo: string): Promise<void> {
     await this.prisma.webhookDelivery.update({
       where: { id: deliveryId },
       data: {

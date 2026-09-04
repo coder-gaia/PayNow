@@ -6,3 +6,8 @@ coverage
 .next
 pnpm-lock.yaml
 apps/api/prisma/migrations
+
+# Gerado pelo Next a cada build. Nao esta no repositorio, entao o CI nunca o ve:
+# sem esta linha, `format:check` acusa localmente e passa no CI, que e a pior
+# combinacao possivel.
+next-env.d.ts

@@ -91,11 +91,22 @@ jobs:
           --health-timeout 3s
           --health-retries 12
 
+      # Sem SMTP aqui, o envio de recibo falhava em toda execucao e o CI passava
+      # a exercitar um caminho degradado que nao existe em lugar nenhum. Foi
+      # essa divergencia entre local e CI que escondeu o defeito do outbox
+      # parando no primeiro consumidor que falha.
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://paynow:paynow@localhost:5432/paynow?schema=public
       REDIS_URL: redis://localhost:6379
       WORKER_ENABLED: 'false'
+      SMTP_HOST: localhost
+      SMTP_PORT: '1025'
       # Segredo descartável do runner. Não é credencial: existe apenas para que
       # a validação de ambiente aceite subir a aplicação durante os testes.
       JWT_SECRET: chave-de-assinatura-descartavel-exclusiva-do-ci-do-paynow
@@ -103,6 +114,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+
+      # A imagem do Mailpit nao traz ferramenta de health check utilizavel pelo
+      # runner, entao a espera e por porta aberta, que e o que de fato importa.
+      - name: Aguardar o Mailpit
+        run: timeout 60 bash -c 'until (echo > /dev/tcp/localhost/1025) 2>/dev/null; do sleep 1; done'
 
       - name: Aplicar migrations
         working-directory: apps/api
@@ -118,7 +134,12 @@ jobs:
   commits:
     name: Padrao de commit
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+
+    # Roda tambem em push, e nao so em pull request. O trabalho aqui vai direto
+    # para a main, entao a condicao anterior fazia este job ser pulado em toda
+    # execucao: uma regra que nunca roda nao e uma regra.
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -127,8 +148,30 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Validar mensagens de commit
-        run: >-
-          pnpm commitlint
-          --from ${{ github.event.pull_request.base.sha }}
-          --to ${{ github.event.pull_request.head.sha }}
-          --verbose
+        env:
+          EVENTO: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_ANTES: ${{ github.event.before }}
+          PUSH_DEPOIS: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENTO" = "pull_request" ]; then
+            de="$PR_BASE"
+            ate="$PR_HEAD"
+          else
+            de="$PUSH_ANTES"
+            ate="$PUSH_DEPOIS"
+
+            # Push inicial de um branch, ou force-push que reescreveu historico:
+            # o ponto anterior pode ser o sha zerado ou um commit que nao existe
+            # mais. Nos dois casos nao ha intervalo, e vale validar so o topo.
+            if [ "$de" = "0000000000000000000000000000000000000000" ]                || ! git cat-file -e "$de^{commit}" 2>/dev/null; then
+              echo "Ponto anterior indisponivel: validando apenas o commit do topo."
+              pnpm commitlint --from "$ate~1" --to "$ate" --verbose
+              exit $?
+            fi
+          fi
+
+          pnpm commitlint --from "$de" --to "$ate" --verbose

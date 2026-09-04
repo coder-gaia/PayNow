@@ -617,6 +617,18 @@ model OutboxMessage {
   lastError     String?      @map("last_error")
   deliveredAt   DateTime?    @map("delivered_at") @db.Timestamptz(3)
 
+  /// Quais consumidores ja receberam esta mensagem, por nome.
+  ///
+  /// Sem isto a garantia prometida em outbox.ts nao existe. Com uma lista de
+  /// consumidores e uma retentativa unica para a mensagem inteira, so ha duas
+  /// possibilidades, e as duas estao erradas: ou a rodada para no primeiro que
+  /// falha, e os seguintes nunca recebem enquanto ele falhar, ou ela segue e a
+  /// retentativa reentrega a quem ja tinha recebido, o que manda o mesmo email
+  /// duas vezes.
+  ///
+  /// Com a lista, a retentativa cobre exatamente quem faltou.
+  deliveredTo String[] @default([]) @map("delivered_to")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -52,6 +52,45 @@ describe('Outbox (e2e)', () => {
   const enviados: { to: string; subject: string }[] = [];
   let falharPara: string | null = null;
 
+  /**
+   * Um segundo consumidor, que falha sob demanda.
+   *
+   * Existe para provocar o caso em que um consumidor falha e outro não. Ele é
+   * inerte por padrão, e só falha para a organização que o teste apontar, pelo
+   * mesmo motivo que o espião de email falha por destinatário: o relay é
+   * global.
+   */
+  let sondaFalhaPara: string | null = null;
+
+  /**
+   * O que a sonda recebeu, **com a organização junto**.
+   *
+   * Guardar só o evento tornaria a contagem global, e uma varredura entrega
+   * tudo que estiver pendente: as mensagens das organizações criadas por todos
+   * os outros testes cairiam aqui dentro. Toda asserção sobre esta lista passa
+   * por `recebidosPelaSondaDe`.
+   */
+  const recebidosPelaSonda: { organizationId: string; eventId: string }[] = [];
+
+  const recebidosPelaSondaDe = (organizationId: string) =>
+    recebidosPelaSonda.filter((recebido) => recebido.organizationId === organizationId);
+
+  const sonda = {
+    name: 'sonda-de-teste',
+    handles: [EVENT.INVOICE_ISSUED] as const,
+    deliver: (mensagem: { organizationId: string; eventId: string }) => {
+      if (mensagem.organizationId === sondaFalhaPara) {
+        return Promise.reject(new Error('a sonda foi mandada falhar'));
+      }
+
+      recebidosPelaSonda.push({
+        organizationId: mensagem.organizationId,
+        eventId: mensagem.eventId,
+      });
+      return Promise.resolve();
+    },
+  };
+
   const mailerEspiao: Mailer = {
     send: (email) => {
       if (email.to === falharPara) {
@@ -69,6 +108,7 @@ describe('Outbox (e2e)', () => {
     subscriptions = app.get(SubscriptionsService);
     payments = app.get(PaymentsService);
     outbox = app.get(OutboxService);
+    outbox.register(sonda);
     publisher = app.get(DomainEventPublisher);
     cycle = app.get(BillingCycleService);
     scopes = app.get(ClockScopeStorage);
@@ -83,6 +123,8 @@ describe('Outbox (e2e)', () => {
   beforeEach(() => {
     enviados.length = 0;
     falharPara = null;
+    sondaFalhaPara = null;
+    recebidosPelaSonda.length = 0;
   });
 
   const montar = async () => {
@@ -351,6 +393,62 @@ describe('Outbox (e2e)', () => {
       'invoice.issued',
       'payment.succeeded',
     ]);
+  });
+
+  /**
+   * Um consumidor falhando não pode prejudicar os outros, nas duas direções.
+   *
+   * Este teste existe por causa de um defeito de verdade. O relay entregava
+   * numa lista e parava no primeiro erro, então um servidor de email fora do ar
+   * impedia a entrega de webhooks: o email vinha antes na lista. Foi assim que
+   * a suíte de webhooks quebrou no CI, que não tem SMTP, e passava aqui, que
+   * tem.
+   *
+   * A correção óbvia, seguir a lista inteira e retentar tudo, troca um defeito
+   * por outro: a retentativa reentregaria a quem já tinha recebido, e o cliente
+   * receberia o mesmo recibo duas vezes. Por isso quem já recebeu fica
+   * registrado.
+   */
+  it('um consumidor que falha não impede os outros nem faz o reenvio repetir para quem recebeu', async () => {
+    const { organizationId, customer } = await montar();
+
+    // Quem falha é o **primeiro** da lista, e é isso que reproduz o defeito. O
+    // recibo por email é registrado antes dos outros consumidores, então
+    // parar no primeiro erro afamava todos os que vêm depois.
+    falharPara = customer.email;
+
+    await outbox.relay();
+
+    // A sonda recebeu, apesar de o email ter falhado antes dela.
+    expect(recebidosPelaSondaDe(organizationId)).toHaveLength(1);
+
+    const [depoisDaFalha] = await mensagens(organizationId, 'invoice.issued');
+    expect(depoisDaFalha?.status).toBe(OutboxStatus.PENDING);
+    expect(depoisDaFalha?.deliveredTo).toContain('sonda-de-teste');
+    expect(depoisDaFalha?.deliveredTo).not.toContain('recibo-por-email');
+
+    // O email volta a funcionar, e a mensagem vence.
+    falharPara = null;
+    await prisma.outboxMessage.updateMany({
+      where: { organizationId },
+      data: { nextAttemptAt: new Date('2020-01-01T00:00:00.000Z') },
+    });
+
+    await outbox.relay();
+
+    const [depois] = await mensagens(organizationId, 'invoice.issued');
+    expect(depois?.status).toBe(OutboxStatus.DELIVERED);
+    expect([...(depois?.deliveredTo ?? [])].sort()).toEqual([
+      'recibo-por-email',
+      'sonda-de-teste',
+      'webhooks',
+    ]);
+
+    // O outro lado da mesma moeda: a segunda varredura cobriu só quem faltava.
+    // Sem isso, seguir a lista inteira trocaria um consumidor afamado por um
+    // recibo enviado duas vezes.
+    expect(recebidosPelaSondaDe(organizationId)).toHaveLength(1);
+    expect(enviados.filter((email) => email.to === customer.email)).toHaveLength(1);
   });
 
   it('publicar o mesmo fato duas vezes não cria duas mensagens', async () => {
