@@ -15,6 +15,7 @@
     "test": "jest",
     "test:cov": "jest --coverage",
     "test:e2e": "dotenv -e ../../.env -- jest --config jest.e2e.config.js",
+    "test:adversarial": "dotenv -e ../../.env -- jest --config jest.adversarial.config.js",
     "db:generate": "prisma generate",
     "db:diff": "dotenv -e ../../.env -- node ../../tools/create-migration.mjs",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",

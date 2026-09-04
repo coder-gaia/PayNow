@@ -112,13 +112,40 @@ que adianta o relógio e liquida o que vencer.
 
 ### 3. Suíte adversarial
 
-Um gateway falso programável que falha, dá timeout, duplica webhooks e os entrega
-fora de ordem, combinado com um harness determinístico que embaralha milhares de
-cenários por build e afirma duas coisas: o estado final converge
-independentemente da ordem de chegada, e o ledger nunca desbalanceia em nenhum
-passo intermediário.
+Um gateway falso programável que falha, dá timeout e entrega os desfechos
+repetidos e fora de ordem, combinado com um harness determinístico que gera
+roteiros e afirma duas coisas.
 
-Roda no CI. Toda falha é reproduzível por uma seed.
+**Convergência.** O mesmo roteiro, com o provedor contando os mesmos desfechos
+nos mesmos pontos mas em ordem diferente e com repetições diferentes, termina no
+mesmo lugar. A comparação é entre duas execuções, e não contra um resultado
+escrito à mão: num cenário gerado ninguém sabe qual é o valor certo, e calculá-lo
+no teste seria reimplementar o sistema dentro do teste, com os mesmos enganos.
+
+**O razão fecha em todo passo.** Não no fim: depois de cada operação. Uma
+execução padrão verifica 800 pontos intermediários.
+
+São **40 cenários por build**, e não milhares: cada um roda duas vezes contra um
+PostgreSQL de verdade e o job leva cerca de 90 segundos. Mil cenários levariam
+mais de meia hora, que não é tempo de build. A varredura profunda existe por
+variável de ambiente:
+
+```bash
+ADVERSARIAL_SCENARIOS=1000 ADVERSARIAL_STEPS=16 pnpm --filter @paynow/api test:adversarial
+```
+
+Roda no CI, em job próprio, porque a falha significa outra coisa: uma suíte
+ponta a ponta vermelha aponta um caso conhecido que quebrou, esta aponta um caso
+que ninguém tinha pensado.
+
+Toda execução tem semente, e a semente sai no log. Uma falha se repete com
+`SEED=<numero>`, e a mensagem traz o roteiro inteiro. Sem isso, uma suíte que
+sorteia produz anedota em vez de defeito.
+
+O que ela **não** afirma está na
+[ADR-0017](docs/adr/0017-suite-adversarial-por-convergencia.md), junto com o
+motivo: uma ação irreversível tomada na ignorância não converge, e nenhuma
+quantidade de idempotência conserta isso.
 
 ## Arquitetura
 
@@ -353,22 +380,24 @@ paynow/
 
 ## Scripts
 
-| Comando            | O que faz                                             |
-| ------------------ | ----------------------------------------------------- |
-| `pnpm dev`         | Sobe a aplicação em modo desenvolvimento              |
-| `pnpm build`       | Compila todos os pacotes                              |
-| `pnpm lint`        | ESLint, incluindo as regras de fronteira e de relógio |
-| `pnpm typecheck`   | Verificação de tipos sem emitir                       |
-| `pnpm test`        | Testes unitários e de integração                      |
-| `pnpm test:cov`    | Testes com relatório de cobertura                     |
-| `pnpm format`      | Formata o repositório com Prettier                    |
-| `pnpm infra:up`    | Sobe PostgreSQL, Redis e Mailpit                      |
-| `pnpm infra:down`  | Derruba os serviços de apoio                          |
-| `pnpm infra:reset` | Derruba, apaga os volumes e sobe de novo              |
-| `pnpm db:migrate`  | Cria e aplica migration em desenvolvimento            |
-| `pnpm db:deploy`   | Aplica migrations pendentes                           |
-| `pnpm db:studio`   | Abre o Prisma Studio                                  |
-| `pnpm db:seed`     | Popula o banco local com os dados de demonstração     |
+| Comando                                      | O que faz                                             |
+| -------------------------------------------- | ----------------------------------------------------- |
+| `pnpm dev`                                   | Sobe a aplicação em modo desenvolvimento              |
+| `pnpm build`                                 | Compila todos os pacotes                              |
+| `pnpm lint`                                  | ESLint, incluindo as regras de fronteira e de relógio |
+| `pnpm typecheck`                             | Verificação de tipos sem emitir                       |
+| `pnpm test`                                  | Testes unitários e de integração                      |
+| `pnpm test:cov`                              | Testes com relatório de cobertura                     |
+| `pnpm --filter @paynow/api test:e2e`         | Testes ponta a ponta, contra banco de verdade         |
+| `pnpm --filter @paynow/api test:adversarial` | Cenários gerados, com semente                         |
+| `pnpm format`                                | Formata o repositório com Prettier                    |
+| `pnpm infra:up`                              | Sobe PostgreSQL, Redis e Mailpit                      |
+| `pnpm infra:down`                            | Derruba os serviços de apoio                          |
+| `pnpm infra:reset`                           | Derruba, apaga os volumes e sobe de novo              |
+| `pnpm db:migrate`                            | Cria e aplica migration em desenvolvimento            |
+| `pnpm db:deploy`                             | Aplica migrations pendentes                           |
+| `pnpm db:studio`                             | Abre o Prisma Studio                                  |
+| `pnpm db:seed`                               | Popula o banco local com os dados de demonstração     |
 
 ## Página inicial
 
@@ -419,7 +448,7 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
 - [x] **05 Pagamentos.** Porta de gateway, idempotência, outbox, retry, dunning,
       estorno.
 - [x] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
-- [ ] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
+- [x] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
 - [ ] **08 Painel e demonstração.** Página inicial em forma de razão, carrossel
       de depoimentos, métricas, console de caos, fatura explicável.
 - [ ] **09 Endurecimento e lançamento.** Limite de taxa, modelo de ameaças,

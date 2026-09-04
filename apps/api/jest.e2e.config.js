@@ -9,6 +9,9 @@ module.exports = {
   testEnvironment: 'node',
   rootDir: 'test',
   testRegex: '.*\.e2e-spec\.ts$',
+  // A suite adversarial tem config propria (jest.adversarial.config.js) e leva
+  // minutos. Deixa-la aqui esconderia o retorno rapido das outras atras dela.
+  testPathIgnorePatterns: ['<rootDir>/adversarial\.e2e-spec\.ts$'],
   testTimeout: 30000,
   // Ver o comentario em test/support/env.ts: desliga o cron de fundo, que
   // entregaria a fila do outbox por baixo das suites.

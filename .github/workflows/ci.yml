@@ -131,6 +131,68 @@ jobs:
         working-directory: apps/api
         run: pnpm exec jest --config jest.e2e.config.js
 
+  adversarial:
+    name: Suite adversarial
+    runs-on: ubuntu-latest
+
+    # Job separado da suite ponta a ponta de proposito. O custo e outro, e o
+    # significado da falha tambem: uma suite ponta a ponta vermelha aponta um
+    # caso conhecido que quebrou, e esta aqui aponta um caso que ninguem tinha
+    # pensado. Misturadas, o retorno rapido das outras some atras dos minutos
+    # desta.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: paynow
+          POSTGRES_PASSWORD: paynow
+          POSTGRES_DB: paynow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U paynow -d paynow"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://paynow:paynow@localhost:5432/paynow?schema=public
+      REDIS_URL: redis://localhost:6379
+      WORKER_ENABLED: 'false'
+      JWT_SECRET: chave-de-assinatura-descartavel-exclusiva-do-ci-do-paynow
+      # Sem Mailpit neste job: a suite adversarial nao passa pelo envio de
+      # recibo, e desde a correcao do outbox um consumidor fora do ar nao
+      # impede os outros. O que ela exercita e o caminho do dinheiro.
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Aplicar migrations
+        working-directory: apps/api
+        run: pnpm exec prisma migrate deploy
+
+      - name: Compilar
+        run: pnpm build
+
+      # A semente sai no log da propria suite. Quando este job falhar, a
+      # investigacao comeca copiando o `SEED=` de la e rodando localmente:
+      # `SEED=<n> pnpm --filter @paynow/api test:adversarial`.
+      - name: Cenarios adversariais
+        working-directory: apps/api
+        run: pnpm exec jest --config jest.adversarial.config.js
+
   commits:
     name: Padrao de commit
     runs-on: ubuntu-latest
