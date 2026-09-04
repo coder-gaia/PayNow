@@ -437,4 +437,60 @@ describe('Webhooks de entrada (e2e)', () => {
     const tentativas = await prisma.payment.count({ where: { invoiceId: payment.invoiceId } });
     expect(tentativas).toBe(1);
   });
+
+  /**
+   * Um recibo problemático não sequestra a varredura.
+   *
+   * `aplicar` relança de propósito, para o provedor reentregar quando é ele que
+   * está esperando resposta. Na retomada não há provedor esperando, e deixar o
+   * erro subir faria um recibo estragado impedir todos os seguintes de serem
+   * retomados: exatamente o efeito que a retomada existe para evitar.
+   */
+  it('um recibo estragado não impede a retomada dos outros', async () => {
+    const { payment } = await cobrancaSemDesfecho();
+
+    const estragado = `evt_${randomUUID()}`;
+    const bom = `evt_${randomUUID()}`;
+
+    await prisma.inboundWebhookEvent.createMany({
+      data: [
+        {
+          provider: 'fake',
+          externalId: estragado,
+          eventType: 'charge.succeeded',
+          body: 'isto nao e json',
+          status: InboundEventStatus.RECEIVED,
+          // Mais antigo, para ser o primeiro da varredura: se ele derrubasse a
+          // rodada, o de baixo nunca seria alcançado.
+          receivedAt: new Date('2020-01-01T00:00:00.000Z'),
+        },
+        {
+          provider: 'fake',
+          externalId: bom,
+          eventType: 'charge.succeeded',
+          body: JSON.stringify({
+            id: bom,
+            type: 'charge.succeeded',
+            data: { idempotencyKey: payment.idempotencyKey, reference: 'fake_ch_depois_do_ruim' },
+          }),
+          status: InboundEventStatus.RECEIVED,
+          receivedAt: new Date('2020-01-02T00:00:00.000Z'),
+        },
+      ],
+    });
+
+    const relatorio = await inbound.reprocessPending();
+    expect(relatorio.falhos).toBeGreaterThanOrEqual(1);
+
+    const depois = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
+    expect(depois.status).toBe(PaymentStatus.SUCCEEDED);
+    expect(depois.gatewayRef).toBe('fake_ch_depois_do_ruim');
+
+    // E o estragado sai do caminho, em vez de ser varrido de novo a cada
+    // minuto para sempre.
+    const recusado = await prisma.inboundWebhookEvent.findFirstOrThrow({
+      where: { externalId: estragado },
+    });
+    expect(recusado.status).toBe(InboundEventStatus.FAILED);
+  });
 });

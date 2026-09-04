@@ -119,19 +119,45 @@ export class InboundWebhooksService {
    * A checagem de estado do lado que aplica é o que torna isto seguro de chamar
    * à vontade.
    */
-  async reprocessPending(limite = 50): Promise<{ retomados: number }> {
+  async reprocessPending(limite = 50): Promise<{ retomados: number; falhos: number }> {
     const pendentes = await this.prisma.inboundWebhookEvent.findMany({
       where: { status: InboundEventStatus.RECEIVED },
       orderBy: { receivedAt: 'asc' },
       take: limite,
     });
 
+    let retomados = 0;
+    let falhos = 0;
+
     for (const pendente of pendentes) {
-      const corpo = JSON.parse(pendente.body) as CorpoEntrada;
-      await this.aplicar(pendente.id, pendente.eventType, corpo, pendente.externalId);
+      let corpo: CorpoEntrada;
+
+      try {
+        corpo = JSON.parse(pendente.body) as CorpoEntrada;
+      } catch {
+        // Um corpo que não é JSON nunca vai ser aplicado, por mais vezes que
+        // seja tentado. Deixá-lo em RECEIVED faria a varredura tropeçar nele a
+        // cada minuto, para sempre. Fechar como FAILED tira-o do caminho sem
+        // apagar o que chegou.
+        await this.fechar(pendente.id, InboundEventStatus.FAILED, 'O corpo guardado não é JSON.');
+        falhos += 1;
+        continue;
+      }
+
+      try {
+        await this.aplicar(pendente.id, pendente.eventType, corpo, pendente.externalId);
+        retomados += 1;
+      } catch {
+        // `aplicar` relança de propósito, para o provedor reentregar quando é
+        // ele que está esperando resposta. Aqui não há ninguém esperando, e um
+        // recibo problemático não pode impedir os seguintes de serem retomados.
+        // Ele já ficou marcado como FAILED lá dentro, e o erro já foi
+        // registrado, então engolir aqui não esconde nada.
+        falhos += 1;
+      }
     }
 
-    return { retomados: pendentes.length };
+    return { retomados, falhos };
   }
 
   /**

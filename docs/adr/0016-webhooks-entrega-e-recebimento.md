@@ -156,8 +156,9 @@ Ruins, e assumidas:
   `payment.succeeded` antes de `invoice.issued` se a primeira tentativa da
   segunda falhar. Quem integra precisa tratar cada evento por si, e o envelope
   carrega `occurredAt` para isso.
-- **O reprocessamento de recibos pendentes não tem gatilho automático.** O
-  método existe e é seguro de chamar, mas hoje depende de alguém chamá-lo.
+- **A retomada de recibos pendentes roda a cada minuto, e não na hora.** Um
+  evento cujo efeito ficou pela metade espera até um minuto para ser retomado.
+  Reduzir isso é baixar o intervalo do worker, e o custo é varredura em vazio.
 
 ## Alternativas consideradas
 
