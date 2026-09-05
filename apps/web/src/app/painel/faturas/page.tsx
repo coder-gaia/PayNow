@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   Cell,
   EmptyState,
@@ -82,7 +83,15 @@ export default async function FaturasPage() {
             {invoices.map((invoice) => (
               <tr key={invoice.id}>
                 <Cell>
-                  <span className="tabular block font-medium">nº {invoice.number}</span>
+                  {/* O número é o link: é por ele que se pergunta "de onde
+                      veio este valor", e a tela da fatura responde com as
+                      linhas do razão que ela originou. */}
+                  <Link
+                    href={`/painel/faturas/${invoice.id}`}
+                    className="tabular block font-medium underline underline-offset-2 hover:text-credit"
+                  >
+                    nº {invoice.number}
+                  </Link>
                   <span className="block text-[13px] text-ink-muted">
                     vence {formatDate(invoice.dueAt)}
                   </span>

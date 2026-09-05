@@ -445,3 +445,35 @@ export async function refundPayment(
   revalidarPainel();
   return { ok: true };
 }
+
+/**
+ * Programa o provedor falso.
+ *
+ * Escreve num estado que é do processo, e não da organização, e o comentário no
+ * controlador explica por quê. Aqui basta saber que a tela seguinte precisa ser
+ * revalidada: o cenário programado aparece nela.
+ */
+export async function setChaosScenario(
+  organizationId: string,
+  scenario: { kind: string; desfechoReal?: string; failures?: number },
+): Promise<FormState> {
+  try {
+    await apiFetch(`/organizations/${organizationId}/caos`, { method: 'POST', body: scenario });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  revalidarPainel();
+  return { ok: true };
+}
+
+export async function resetChaos(organizationId: string): Promise<FormState> {
+  try {
+    await apiFetch(`/organizations/${organizationId}/caos/reset`, { method: 'POST' });
+  } catch (error) {
+    return toFormState(error);
+  }
+
+  revalidarPainel();
+  return { ok: true };
+}

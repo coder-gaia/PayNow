@@ -457,9 +457,8 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       estorno.
 - [x] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
 - [x] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
-- [ ] **08 Painel e demonstração.** Página inicial em forma de razão e carrossel
-      de depoimentos entregues. Faltam métricas, console de caos e fatura
-      explicável.
+- [x] **08 Painel e demonstração.** Página inicial em forma de razão, carrossel
+      de depoimentos, métricas, console de caos, fatura explicável.
 - [ ] **09 Endurecimento e lançamento.** Limite de taxa, modelo de ameaças,
       teste de carga, runbooks, deploy.
 

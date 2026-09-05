@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { InvoiceStatus, OrganizationRole } from '@prisma/client';
+import { InvoiceStatus, OrganizationRole, PaymentStatus } from '@prisma/client';
 import { Money } from '@paynow/money';
 import { IsOptional, IsString, Length, Matches } from 'class-validator';
 
@@ -137,6 +137,21 @@ export class PaymentsController {
     return {
       ...apresentar(invoice),
       plan: invoice.subscription === null ? null : invoice.subscription.price.product.name,
+      // As chaves dos eventos que esta fatura originou.
+      //
+      // Quem junta fatura e razão é o painel, e não este módulo: as fronteiras
+      // proíbem cobrança importar o razão, e a proibição está certa. O que
+      // cobrança tem para oferecer são as chaves, que são dela; o razão sabe
+      // devolver as linhas de cada uma. Calcular essas chaves no frontend
+      // acoplaria a tela ao formato interno delas.
+      ledgerEventIds: [
+        ...(invoice.subscriptionId === null
+          ? []
+          : [`invoice-issued:${invoice.subscriptionId}:${invoice.periodStart.toISOString()}`]),
+        ...invoice.payments
+          .filter((payment) => payment.status === PaymentStatus.SUCCEEDED)
+          .map((payment) => `payment-succeeded:${payment.id}`),
+      ],
     };
   }
 

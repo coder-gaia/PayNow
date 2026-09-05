@@ -324,6 +324,27 @@ export interface Invoice {
 
 export interface InvoiceDetail extends Invoice {
   plan: string | null;
+  /**
+   * As chaves dos eventos de domínio que esta fatura originou.
+   *
+   * Quem junta fatura e razão é o painel: as fronteiras de módulo proíbem
+   * cobrança importar o razão. Cobrança oferece as chaves, que são dela, e o
+   * razão devolve as linhas de cada uma.
+   */
+  ledgerEventIds: string[];
+}
+
+/** O que o provedor falso vai fazer, e o que dá para mandá-lo fazer. */
+export interface ChaosState {
+  scenario: { kind: string; desfechoReal?: string; failures?: number };
+  naoContadas: number;
+  cenarios: {
+    kind: string;
+    desfechoReal?: string;
+    failures?: number;
+    titulo: string;
+    descricao: string;
+  }[];
 }
 
 export interface Refund {
@@ -380,10 +401,19 @@ export const api = {
   apiKeys: (id: string) => apiFetch<ApiKey[]>(`/organizations/${id}/api-keys`),
   ledgerBalances: (id: string) =>
     apiFetch<AccountBalance[]>(`/organizations/${id}/ledger/balances`),
-  ledgerEntries: (id: string, limit?: number) =>
-    apiFetch<JournalEntry[]>(
-      `/organizations/${id}/ledger/entries${limit === undefined ? '' : `?limit=${limit}`}`,
-    ),
+  ledgerEntries: (id: string, options: { limit?: number; eventIds?: string[] } = {}) => {
+    const busca = new URLSearchParams();
+    if (options.limit !== undefined) busca.set('limit', String(options.limit));
+    if (options.eventIds !== undefined && options.eventIds.length > 0) {
+      busca.set('eventIds', options.eventIds.join(','));
+    }
+
+    const query = busca.toString();
+    return apiFetch<JournalEntry[]>(
+      `/organizations/${id}/ledger/entries${query === '' ? '' : `?${query}`}`,
+    );
+  },
+  chaos: (id: string) => apiFetch<ChaosState>(`/organizations/${id}/caos`),
   ledgerVerification: (id: string) =>
     apiFetch<LedgerVerification>(`/organizations/${id}/ledger/verification`),
   subscriptions: (id: string) => apiFetch<Subscription[]>(`/organizations/${id}/subscriptions`),

@@ -52,6 +52,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <NavLink href="/painel/assinaturas">Assinaturas</NavLink>
             <NavLink href="/painel/faturas">Faturas</NavLink>
             <NavLink href="/painel/tempo">Tempo</NavLink>
+            <NavLink href="/painel/caos">Caos</NavLink>
             <NavLink href="/painel/ledger">Razão</NavLink>
             <NavLink href="/painel/membros">Membros</NavLink>
             <NavLink href="/painel/chaves">Chaves de API</NavLink>

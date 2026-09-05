@@ -212,9 +212,21 @@ export class LedgerService {
   }
 
   /** Últimos lançamentos, com as linhas, para o explorador do painel. */
-  async entries(organizationId: string, limit = 50) {
+  /**
+   * Os lançamentos da organização, opcionalmente só os de certos eventos.
+   *
+   * O filtro por evento é o que permite ao painel mostrar, na tela de uma
+   * fatura, exatamente as linhas que ela produziu. Sem ele a tela teria de
+   * baixar o razão inteiro e filtrar no cliente.
+   */
+  async entries(organizationId: string, limit = 50, eventIds?: readonly string[]) {
     const entries = await this.prisma.journalEntry.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        ...(eventIds === undefined || eventIds.length === 0
+          ? {}
+          : { eventId: { in: [...eventIds] } }),
+      },
       include: { lines: { include: { account: true } } },
       orderBy: [{ occurredAt: 'desc' }, { createdAt: 'desc' }],
       take: Math.min(limit, 200),

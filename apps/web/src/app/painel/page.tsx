@@ -27,7 +27,7 @@ export default async function OverviewPage() {
     api.organization(active.id),
     api.metrics(active.id),
     api.ledgerVerification(active.id),
-    api.ledgerEntries(active.id, 5),
+    api.ledgerEntries(active.id, { limit: 5 }),
   ]);
 
   return (

@@ -13,6 +13,7 @@ import { OutboxService } from '../platform/events/outbox.service';
 import { GatewayNotifications } from '../platform/payments/gateway-notifications.service';
 import { BillingClockController } from './http/billing-clock.controller';
 import { BillingController } from './http/billing.controller';
+import { CaosController } from './http/caos.controller';
 import { PaymentsController } from './http/payments.controller';
 
 /**
@@ -37,7 +38,7 @@ import { PaymentsController } from './http/payments.controller';
  * escolha de quem o implementa é da raiz de composição. Ver ADR-0011.
  */
 @Module({
-  controllers: [BillingController, BillingClockController, PaymentsController],
+  controllers: [BillingController, BillingClockController, PaymentsController, CaosController],
   providers: [
     BillingCycleService,
     BillingWorker,

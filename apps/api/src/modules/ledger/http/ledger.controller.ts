@@ -60,15 +60,23 @@ export class LedgerController {
     description: 'Cada lançamento carrega o evento de domínio que o originou.',
   })
   @ApiQuery({ name: 'limit', required: false, example: 50 })
+  @ApiQuery({
+    name: 'eventIds',
+    required: false,
+    description:
+      'Chaves de evento separadas por vírgula. Filtra os lançamentos que elas originaram.',
+  })
   @ApiOkResponse({ type: [JournalEntryResponse] })
   async entries(
     @Param('organizationId', uuid()) organizationId: string,
     @Query('limit') limit = '50',
+    @Query('eventIds') eventIds?: string,
   ): Promise<JournalEntryResponse[]> {
     const parsed = Number.parseInt(limit, 10);
     const entries = await this.ledger.entries(
       organizationId,
       Number.isFinite(parsed) ? parsed : 50,
+      eventIds === undefined || eventIds === '' ? undefined : eventIds.split(','),
     );
 
     return entries.map((entry) => presentEntry(entry));

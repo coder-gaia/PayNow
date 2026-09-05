@@ -117,6 +117,16 @@ export class FakeGateway implements PaymentGateway {
     this.cenario = cenario;
   }
 
+  /** O que está programado agora. Usado pelo console de caos da demonstração. */
+  currentScenario(): FakeScenario {
+    return this.cenario;
+  }
+
+  /** Quantos desfechos o provedor conhece e ainda não contou. */
+  pendingCount(): number {
+    return this.naoContadas.length;
+  }
+
   /** Volta ao caminho feliz e esquece o que já respondeu. */
   reset(): void {
     this.cenario = { kind: 'succeed' };
