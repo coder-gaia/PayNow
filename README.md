@@ -407,9 +407,17 @@ a respeito, e a soma fechando em zero no rodapé. A forma da página é a ideia
 central do produto.
 
 Uma página que **afirma** ser confiável contradiz a tese, que é a de que
-corretude se verifica. Por isso, abaixo do lançamento, três botões agem contra
-a API de verdade e mostram as linhas nascendo: emitir uma fatura, trocar de
-plano no meio do ciclo, adiantar três meses.
+corretude se verifica. Por isso o rodapé não é um texto: o número de linhas e de
+lançamentos é recalculado a cada visita, a partir das linhas que estão no banco,
+e abaixo dele aparecem lançamentos reais do razão da demonstração com a soma de
+cada um conferida na tela.
+
+O desenho original previa três botões que **escrevem** contra a API: emitir uma
+fatura, trocar de plano no meio do ciclo, adiantar três meses. Escrever sem
+autenticação é superfície de abuso, e isso exige limite de taxa e uma rotina que
+recicle os dados da demonstração, as duas coisas da fase 09. Enquanto elas não
+existem, a página mostra o que já está no razão, o que continua sendo conferível:
+quem duvidar entra no painel e encontra as mesmas linhas.
 
 Uma seção de depoimentos em carrossel fecha a página. Eles são declaradamente
 fictícios, e os negócios que assinam são os mesmos da organização de
@@ -449,8 +457,9 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
       estorno.
 - [x] **06 Webhooks.** Entrada com deduplicação, saída com HMAC, retry e replay.
 - [x] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
-- [ ] **08 Painel e demonstração.** Página inicial em forma de razão, carrossel
-      de depoimentos, métricas, console de caos, fatura explicável.
+- [ ] **08 Painel e demonstração.** Página inicial em forma de razão e carrossel
+      de depoimentos entregues. Faltam métricas, console de caos e fatura
+      explicável.
 - [ ] **09 Endurecimento e lançamento.** Limite de taxa, modelo de ameaças,
       teste de carga, runbooks, deploy.
 

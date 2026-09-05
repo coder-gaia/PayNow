@@ -11,3 +11,8 @@ apps/api/prisma/migrations
 # sem esta linha, `format:check` acusa localmente e passa no CI, que e a pior
 # combinacao possivel.
 next-env.d.ts
+
+# Saida do Playwright. Ignorada pelo git, entao o CI nunca a ve: sem esta linha
+# o `format:check` acusa localmente e passa la, que e a pior combinacao.
+test-results/
+playwright-report/

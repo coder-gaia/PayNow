@@ -3,6 +3,7 @@ import { Module, type OnModuleInit } from '@nestjs/common';
 import { BillingAccountingHandler } from './application/billing-accounting.handler';
 import { LedgerService } from './application/ledger.service';
 import { DomainEventPublisher } from '../platform/events/domain-event-publisher';
+import { DemonstracaoController } from './http/demonstracao.controller';
 import { LedgerController } from './http/ledger.controller';
 
 /**
@@ -17,7 +18,7 @@ import { LedgerController } from './http/ledger.controller';
  * decorador longe daqui.
  */
 @Module({
-  controllers: [LedgerController],
+  controllers: [LedgerController, DemonstracaoController],
   providers: [LedgerService, BillingAccountingHandler],
   exports: [LedgerService],
 })

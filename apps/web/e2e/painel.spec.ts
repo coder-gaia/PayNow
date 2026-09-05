@@ -407,7 +407,15 @@ test.describe('razão', () => {
     // E os lançamentos carregam o evento de domínio que os originou, com nome
     // legível na tela e a identidade técnica no title: o tipo do evento e a
     // chave de idempotência continuam alcançáveis sem poluir a leitura.
-    const lancamento = page.getByRole('listitem').filter({ hasText: 'Pagamento confirmado' });
+    //
+    // O lançamento é procurado pela descrição exata do seed, e não por
+    // "Pagamento confirmado". A organização de demonstração é viva: o worker de
+    // cobrança age sobre ela, e cada fatura paga acrescenta mais um lançamento
+    // com esse mesmo rótulo. Filtrar pelo rótulo dava um teste que só passava
+    // logo depois do seed e quebrava assim que alguém rodasse o sistema.
+    const lancamento = page
+      .getByRole('listitem')
+      .filter({ hasText: 'Pagamento confirmado, com taxa de plataforma de 3%' });
     await expect(lancamento).toBeVisible();
     await expect(lancamento.getByTitle(/payment\.succeeded/)).toHaveCount(1);
 

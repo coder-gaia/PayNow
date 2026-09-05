@@ -320,6 +320,17 @@ async function seedBilling(organizationId: string): Promise<void> {
       plano: 'Básico',
       estado: SubscriptionStatus.PAST_DUE,
     },
+    // A página inicial traz depoimentos declaradamente fictícios, e cada
+    // negócio citado é um link para a assinatura correspondente aqui. Este
+    // entrou junto com a página, para que a promessa do link valha para todos:
+    // um link que leva a lugar nenhum desmentiria a página inteira, que existe
+    // para defender que tudo nela é conferível.
+    {
+      email: 'contato@cafe-meridiano.test',
+      nome: 'Café Meridiano',
+      plano: 'Pro',
+      estado: SubscriptionStatus.ACTIVE,
+    },
   ];
 
   // Ciclo fixo, para que a demonstração conte sempre a mesma história.
