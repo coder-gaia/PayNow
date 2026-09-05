@@ -351,6 +351,28 @@ export interface LedgerVerification {
   violations: string[];
 }
 
+/**
+ * Os números da visão geral.
+ *
+ * Todos os valores em centavos e como texto, e não como número: `bigint` não
+ * atravessa JSON, e `number` perde precisão a partir de nove quatrilhões de
+ * centavos. Ver ADR-0002.
+ */
+export interface Metrics {
+  currency: string;
+  mrrMinor: string;
+  recebidoMinor: string;
+  estornadoMinor: string;
+  liquidoMinor: string;
+  aReceberMinor: string;
+  faturasPagas: number;
+  faturasAbertas: number;
+  assinaturasAtivas: number;
+  assinaturasTotal: number;
+  emRecuperacao: number;
+  porStatus: Record<string, number>;
+}
+
 export const api = {
   profile: () => apiFetch<Profile>('/auth/me'),
   organization: (id: string) => apiFetch<OrganizationDetail>(`/organizations/${id}`),
@@ -358,10 +380,14 @@ export const api = {
   apiKeys: (id: string) => apiFetch<ApiKey[]>(`/organizations/${id}/api-keys`),
   ledgerBalances: (id: string) =>
     apiFetch<AccountBalance[]>(`/organizations/${id}/ledger/balances`),
-  ledgerEntries: (id: string) => apiFetch<JournalEntry[]>(`/organizations/${id}/ledger/entries`),
+  ledgerEntries: (id: string, limit?: number) =>
+    apiFetch<JournalEntry[]>(
+      `/organizations/${id}/ledger/entries${limit === undefined ? '' : `?limit=${limit}`}`,
+    ),
   ledgerVerification: (id: string) =>
     apiFetch<LedgerVerification>(`/organizations/${id}/ledger/verification`),
   subscriptions: (id: string) => apiFetch<Subscription[]>(`/organizations/${id}/subscriptions`),
+  metrics: (id: string) => apiFetch<Metrics>(`/organizations/${id}/metrics`),
   subscription: (id: string, subscriptionId: string) =>
     apiFetch<SubscriptionDetail>(`/organizations/${id}/subscriptions/${subscriptionId}`),
   products: (id: string) => apiFetch<Product[]>(`/organizations/${id}/products`),

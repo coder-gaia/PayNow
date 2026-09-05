@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface Depoimento {
@@ -20,70 +21,98 @@ const INTERVALO_MS = 7_000;
  * que ela acusa. Quem percebesse a invenção passaria a duvidar de tudo que está
  * acima, inclusive do que é conferível.
  *
+ * A primeira versão mostrava uma citação solta no meio de muito espaço vazio, e
+ * parecia inacabada. Agora são cartões com peso: aspas grandes, iniciais do
+ * negócio em bloco, e três de cada vez no desktop, com a janela deslizando de um
+ * em um. Um por vez desperdiça a largura e faz a seção parecer uma sobra.
+ *
  * As regras de comportamento não são enfeite:
  *
  * - **Para no hover, no foco e depois de qualquer navegação manual.** Carrossel
  *   que não para é armadilha para quem lê devagar, e quem clicou numa seta
  *   demonstrou que quer controlar o ritmo.
  * - **Sem `aria-live`.** A troca automática não deve interromper leitor de tela.
- *   A navegação manual é que anuncia, e por isso ela move o foco para o texto.
+ *   A navegação manual é que anuncia, e por isso ela move o foco para o cartão.
  * - **`prefers-reduced-motion` desliga a rotação**, e não só a transição: quem
  *   pediu menos movimento não pediu movimento mais suave.
- * - **Sem JavaScript vira uma lista de todos**, empilhada. Nenhum depoimento
- *   fica inacessível porque um script não carregou.
+ * - **Sem JavaScript vira a grade com todos**, empilhada. Nenhum depoimento fica
+ *   inacessível porque um script não carregou.
  */
 export function Carrossel({ depoimentos }: { depoimentos: readonly Depoimento[] }) {
-  const [atual, setAtual] = useState(0);
+  const [inicio, setInicio] = useState(0);
   const [pausado, setPausado] = useState(false);
+  const [porVez, setPorVez] = useState(1);
 
   // Começa desligado e só liga depois da hidratação. É o que faz a versão sem
-  // JavaScript ser a lista completa: o servidor sempre renderiza todos.
+  // JavaScript ser a grade completa: o servidor sempre renderiza todos.
   const [interativo, setInterativo] = useState(false);
 
-  const textoRef = useRef<HTMLParagraphElement>(null);
+  const primeiroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setInterativo(!window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const largo = window.matchMedia('(min-width: 1024px)');
+    const medio = window.matchMedia('(min-width: 640px)');
+
+    const ajustar = () => {
+      setInterativo(!semMovimento.matches);
+      setPorVez(largo.matches ? 3 : medio.matches ? 2 : 1);
+    };
+
+    ajustar();
+    for (const consulta of [semMovimento, largo, medio]) {
+      consulta.addEventListener('change', ajustar);
+    }
+
+    return () => {
+      for (const consulta of [semMovimento, largo, medio]) {
+        consulta.removeEventListener('change', ajustar);
+      }
+    };
   }, []);
 
   useEffect(() => {
-    if (!interativo || pausado || depoimentos.length < 2) {
+    if (!interativo || pausado || depoimentos.length <= porVez) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setAtual((anterior) => (anterior + 1) % depoimentos.length);
+      setInicio((anterior) => (anterior + 1) % depoimentos.length);
     }, INTERVALO_MS);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [interativo, pausado, depoimentos.length]);
+  }, [interativo, pausado, depoimentos.length, porVez]);
 
-  /** Navegação manual: para a rotação e leva o foco ao texto, que anuncia. */
+  /** Navegação manual: para a rotação e leva o foco ao primeiro cartão. */
   const irPara = useCallback((indice: number) => {
-    setAtual(indice);
+    setInicio(indice);
     setPausado(true);
-    textoRef.current?.focus();
+    primeiroRef.current?.focus();
   }, []);
 
   if (!interativo) {
     return (
-      <ul className="mx-auto grid max-w-5xl gap-px bg-rule sm:grid-cols-2">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {depoimentos.map((depoimento) => (
-          <li key={depoimento.negocio} className="bg-surface-sunken px-6 py-8">
-            <Citacao depoimento={depoimento} />
+          <li key={depoimento.negocio}>
+            <Cartao depoimento={depoimento} />
           </li>
         ))}
       </ul>
     );
   }
 
-  const visivel = depoimentos[atual] as Depoimento;
+  // A janela dá a volta, então o último e o primeiro ficam vizinhos em vez de
+  // existir um fim onde o carrossel trava.
+  const visiveis = Array.from(
+    { length: Math.min(porVez, depoimentos.length) },
+    (_, deslocamento) => depoimentos[(inicio + deslocamento) % depoimentos.length] as Depoimento,
+  );
 
   return (
     <div
-      className="mx-auto max-w-3xl"
       role="group"
       aria-roledescription="carrossel"
       aria-label="Depoimentos fictícios"
@@ -97,15 +126,21 @@ export function Carrossel({ depoimentos }: { depoimentos: readonly Depoimento[] 
         setPausado(true);
       }}
     >
-      <div className="min-h-[13rem] px-6 py-8 sm:min-h-[11rem]">
-        <Citacao depoimento={visivel} textoRef={textoRef} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visiveis.map((depoimento, posicao) => (
+          <Cartao
+            key={depoimento.negocio}
+            depoimento={depoimento}
+            cartaoRef={posicao === 0 ? primeiroRef : undefined}
+          />
+        ))}
       </div>
 
-      <div className="mt-2 flex items-center justify-center gap-2">
+      <div className="mt-6 flex items-center justify-center gap-2">
         <Seta
-          rotulo="Depoimento anterior"
+          rotulo="Depoimentos anteriores"
           onClick={() => {
-            irPara((atual - 1 + depoimentos.length) % depoimentos.length);
+            irPara((inicio - 1 + depoimentos.length) % depoimentos.length);
           }}
         >
           &lt;
@@ -118,20 +153,20 @@ export function Carrossel({ depoimentos }: { depoimentos: readonly Depoimento[] 
             // O rótulo diz de quem é, e não "ir para 3". Um marcador que só
             // existe como enfeite não serve para navegar.
             aria-label={`Depoimento de ${depoimento.negocio}`}
-            aria-current={indice === atual ? 'true' : undefined}
+            aria-current={indice === inicio ? 'true' : undefined}
             onClick={() => {
               irPara(indice);
             }}
-            className={`h-2.5 w-2.5 rounded-full border border-rule-strong transition-colors ${
-              indice === atual ? 'bg-credit' : 'bg-transparent hover:bg-rule-strong'
+            className={`h-2 w-6 border border-rule-strong transition-colors ${
+              indice === inicio ? 'bg-credit' : 'bg-transparent hover:bg-rule-strong'
             }`}
           />
         ))}
 
         <Seta
-          rotulo="Próximo depoimento"
+          rotulo="Próximos depoimentos"
           onClick={() => {
-            irPara((atual + 1) % depoimentos.length);
+            irPara((inicio + 1) % depoimentos.length);
           }}
         >
           &gt;
@@ -155,38 +190,66 @@ function Seta({
       type="button"
       aria-label={rotulo}
       onClick={onClick}
-      className="px-2 py-1 font-mono text-sm text-ink-muted hover:text-ink"
+      className="border border-rule-strong px-2.5 py-1 font-mono text-sm text-ink-muted hover:bg-surface hover:text-ink"
     >
       {children}
     </button>
   );
 }
 
-function Citacao({
+function Cartao({
   depoimento,
-  textoRef,
+  cartaoRef,
 }: {
   depoimento: Depoimento;
-  textoRef?: React.RefObject<HTMLParagraphElement | null>;
+  cartaoRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   return (
-    <figure>
-      {/* Serifa grande para a citação, monoespaçada pequena para a assinatura:
-          é a única seção da página que não é tabular, e o peso visual dela é
-          proposital. */}
-      <blockquote>
-        <p
-          ref={textoRef}
-          tabIndex={-1}
-          className="font-display text-xl leading-snug text-balance outline-none sm:text-2xl"
-        >
-          {depoimento.texto}
-        </p>
+    <figure
+      ref={cartaoRef}
+      tabIndex={-1}
+      className="flex h-full flex-col border border-rule bg-surface p-6 outline-none focus-visible:border-credit"
+    >
+      {/* A aspa é grande e em serifa de propósito: é a única seção da página que
+          não é tabular, e o peso visual dela é o que impede a seção de parecer
+          uma sobra no fim. */}
+      <span aria-hidden className="font-display text-4xl leading-none text-credit">
+        &ldquo;
+      </span>
+
+      <blockquote className="mt-2 flex-1">
+        <p className="font-display text-lg leading-snug text-balance">{depoimento.texto}</p>
       </blockquote>
 
-      <figcaption className="mt-4 border-t border-rule pt-3 font-mono text-[11px] tracking-[0.14em] text-ink-muted uppercase">
-        {depoimento.nome} · {depoimento.negocio}
+      <figcaption className="mt-6 flex items-center gap-3 border-t border-rule pt-4">
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center border border-rule-strong font-mono text-[11px] text-ink-muted"
+        >
+          {iniciais(depoimento.negocio)}
+        </span>
+
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium">{depoimento.nome}</span>
+          {/* O negócio é link para o painel, e não texto morto: quem lê o
+              depoimento da Padaria Lua encontra a Padaria Lua como assinatura
+              de verdade. O depoimento deixa de ser enfeite e vira porta. */}
+          <Link
+            href="/painel/assinaturas"
+            className="block truncate font-mono text-[11px] tracking-[0.12em] text-ink-faint uppercase hover:text-credit"
+          >
+            {depoimento.negocio}
+          </Link>
+        </span>
       </figcaption>
     </figure>
   );
+}
+
+function iniciais(negocio: string): string {
+  return negocio
+    .split(' ')
+    .slice(0, 2)
+    .map((palavra) => palavra.charAt(0).toUpperCase())
+    .join('');
 }

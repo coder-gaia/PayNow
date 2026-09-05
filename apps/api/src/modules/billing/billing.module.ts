@@ -6,6 +6,7 @@ import { ReceiptMailer } from './application/receipt-mailer';
 import { RefundsService } from './application/refunds.service';
 import { CatalogService } from './application/catalog.service';
 import { InvoicesService } from './application/invoices.service';
+import { MetricsService } from './application/metrics.service';
 import { PaymentsService } from './application/payments.service';
 import { SubscriptionsService } from './application/subscriptions.service';
 import { OutboxService } from '../platform/events/outbox.service';
@@ -46,6 +47,7 @@ import { PaymentsController } from './http/payments.controller';
     ReceiptMailer,
     RefundsService,
     SubscriptionsService,
+    MetricsService,
   ],
   exports: [
     BillingCycleService,
@@ -54,6 +56,7 @@ import { PaymentsController } from './http/payments.controller';
     PaymentsService,
     RefundsService,
     SubscriptionsService,
+    MetricsService,
   ],
 })
 export class BillingModule implements OnModuleInit {

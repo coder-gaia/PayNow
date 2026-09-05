@@ -33,8 +33,17 @@
   --color-caution-soft: #efe7d2;
 }
 
+/*
+ * O tema escuro redefine as variáveis em `:root`, e não em outro `@theme`.
+ *
+ * O Tailwind 4 processa `@theme` em tempo de build e emite tudo para `:root`
+ * sem a media query em volta, então um segundo `@theme` aqui dentro vencia
+ * sempre e o tema claro nunca aparecia: o site era escuro mesmo para quem tinha
+ * pedido claro no sistema. Redefinir em `:root` mantém a media query no CSS
+ * final, que é onde ela precisa estar.
+ */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root {
     --color-paper: #101512;
     --color-surface: #171e19;
     --color-surface-sunken: #1d2620;
@@ -142,5 +151,41 @@
   .scroll-x {
     scrollbar-width: thin;
     scrollbar-color: var(--color-rule-strong) transparent;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Entrada escalonada da página inicial.
+ *
+ * A página é um argumento, e o argumento se lê de cima para baixo. Fazer as
+ * peças chegarem nessa ordem é o que separa uma página que abre de uma página
+ * que está apenas ali. É CSS puro: uma biblioteca de animação numa página que
+ * defende simplicidade seria irônica.
+ *
+ * `both` mantém o estado inicial antes do atraso, senão a peça pisca visível e
+ * depois some para reaparecer.
+ * ------------------------------------------------------------------------- */
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer components {
+  .surgir {
+    animation: surgir 0.5s ease-out both;
+  }
+}
+
+/* Quem pediu menos movimento não pediu movimento mais suave: a página aparece
+   de uma vez. */
+@media (prefers-reduced-motion: reduce) {
+  .surgir {
+    animation: none;
   }
 }

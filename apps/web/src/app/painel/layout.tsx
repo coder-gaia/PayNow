@@ -94,7 +94,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <footer className="mx-auto max-w-5xl px-6 pb-10">
         <p className="border-t border-rule pt-4 font-mono text-[11px] text-ink-faint">
-          Fase 05 de 09. Os webhooks e a suíte adversarial chegam nas fases seguintes.
+          Fase 08 de 09. Falta o endurecimento: limite de taxa, modelo de ameaças e deploy.
         </p>
       </footer>
     </div>

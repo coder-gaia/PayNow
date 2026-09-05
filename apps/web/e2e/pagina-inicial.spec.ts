@@ -29,6 +29,26 @@ test.describe('página inicial', () => {
     await expect(page.getByText('Soma zero. Confira você mesmo.')).toBeVisible();
   });
 
+  /**
+   * O caminho para agir tem de estar visível sem rolar.
+   *
+   * A primeira versão desta página escondia o único botão de entrar no rodapé,
+   * depois de tudo. Uma página pode ter o melhor argumento do mundo e ainda
+   * assim perder quem não achou a porta.
+   */
+  test('tem um caminho para o painel antes de qualquer rolagem', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/');
+
+    const entrar = page.getByRole('link', { name: 'Entrar no painel' }).first();
+    await expect(entrar).toBeVisible();
+
+    const dentroDaPrimeiraTela = await entrar.evaluate(
+      (elemento) => elemento.getBoundingClientRect().bottom <= window.innerHeight,
+    );
+    expect(dentroDaPrimeiraTela).toBe(true);
+  });
+
   test('o rodapé do lançamento é verificado na hora, e não escrito à mão', async ({ page }) => {
     await page.goto('/');
 
@@ -43,7 +63,7 @@ test.describe('página inicial', () => {
   test('as linhas mostradas somam zero, conferido na própria tela', async ({ page }) => {
     await page.goto('/');
 
-    const lancamentos = page.locator('section[aria-labelledby="linhas"] li');
+    const lancamentos = page.locator('section#linhas li');
     await expect(lancamentos.first()).toBeVisible();
 
     const quantos = await lancamentos.count();
@@ -58,17 +78,22 @@ test.describe('página inicial', () => {
     }
   });
 
-  test('o carrossel gira, para no hover e é navegável por teclado', async ({ page }) => {
+  test('o carrossel gira, para depois do clique e é navegável', async ({ page }) => {
     await page.goto('/');
 
     const carrossel = page.getByRole('group', { name: 'Depoimentos fictícios' });
     await expect(carrossel).toBeVisible();
 
-    const primeiro = await carrossel.locator('blockquote p').textContent();
+    // No desktop a janela mostra três de cada vez e desliza de um em um: um por
+    // vez desperdiça a largura e faz a seção parecer uma sobra.
+    const cartoes = carrossel.locator('blockquote p');
+    await expect(cartoes).toHaveCount(3);
 
-    // A navegação manual troca o depoimento e não depende de esperar a rotação.
-    await carrossel.getByRole('button', { name: 'Próximo depoimento' }).click();
-    await expect(carrossel.locator('blockquote p')).not.toHaveText(primeiro ?? '');
+    const primeiro = await cartoes.first().textContent();
+
+    // A navegação manual troca a janela e não depende de esperar a rotação.
+    await carrossel.getByRole('button', { name: 'Próximos depoimentos' }).click();
+    await expect(cartoes.first()).not.toHaveText(primeiro ?? '');
 
     // O marcador ativo é anunciado, e não só colorido: um marcador que só
     // existe como enfeite não serve para navegar.
@@ -76,9 +101,9 @@ test.describe('página inicial', () => {
 
     // Depois de navegar à mão, a rotação para: quem clicou demonstrou que quer
     // controlar o ritmo, e trocar debaixo dele é armadilha para quem lê devagar.
-    const depoisDoClique = await carrossel.locator('blockquote p').textContent();
+    const depoisDoClique = await cartoes.first().textContent();
     await page.waitForTimeout(8_000);
-    await expect(carrossel.locator('blockquote p')).toHaveText(depoisDoClique ?? '');
+    await expect(cartoes.first()).toHaveText(depoisDoClique ?? '');
   });
 
   /**
@@ -123,6 +148,26 @@ test.describe('página inicial', () => {
 
       await expect(onde).toContainText(negocio);
     }
+  });
+
+  /**
+   * O tema claro existia no CSS e nunca aparecia.
+   *
+   * O Tailwind 4 processa `@theme` em tempo de build e emite tudo para `:root`
+   * sem a media query em volta, então o bloco escuro, que também era um
+   * `@theme`, vencia sempre. O site era escuro inclusive para quem tinha pedido
+   * claro no sistema, e ninguém percebeu porque a máquina de quem desenvolveu
+   * estava no escuro.
+   */
+  test('respeita o tema claro do sistema', async ({ browser }) => {
+    const contexto = await browser.newContext({ colorScheme: 'light' });
+    const pagina = await contexto.newPage();
+    await pagina.goto('/');
+
+    const fundo = await pagina.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(fundo).toBe('rgb(241, 244, 240)');
+
+    await contexto.close();
   });
 
   test('em 375px nada vaza para fora da tela', async ({ page }) => {

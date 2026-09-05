@@ -16,6 +16,7 @@ import { IsEmail, IsEnum, IsInt, IsOptional, IsString, Length, Min } from 'class
 
 import { OrganizationRoleGuard } from '../../platform/http/organization-role.guard';
 import { RequireRole } from '../../platform/http/auth-context';
+import { MetricsService } from '../application/metrics.service';
 import { CatalogService } from '../application/catalog.service';
 import { SubscriptionsService } from '../application/subscriptions.service';
 import { allowedTransitions, isActive } from '../domain/subscription-state';
@@ -73,11 +74,23 @@ export class BillingController {
   constructor(
     private readonly catalog: CatalogService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly overview: MetricsService,
   ) {}
 
   // ------------------------------------------------------------------
-  // Clientes
+  // Visão geral
   // ------------------------------------------------------------------
+
+  @Get('metrics')
+  @ApiOperation({
+    summary: 'Os números da visão geral',
+    description:
+      'Receita recorrente, o que já entrou, o que falta receber e quantas assinaturas estão em ' +
+      'recuperação. Todo valor é derivado das linhas: nenhum total é armazenado.',
+  })
+  async metrics(@Param('organizationId', uuid()) organizationId: string) {
+    return this.overview.overview(organizationId);
+  }
 
   @Get('customers')
   @ApiOperation({
