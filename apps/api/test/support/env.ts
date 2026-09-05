@@ -17,3 +17,12 @@
  * daqui é só o agendamento, que é justamente a parte não determinística.
  */
 process.env['WORKER_ENABLED'] = 'false';
+
+/**
+ * O limite de taxa sai do caminho nos testes.
+ *
+ * As suítes disparam centenas de requisições em segundos pelo mesmo IP, que é
+ * exatamente o padrão que o limite existe para barrar. Sem isto, o teste que
+ * falha é sempre o próximo da fila, e a mensagem não diz por quê.
+ */
+process.env['RATE_LIMIT_PER_MINUTE'] = '0';

@@ -36,6 +36,19 @@ const booleanFlag = (fallback: 'true' | 'false') =>
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: port(3333),
+
+  /**
+   * De onde o painel pode chamar a API.
+   *
+   * Lista separada por vírgula. Vazia significa "mesma origem", que é o certo
+   * quando os dois estão atrás do mesmo domínio. Um `*` aqui seria pior do que
+   * não ter CORS: com credencial em cookie, ele libera qualquer site a agir em
+   * nome de quem estiver logado.
+   */
+  CORS_ORIGINS: z.string().default(''),
+
+  /** Requisições por minuto, por IP. Zero desliga, e só faz sentido em teste. */
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).default(120),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'log', 'debug', 'verbose']).default('log'),
 
   DATABASE_URL: urlWithProtocol(

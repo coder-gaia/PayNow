@@ -437,6 +437,7 @@ demonstração com limite de taxa.
 | [docs/arquitetura.md](docs/arquitetura.md)         | A arquitetura explicada, com os pontos fracos na mesa |
 | [docs/plano-de-contas.md](docs/plano-de-contas.md) | Contrato contábil, contas e lançamentos de referência |
 | [docs/pagina-inicial.md](docs/pagina-inicial.md)   | Desenho da porta de entrada, em forma de razão        |
+| [docs/deploy.md](docs/deploy.md)                   | Como colocar no ar, e o que este deploy não tem       |
 | [docs/adr/](docs/adr/)                             | Decisões arquiteturais, numeradas e imutáveis         |
 
 ## Roadmap
@@ -459,8 +460,30 @@ Cada fase tem um critério de pronto verificável, e não opinativo.
 - [x] **07 Suíte adversarial.** Harness determinístico integrado ao CI.
 - [x] **08 Painel e demonstração.** Página inicial em forma de razão, carrossel
       de depoimentos, métricas, console de caos, fatura explicável.
-- [ ] **09 Endurecimento e lançamento.** Limite de taxa, modelo de ameaças,
-      teste de carga, runbooks, deploy.
+- [x] **09 Endurecimento e lançamento.** Limite de taxa, CORS explícito,
+      cabeçalhos de segurança, imagem de produção e guia de deploy. Ficaram de
+      fora, e estão nomeados na
+      [ADR-0019](docs/adr/0019-endurecimento-e-deploy.md): observabilidade,
+      teste de carga e runbook de incidente.
+
+## Deploy
+
+A API é uma imagem só, que serve HTTP e roda o worker conforme
+`WORKER_ENABLED`. Ver [ADR-0012](docs/adr/0012-worker-no-mesmo-processo.md).
+
+```bash
+docker build -t paynow-api .
+
+# As migrations são um passo separado do deploy, e têm de ser: um servidor que
+# altera o schema ao subir aplica a mesma migration N vezes quando há N réplicas.
+docker run --rm -e DATABASE_URL=... paynow-api \
+  npx prisma migrate deploy --schema prisma/schema.prisma
+
+docker run -d -p 3333:3333 --env-file .env.producao paynow-api
+```
+
+O passo a passo, as variáveis e **o que este deploy não tem** estão em
+[docs/deploy.md](docs/deploy.md).
 
 ## Licença
 
